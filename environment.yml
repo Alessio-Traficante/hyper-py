@@ -1,0 +1,15 @@
+name: Hyper
+channels:
+  - conda-forge
+  - astropy
+  - defaults
+dependencies:
+  - python=3.11
+  - importlib_metadata=8.5.0
+  - pyyaml
+  - astropy
+  - numpy
+  - photutils
+  - scipy
+  - lmfit
+  - matplotlib

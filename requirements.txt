@@ -1,0 +1,8 @@
+python==3.11
+pyyaml
+astropy
+numpy
+photutils
+scipy
+lmfit
+matplotlib

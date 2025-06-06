@@ -1,0 +1,137 @@
+#--------------------- File Paths ---------------------#
+paths:
+  dir_comm: "/Path/To/Data/"                            # Main directory for input/output data
+  input:  
+      dir_maps: "Test_maps/Maps"                        # Subdirectory of dir_comm containing input map files
+  output:
+      dir_table_out: "Test_maps/Params"    
+      dir_region_out: "Test_maps/Region_files"          # Subdirectory of dir_comm  for region files (output)
+      dir_log_out: "Test_maps"                          # Subdirectory of dir_comm  for log files
+
+
+#--------------------- File Names ---------------------#
+files:
+  file_map_name: 'test.txt'       # Input FITS map(s) for analysis (in dir_maps). 
+                                  # Can be either:
+                                  # - a list of filenames: ["map1.fits", "map2.fits"]
+                                  # - OR a .txt file with one filename per line placed in the "dir_maps" folder
+  file_table_base: "hyper_output" # Base filename for photometry output tables  (in dir_table_out)
+  file_region_base: "ellipses"    # Base filename for output ellipse region files (in dir_region_out)
+  
+  file_log_name: "Hyper_logfile.log"  # Name of the global log file (in dir_log_out)
+
+
+#--------------------- Pipeline Control ---------------------#
+control:
+  parallel_maps: true      # Enable parallel execution over multiple maps (True/False)
+  n_cores: 5               # Number of CPU cores to use for multiprocessing - better <= tot maps
+  
+  detection_only: false                   # Only perform source detection without photometry (True/False) 
+  use_fixed_source_table: false           # If True, use an external IPAC table for peak + aperture
+  fixed_source_table_path: "sources.txt"  # IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_maps)
+
+
+#--------------------- Units Conversion ---------------------#
+units:
+  convert_Jy_sr: false        # Convert input maps from MJy/sr to Jy/pixel (True/False)
+  convert_beam_Jy: false      # Convert input maps from Jy/beam to Jy/pixel (True/False)
+  convert_mJy: true           # Convert fluxes to milliJansky (mJy) in the final output (True/False). Default is Jy
+
+
+#--------------------- Survey Settings ---------------------#
+survey:
+  band_value: 1199                  # GHz -> reference band under analysis i(needed if not written in the header as CTYPE3)   
+  survey_code: 15                   # Numeric identifier for the survey or observation (see table below)
+
+  # Survey code reference:
+  # -----------------------------------------------
+  # | Code | Survey                               |
+  # -----------------------------------------------
+  # |  1   | Herschel PACS 70 µm                  |
+  # |  2   | Herschel PACS 100 µm                 |
+  # |  3   | Herschel PACS 160 µm                 |
+  # |  4   | Herschel SPIRE 250 µm                |
+  # |  5   | Herschel SPIRE 350 µm                |
+  # |  6   | Herschel SPIRE 500 µm                |
+  # |  7   | JCMT 450 µm                          |
+  # |  8   | JCMT 850 µm (ATLASGAL)               |
+  #                                               |
+  # | 15   | Dynamic from the header info         |
+  # -----------------------------------------------
+  
+  
+#--------------------- Source Detection ---------------------#
+detection:
+  sigma_thres: 5.0               # Detection threshold in units of RMS (sigma)
+  use_manual_rms: false          # Use manually provided RMS noise value to identify sources (True/False)
+  rms_value: 1.e-6               # Manual RMS noise value (Jy) - only if use_this_rms is True
+  roundlim: [-2.0, 2.0]          # Allowed source roundness range (min, max for DAOFIND)
+  sharplim: [-1.0, 2.0]          # Allowed source sharpness range (min, max for DAOFIND)   
+  dist_limit_arcsec: 0           # minimum distance to separate sources. Default: 0 -> beam distance
+
+  fixed_peaks: false             # Use fixed peaks instead of automatic (True/False)
+  xcen_fix: [84.7090236, 84.7114699]          # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
+  ycen_fix: [-69.0776622, -69.0773034]        # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
+
+
+#--------------------- Photometry Settings ---------------------#
+photometry:
+  aper_inf: 1.0                    # Minimum size factor for Gaussian FWHM (also used as inner annulus radius factor)
+  aper_sup: 2.0                    # Maximum size factor for Gaussian FWHM (also used as outer annulus radius factor)
+  
+  fixed_radius: false              # Use fixed aperture radii instead of Gaussian fitting (True/False)
+  fwhm_1: 0.7                      # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
+  fwhm_2: 0.4                      # Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true)
+  PA_val: 136.901                  # Fixed aperture position angle (deg East of North; only if radius_fix = true)
+
+
+#---------------------- Model fit Settings ----------------------#
+fit_options:
+  fit_method: "leastsq"        # Optimization algorithm ('leastsq')
+  max_nfev: 1000               # Maximum number of function evaluations
+  xtol: 1e-6                   # Tolerance on parameter change for convergence
+  ftol: 1e-6                   # Tolerance on cost function change for convergence
+  gtol: 1e-6                   # Tolerance on gradient orthogonality
+  calc_covar: false            # Estimate parameter covariance matrix
+  weights: "snr"               # Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'map', or 'mask'
+  power_snr: 5                 # SNR**power_snr - this value gives more weight to the bright pixels
+  verbose: false               # Print full fit report
+  use_l2_regularization: true  # Enable L2 regularization on background terms
+  lambda_l2: 1e-4              # Regularization strength
+  vary: false                  # Allow source peak to vary during Gaussian fit
+        
+
+#--------------------- Background Estimation ---------------------#
+background:
+  no_background: true                # Disable polynomial background subtraction (True/False)
+  polynomial_orders: [0, 1]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
+  fix_min_box: 10                    # Minimum box size (pixels) for variable-size background fitting
+  fix_max_box:  20                   # Maximum box size (pixels) for variable-size background fitting
+  fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
+  pol_orders_separate: [0, 1]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
+
+
+#--------------------- Fits output Options ---------------------#
+fits_output:                         # Save Fits files for best fits
+  fits_fitting: false                # best fit model group fits files
+  fits_deblended: false              # deblended per-source fits files
+  fits_bg_separate: false            # best fit background separated model group fits files (only if fit_gauss_and_bg_separately = true)
+  fits_output_dir_fitting: "Test_maps/Fits/Fitting/"             # Subdirectory of dir_comm 
+  fits_output_dir_deblended: "Test_maps/Fits/Deblended/"         # Subdirectory of dir_comm 
+  fits_output_dir_bg_separate: "Test_maps/Fits/Bg_separate/"     # Subdirectory of dir_comm 
+
+
+#--------------------- Visualization Options ---------------------#
+visualization:                       # Plot and save PNGs for the best Gaussian+background fit
+  visualize_fitting: false           # Visualize final Gaussian+background fit
+  visualize_deblended: false         # for per-source blended maps
+  visualize_bg_separate: false       # Visualize 3D background model from masked fit (only if fit_gauss_and_bg_separately = true)
+  output_dir_fitting: "Test_maps/Plots/Fitting"          # Subdirectory of dir_comm 
+  output_dir_deblended: "Test_maps/Plots/Deblended"      # Subdirectory of dir_comm  
+  output_dir_bg_separate: "Test_maps/Plots/Bg_separate"  # Subdirectory of dir_comm  
+
+
+
+
+
+      

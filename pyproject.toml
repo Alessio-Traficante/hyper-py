@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyper-py"
+version = "0.1.0"
+description = "HYPER: Hybrid Photometry Photometry and Extraction Routine"
+authors = [{ name = "Alessio Traficante", email = "alessio.traficante@inaf.it" }]
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # pyyaml
+    # astropy
+    # numpy
+    # photutils
+    # scipy
+    # lmfit
+    # matplotlib
+]
+
+[project.urls]
+Homepage = "https://github.com/alessio-traficante/hyper-py"
+
+[project.scripts]
+hyper-py = "hyper_py.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
