@@ -83,7 +83,7 @@ If you want to modify, extend, or integrate `hyper_py` in your own projects:
 1. Clone the repository or download the source code.
 
 ```bash
-git clone https://github.com/Alessio-Traficante/hyper-py-temp.git
+git clone https://github.com/Alessio-Traficante/hyper-py.git
 ```
 
 2. Make sure the `src/` directory is in your `PYTHONPATH`.
