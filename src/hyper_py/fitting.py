@@ -11,7 +11,7 @@ from photutils.aperture import CircularAperture
 
 
 def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_ycen, group_indices, map_struct, config, 
-                              logger, logger_file_only, group_id, count_source_blended_indexes):
+                              suffix, logger, logger_file_only, group_id, count_source_blended_indexes):
     ny, nx = image.shape
 
     # --- Load config parameters ---
@@ -341,9 +341,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 # Write the FITS file
                 hdul.writeto(filename, overwrite=True)
             
-            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "cutout")
-            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "model")
-            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "residual")
+            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "cutout")
+            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "model")
+            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "residual")
 
 
         # --- visualize best fit in png format --- #
@@ -366,7 +366,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 model=model_eval,
                 residual=residual_map,
                 output_dir=output_dir_vis,
-                label_name=f"HYPER_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}" if group_id is not None else "group",
+                label_name=f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}" if group_id is not None else "group",
                 box_size=best_box,
                 poly_order=best_order,
                 nmse=best_nmse

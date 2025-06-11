@@ -413,6 +413,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             group_indices = group_indices,
             map_struct=map_struct,
             config=cfg,
+            suffix=suffix,
             logger=logger,
             logger_file_only=logger_file_only,
             group_id=group_indices,
