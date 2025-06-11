@@ -8,7 +8,7 @@ from hyper_py.visualization import plot_fit_summary
 import matplotlib.pyplot as plt
 import os
 
-from separated_background_single_sources import masked_background_single_sources
+from bkg_single import masked_background_single_sources
 
 
 

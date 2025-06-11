@@ -51,152 +51,225 @@ control:
 
 If `parallel_maps` is set to `false`, the pipeline will run in serial mode.
 
-
+---
 
 ## 🚀 Prerequisites
 
-Before using `hyper_py`, make sure you have all necessary dependencies installed. You can choose between the following two methods:
+Before using `hyper_py`, it is highly recommended to create a dedicated Python environment (using `conda`, `venv`, or another environment manager). This helps avoid dependency conflicts and ensures consistent behavior.
+
+### Recommended Environment Setup
+
+HYPER requires the following packages:
+
+- Python >= 3.10
+- `numpy`
+- `astropy`
+- `photutils`
+- `lmfit` >= 1.3.3
+- `matplotlib`
+
+You can install them using `conda` or `pip`, depending on your setup.
 
 ### Option 1: Create a Conda Environment (Recommended)
-This will install the necessary packages using `conda`:
+```bash
+conda create -n hyper_env python=3.10
+conda activate hyper_env
+conda install numpy astropy matplotlib
+pip install photutils lmfit>=1.3.3
+```
 
+Or using an environment file:
 ```bash
 conda env create -f environment.yml
 conda activate Hyper
 ```
 
-
 ### Option 2: Install via `pip`
-This will install the necessary packages using `pip`:
-
 ```bash
-pip install -r requirements.txt
+pip install numpy astropy matplotlib photutils "lmfit>=1.3.3"
 ```
 
+---
+
 ## 🛠️ Installation
+
 You can install and use `hyper_py` in two different ways, depending on your needs:
 
 ### Option 1: Use the Source Code (for development or integration)
 
-If you want to modify, extend, or integrate `hyper_py` in your own projects:
-
-1. Clone the repository or download the source code.
-
+1. Clone the repository:
 ```bash
 git clone https://github.com/Alessio-Traficante/hyper-py.git
 ```
 
-2. Make sure the `src/` directory is in your `PYTHONPATH`.
+2. Set your `PYTHONPATH`:
 ```bash
 cd hyper_py
 export PYTHONPATH=$(pwd)/src
 ```
-   Or from within a Python script or interpreter:
 
+Or from within Python:
 ```python
 import sys
 sys.path.insert(0, "/absolute/path/to/hyper_py/src")
 ```
-### Option 2: Install via `pip` (for direct usage)
-1. Build or download the .whl package (e.g., dist/hyper_py-X.X.X-py3-none-any.whl).
-2. Install the wheel file using `pip`:
-   
+
+### Option 2: Install via `pip`
+1. Build or download the `.whl` file from the `dist/` folder.
+2. Install it:
 ```bash
 pip install hyper_py-X.X.X-py3-none-any.whl
 ```
-Use the current file version in dist folder.
 
-
+---
 
 ## 🎯 Usage
 
-You can use `hyper_py` either by importing and running it directly from Python, or via command line.
-> [!IMPORTANT]  
->  `hyper_py` needs a configuration file in order to run. If no configuration file path is provided, the default file located in the `src/` folder will be used.
+You can use `hyper_py` from either Python or the command line.
 
-### 1. From Python
-
-Import and run the `run_hyper` function, passing the path to your YAML configuration file.
+### From Python
 
 ```python
 from hyper_py import run_hyper
-
 run_hyper("path/to/config.yaml")
 ```
-This is the recommended approach if you want to integrate hyper_py into a larger Python application or workflow.
 
-### 2. From Command Line Interface (CLI)
+### From the Command Line
 
-I) Using the source code:
-
-You can execute the tool from the terminal:
+#### Using the source:
 ```bash
 python -m hyper_py path/to/config.yaml
 ```
-This runs the main process using the configuration file specified.
 
-II) If installed via pip:
-
-Once the .whl package is installed (e.g., via pip install hyper_py-X.X.X-py3-none-any.whl), you can run it directly:
+#### If installed via pip:
 ```bash
 hyper_py path/to/config.yaml
 ```
 
-## Using the Source Code in Visual Studio Code
-To run or debug the source code using Visual Studio Code:
-### 1. Open the project
-- Open the project folder in VS Code.
-- Make sure the Python extension is installed.
-- Press Ctrl+Shift+P (or Cmd+Shift+P on macOS) and run Python: Select Interpreter.
-- Choose the Hyper Conda environment (or another where the dependencies are installed).
-
-### 2. Run and debug the code
-
-To debug:
-- Open src/hyper_py/hyper.py or cli.py.
-- Set breakpoints as needed.
-- Press F5 or click the "Run and Debug" button in the sidebar.
-- In the launch configuration, set the entry script to src/hyper_py/cli.py.
-
-Optional: You can add this to `.vscode/launch.json` for convenience:
-
-
-```yaml
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Python Debugger:Run Hyper",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/src/hyper_py/cli.py",
-      "args": [],
-      "console": "integratedTerminal",
-      //"args": ["path/to/config.yaml"] // If you want to specify a different config file
-    }
-  ]
-}
-```
 ---
-<br/><br/>
+
+## 🏗️ Configuration File (`config.yaml`)
+
+HYPER is controlled entirely through a YAML configuration file. Below is a summary of its main sections:
+
+### 📂 Paths
+```yaml
+paths:
+  dir_comm: "/main/project/folder/"
+  input:
+    dir_maps: "Maps/"
+  output:
+    dir_table_out: "Params/"
+    dir_region_out: "Region_files/"
+    dir_log_out: "Logs/"
+```
+
+### 🧵 Control Flow
+```yaml
+control:
+  parallel_maps: true
+  n_cores: 4
+  detection_only: false
+  use_fixed_source_table: false
+  fixed_source_table_path: "sources.txt"
+```
+
+### 🔍 Detection
+```yaml
+detection:
+  sigma_thres: 5.0
+  use_manual_rms: false
+  rms_value: 1.e-6
+  roundlim: [-2.0, 2.0]
+  sharplim: [-1.0, 2.0]
+  dist_limit_arcsec: 0
+  fixed_peaks: false
+  xcen_fix: [...]
+  ycen_fix: [...]
+```
+
+### 📏 Photometry
+```yaml
+photometry:
+  aper_inf: 1.0
+  aper_sup: 2.0
+  fixed_radius: true
+  fwhm_1: [0.7]
+  fwhm_2: [0.4]
+  PA_val: [136.901]
+```
+
+### 🧮 Background
+```yaml
+background:
+  no_background: true
+  polynomial_orders: [0, 1]
+  fix_min_box: 10
+  fix_max_box: 20
+  fit_gauss_and_bg_separately: true
+  pol_orders_separate: [0, 1]
+```
+
+### 🧠 Fit Options
+```yaml
+fit_options:
+  fit_method: "leastsq"
+  max_nfev: 1000
+  xtol: 1e-6
+  ftol: 1e-6
+  gtol: 1e-6
+  calc_covar: false
+  weights: "snr"
+  power_snr: 5
+  use_l2_regularization: true
+  lambda_l2: 1e-4
+  vary: false
+```
+
+### 💾 FITS Output
+```yaml
+fits_output:
+  fits_fitting: true
+  fits_deblended: false
+  fits_bg_separate: true
+  fits_output_dir_fitting: "Fits/Fitting/"
+  fits_output_dir_deblended: "Fits/Deblended/"
+  fits_output_dir_bg_separate: "Fits/Bg_separate/"
+```
+
+### 📊 Visualization
+```yaml
+visualization:
+  visualize_fitting: false
+  visualize_deblended: false
+  visualize_bg_separate: false
+  output_dir_fitting: "Plots/Fitting/"
+  output_dir_deblended: "Plots/Deblended/"
+  output_dir_bg_separate: "Plots/Bg_separate/"
+```
+
+---
 
 ## 📦 Code Modules
 
-| File                  | Description |
-|-----------------------|-------------|
-| `hyper.py`            | Main launcher for multi-map analysis (parallel or serial)  
-| `single_map.py`       | Core logic for running detection + photometry on one map  
-| `config.py`           | YAML parser with access interface  
-| `detection.py`        | Source detection using high-pass filtering and DAOStarFinder  
-| `fitting.py`          | Multi-Gaussian + background fitting engine  
-| `gaussfit.py`         | Fitting routine for isolated Gaussian sources  
-| `photometry.py`       | Elliptical aperture photometry  
-| `survey.py`           | Retrieves beam info and reference units  
-| `map_io.py`           | FITS input and pre-processing (unit conversion)  
-| `data_output.py`      | Output table formatting and writing (IPAC, CSV)  
-| `paths_io.py`         | Handles file path construction for input/output files  
-| `logger.py`           | Custom logger supporting log file + screen separation  
-| `visualization.py`    | 2D/3D visual diagnostics of Gaussian/background fits  
-| `groups.py`           | Identifies source groups (blends vs. isolated)  
+| File                | Description                                                  |
+|---------------------|--------------------------------------------------------------|
+| `cli.py`            | Main launcher for multi-map analysis (parallel or serial)    |
+| `hyper.py`          | Initialize Hyper runs                                        |
+| `single_map.py`     | Core logic for running detection + photometry on one map     |
+| `config.py`         | YAML parser with access interface                            |
+| `detection.py`      | Source detection using high-pass filtering and DAOStarFinder |
+| `fitting.py`        | Multi-Gaussian + background fitting engine                   |
+| `gaussfit.py`       | Fitting routine for isolated Gaussian sources                |
+| `photometry.py`     | Elliptical aperture photometry                               |
+| `survey.py`         | Retrieves beam info and reference units                      |
+| `bkg_single.py`     | Estimate background separately in isolated source runs       |
+| `bkg_multigauss.py` | Estimate background separately in multi-Gaussian runs        |
+| `map_io.py`         | FITS input and pre-processing (unit conversion)              |
+| `data_output.py`    | Output table formatting and writing (IPAC, CSV)              |
+| `paths_io.py`       | Handles file path construction for input/output files        |
+| `logger.py`         | Custom logger supporting log file + screen separation        |
+| `visualization.py`  | 2D/3D visual diagnostics of Gaussian/background fits         |
+| `groups.py`         | Identifies source groups (blends vs. isolated)               |
 
 ---

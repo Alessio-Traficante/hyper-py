@@ -5,7 +5,7 @@ from astropy.wcs import WCS
 from astropy.stats import SigmaClip, sigma_clipped_stats
 from scipy.spatial.distance import pdist
 from hyper_py.visualization import plot_fit_summary
-from hyper_py.separated_background import estimate_masked_background
+from bkg_multigauss import estimate_masked_background
 
 from photutils.aperture import CircularAperture
 
