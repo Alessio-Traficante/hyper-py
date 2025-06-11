@@ -32,6 +32,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     # - input/output paths - #
     input_map_path     = paths_dict["input_map_path"]
     output_dir_path    = paths_dict["output_dir_path"]
+    
     base_name_with_suffix = paths_dict["base_name_with_suffix"]
     centroids_file     = paths_dict["centroids_file"]
     ellipses_file      = paths_dict["ellipses_file"]

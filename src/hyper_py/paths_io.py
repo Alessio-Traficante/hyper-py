@@ -75,19 +75,34 @@ def get_hyper_single_map_paths(cfg, map_name):
     # - Output - #
     suffix = Path(file_map).stem
 
+
     # - Tables - #
     dir_table_out = paths["output"]["dir_table_out"]
     output_dir_path = os.path.join(dir_comm, dir_table_out)
+    # Ensure the output directory exists
+    os.makedirs(output_dir_path, exist_ok=True)
+
+
     base_name_with_suffix = f"{cfg.get('files', 'file_table_base')}_{suffix}"
+
 
     # - Region files - #
     dir_region_out = paths["output"]["dir_region_out"]
+    # Ensure the output directory exists
+    output_dir_region_path = os.path.join(dir_comm, dir_region_out)
+    os.makedirs(output_dir_region_path, exist_ok=True)
+
     region_base = os.path.join(dir_comm, dir_region_out, f"{cfg.get('files', 'file_region_base')}_{suffix}")
     centroids_file = region_base + "_centroids.reg"
     ellipses_file = region_base + "_ellipses.reg"
 
+
     # - Log files - #
     dir_log = paths["output"]["dir_log_out"]
+    # Ensure the output directory exists
+    output_dir_log_path = os.path.join(dir_comm, dir_table_out)
+    os.makedirs(output_dir_log_path, exist_ok=True)
+    
     file_log = cfg.get("files", "file_log_name")
     log_path = os.path.join(dir_comm, dir_log, file_log)
 
