@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import os
 
-def estimate_masked_background(cutout, xcen_cut, ycen_cut, aper_sup, max_fwhm_extent, orders, suffix,
+def estimate_masked_background(cutout, cutout_header, xcen_cut, ycen_cut, aper_sup, max_fwhm_extent, orders, suffix,
                                 count_source_blended_indexes=None, config=None, logger=None, logger_file_only=None):
     """
     Estimate a polynomial background from a cutout map, masking elliptical/circular regions
@@ -105,7 +105,7 @@ def estimate_masked_background(cutout, xcen_cut, ycen_cut, aper_sup, max_fwhm_ex
         filename = f"{fits_output_dir_bg_separate}/{label_name}_bg_masked3D.fits"
     
         # Create a PrimaryHDU object and write the array into the FITS file
-        hdu = fits.PrimaryHDU(bg_poly)
+        hdu = fits.PrimaryHDU(data=bg_poly, header=cutout_header)
         hdul = fits.HDUList([hdu])
             
         # Write the FITS file

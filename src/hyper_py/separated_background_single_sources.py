@@ -4,18 +4,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from photutils.aperture import CircularAperture
 
-def masked_background_single_sources(
-    cutout,
-    x0,
-    y0,
-    external_sources,
-    max_fwhm_extent,
-    pol_orders_separate,
-    suffix,
-    source_id,
-    config,
-    logger_file_only
-):
+def masked_background_single_sources(cutout, cutout_header, x0, y0, external_sources, max_fwhm_extent, pol_orders_separate, suffix, source_id, config, logger_file_only):
     """
     Estimate polynomial background on a cutout image, masking the source region(s),
     and optionally save the result as FITS and/or 3D plot.
@@ -104,7 +93,7 @@ def masked_background_single_sources(
         os.makedirs(fits_output_dir, exist_ok=True)
         label_name = f"HYPER_MAP_{suffix}_ID_{source_id + 1}"
         filename = f"{fits_output_dir}/{label_name}_bg_masked3D.fits"
-        hdu = fits.PrimaryHDU(bg_model)
+        hdu = fits.PrimaryHDU(data=bg_model, header=cutout_header)
         hdul = fits.HDUList([hdu])
         hdul.writeto(filename, overwrite=True)
 

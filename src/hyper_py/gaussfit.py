@@ -1,6 +1,7 @@
 import numpy as np
 from lmfit import minimize, Parameters
 from astropy.io import fits
+from astropy.wcs import WCS
 from astropy.stats import sigma_clipped_stats, SigmaClip
 from photutils.aperture import CircularAperture
 from hyper_py.visualization import plot_fit_summary
@@ -60,7 +61,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     use_l2 = fit_cfg.get("use_l2_regularization", False)
     lambda_l2 = fit_cfg.get("lambda_l2", 1e-3)
     
-
     try:
         lambda_l2 = float(lambda_l2)
     except Exception as e:
@@ -69,6 +69,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
 
     # === Determine box size ===
+    header=map_struct['header']
     ny, nx = image.shape
 
     if fix_box:
@@ -82,6 +83,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     best_result = None
     min_nmse = np.inf
     best_cutout = None
+    best_header = None
     best_slice = None
     best_order = None
     bg_mean = 0.0
@@ -99,7 +101,16 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         if cutout.size == 0 or np.isnan(cutout).all():
             logger.warning("[WARNING] Empty or invalid cutout. Skipping.")
             continue
-
+      
+        #- save cutout header -#
+        cutout_wcs = WCS(header).deepcopy()
+        cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
+        cutout_wcs.wcs.crpix[1] -= ymin  # CRPIX2
+        cutout_header = cutout_wcs.to_header()
+        #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
+        cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
+              
+        
         yy, xx = np.indices(cutout.shape)
         x0 = xcen - xmin
         y0 = ycen - ymin
@@ -131,11 +142,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         cutout_masked[~mask] = np.nan
         
 
-
         # --- Background estimation on masked cutout (optional) ---
         if fit_separately:
             cutout, bg_model, poly_params = masked_background_single_sources(
                 cutout,
+                cutout_header,
                 x0,
                 y0,
                 external_sources,
@@ -147,7 +158,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 logger_file_only
             )    
             
-
 
         # --- Fit single 2D elliptical Gaussian (+ background) ---
         mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout, sigma=3.0, maxiters=5)
@@ -247,9 +257,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                         else:
                             minimize_kwargs[key] = float(val) 
                             
-                            
-                            
-                            
+           
                             
                 # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources within each box) ---
                 valid = ~np.isnan(cutout_masked)
@@ -290,6 +298,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     best_nmse = nmse
                     best_order = order
                     best_cutout = cutout
+                    best_header = cutout_header
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
                     best_box = (cutout.shape[1], cutout.shape[0])
@@ -345,7 +354,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             fits_fitting = False
 
         if fits_fitting:
-            def save_fits(array, output_dir, label_name, extension_name):
+            def save_fits(array, output_dir, label_name, extension_name, header=None):
                 # Ensure the output directory exists
                 os.makedirs(output_dir, exist_ok=True)
 
@@ -353,15 +362,15 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 filename = f"{output_dir}/{label_name}_{extension_name}.fits"
         
                 # Create a PrimaryHDU object and write the array into the FITS file
-                hdu = fits.PrimaryHDU(array)
+                hdu = fits.PrimaryHDU(data=array, header=header)
                 hdul = fits.HDUList([hdu])
                 
                 # Write the FITS file
                 hdul.writeto(filename, overwrite=True)
             
-            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "cutout")
-            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "model")
-            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "residual")
+            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "cutout", header = best_header)
+            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "model", header = best_header)
+            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "residual", header = best_header)
 
 
       

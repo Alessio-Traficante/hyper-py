@@ -1,6 +1,7 @@
 import numpy as np
 from lmfit import minimize, Parameters
 from astropy.io import fits
+from astropy.wcs import WCS
 from astropy.stats import SigmaClip, sigma_clipped_stats
 from scipy.spatial.distance import pdist
 from hyper_py.visualization import plot_fit_summary
@@ -14,7 +15,9 @@ import os
 def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_ycen, group_indices, map_struct, config, 
                               suffix, logger, logger_file_only, group_id, count_source_blended_indexes):
     
+    header=map_struct['header']
     ny, nx = image.shape
+
 
     # --- Load config parameters ---
     beam_pix = map_struct['beam_dim']/map_struct['pix_dim']/2.3548      # beam sigma size in pixels    
@@ -57,6 +60,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     best_result = None
     min_nmse = np.inf
     best_cutout = None
+    best_header = None
     best_slice = None
     best_order = None
     best_box = None
@@ -71,6 +75,16 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
         if cutout.size == 0 or np.isnan(cutout).all():
             continue
+        
+        
+        #- save cutout header -#
+        cutout_wcs = WCS(header).deepcopy()
+        cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
+        cutout_wcs.wcs.crpix[1] -= ymin  # CRPIX2
+        cutout_header = cutout_wcs.to_header()
+        #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
+        cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
+
  
                 
         yy, xx = np.indices(cutout.shape)
@@ -121,6 +135,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             
             cutout_bs, bg_poly = estimate_masked_background(
                 cutout=cutout,
+                cutout_header=cutout_header,
                 xcen_cut=xcen_cut_bg,
                 ycen_cut=ycen_cut_bg,
                 aper_sup=aper_sup,
@@ -286,6 +301,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     best_order = order
                     best_nmse = nmse
                     best_cutout = cutout
+                    best_header = header
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
                     best_box = (cutout.shape[1], cutout.shape[0])
@@ -332,7 +348,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             fits_fitting = False
 
         if fits_fitting:
-            def save_fits(array, output_dir, label_name, extension_name):
+            def save_fits(array, output_dir, label_name, extension_name, header=None):
                 # Ensure the output directory exists
                 os.makedirs(output_dir, exist_ok=True)
 
@@ -340,15 +356,15 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 filename = f"{output_dir}/{label_name}_{extension_name}.fits"
         
                 # Create a PrimaryHDU object and write the array into the FITS file
-                hdu = fits.PrimaryHDU(array)
+                hdu = fits.PrimaryHDU(data=array, header=header)
                 hdul = fits.HDUList([hdu])
                 
                 # Write the FITS file
                 hdul.writeto(filename, overwrite=True)
             
-            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "cutout")
-            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "model")
-            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "residual")
+            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "cutout", header=best_header)
+            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "model", header=best_header)
+            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "residual", header=best_header)
 
 
         # --- visualize best fit in png format --- #
