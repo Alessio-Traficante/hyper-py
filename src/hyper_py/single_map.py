@@ -316,10 +316,15 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         
         
         # --- radius fixed if decided in the config file ---
-        if fixed_radius:
-            fwhm_x = fwhm_1_list[i] / pix_dim
-            fwhm_y = fwhm_2_list[i] / pix_dim
-            theta = PA_list[i]
+        if fixed_radius:     
+            if len(fwhm_1_list) == 1:
+                fwhm_x = fwhm_1_list[0] / pix_dim
+                fwhm_y = fwhm_2_list[0] / pix_dim
+                theta = PA_list[0]
+            else:                
+                fwhm_x = fwhm_1_list[i] / pix_dim
+                fwhm_y = fwhm_2_list[i] / pix_dim
+                theta = PA_list[i]
         
         # --- Evaluate full model on the cutout grid ---
         yy, xx = np.indices(cutout.shape)
@@ -421,6 +426,19 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             count_source_blended_indexes = count_source_blended_indexes
         )
         
+        
+        # --- radius fixed if decided in the config file ---
+        if fixed_radius == True:
+            if len(fwhm_1_list) == 1:
+                fwhm_x_group = np.full(len(group_indices), fwhm_1_list[0] / pix_dim)
+                fwhm_y_group = np.full(len(group_indices), fwhm_2_list[0] / pix_dim)
+                theta_group  = np.full(len(group_indices), PA_list[0])
+            else:                
+                fwhm_x_group = fwhm_1_list[group_indices] / pix_dim
+                fwhm_y_group = fwhm_2_list[group_indices] / pix_dim
+                theta_group = PA_list[group_indices]
+
+        
         if fit_result is None:
             logger.error(f"Group fit failed for sources {group_key}")
             continue        
@@ -452,14 +470,14 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             fwhm_x = 2.3548 * sig_x  # FWHM in pixels
             fwhm_y = 2.3548 * sig_y
             theta = np.rad2deg(fit_result.params[f"g{j}_theta"].value)
-
             
             # --- radius fixed if decided in the config file ---
             if fixed_radius == True:
-                fwhm_x = (cfg.get("photometry", "fwhm_1", [3.0]))[i]/pix_dim
-                fwhm_y = (cfg.get("photometry", "fwhm_2", [2.0]))[i]/pix_dim
-                theta = (cfg.get("photometry", "PA_val", [0.0]))[i]/pix_dim
-            
+                fwhm_x = fwhm_x_group[j] 
+                fwhm_y = fwhm_y_group[j]
+                theta = theta_group[j]
+
+
             
             # --- Perform aperture photometry on residual image relative to cutout --- #
             phot_res = aperture_photometry_on_sources(
