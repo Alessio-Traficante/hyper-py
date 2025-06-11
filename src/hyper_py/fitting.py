@@ -8,6 +8,7 @@ from hyper_py.separated_background import estimate_masked_background
 
 from photutils.aperture import CircularAperture
 
+import os
 
 
 def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_ycen, group_indices, map_struct, config, 
@@ -96,7 +97,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             weights = mask_weights.astype(float)
             
             
-            
         
         #--- Identify external sources inside box ---#
         external_sources = []
@@ -126,6 +126,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 aper_sup=aper_sup,
                 max_fwhm_extent=max_fwhm_extent,
                 orders=pol_orders_separate,
+                suffix=suffix,
                 count_source_blended_indexes=count_source_blended_indexes,
                 config=config,
                 logger=logger,
@@ -332,6 +333,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
         if fits_fitting:
             def save_fits(array, output_dir, label_name, extension_name):
+                # Ensure the output directory exists
+                os.makedirs(output_dir, exist_ok=True)
+
                  # Create the FITS filename based on the label and extension type
                 filename = f"{output_dir}/{label_name}_{extension_name}.fits"
         

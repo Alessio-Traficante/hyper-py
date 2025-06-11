@@ -197,7 +197,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             except:
                 fits_bg_separate = False
 
-            if fits_bg_separate:
+            if fits_bg_separate:       
+                # Ensure the output directory exists
+                os.makedirs(fits_output_dir_bg_separate, exist_ok=True)
+                
+
                 label_name = f"HYPER_MAP_{suffix}_ID_{source_id+1}"
                 filename = f"{fits_output_dir_bg_separate}/{label_name}_bg_masked3D.fits"
             
@@ -431,6 +435,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
         if fits_fitting:
             def save_fits(array, output_dir, label_name, extension_name):
+                # Ensure the output directory exists
+                os.makedirs(output_dir, exist_ok=True)
+
                  # Create the FITS filename based on the label and extension type
                 filename = f"{output_dir}/{label_name}_{extension_name}.fits"
         

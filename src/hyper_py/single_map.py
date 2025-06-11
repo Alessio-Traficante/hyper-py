@@ -475,6 +475,10 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             # -- Save the cutout, model, and residual maps for deblended sources as fits files -- #
             if fits_deblended:
                 def save_fits(array, output_dir, label_name, extension_name):
+                    
+                    # Ensure the output directory exists
+                    os.makedirs(output_dir, exist_ok=True)
+                    
                      # Create the FITS filename based on the label and extension type
                     filename = f"{output_dir}/{label_name}_{extension_name}.fits"
             
