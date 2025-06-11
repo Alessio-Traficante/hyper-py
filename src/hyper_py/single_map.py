@@ -297,6 +297,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             all_sources_ycen = all_sources_ycen,
             source_id=idx_iso,
             map_struct=map_struct,
+            suffix=suffix,
             config=cfg,
             logger=logger,
             logger_file_only=logger_file_only

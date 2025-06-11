@@ -9,7 +9,7 @@ import os
 
 
 
-def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen, source_id, map_struct, config, logger, logger_file_only):
+def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen, source_id, map_struct, suffix, config, logger, logger_file_only):
     """
     Fit a single 2D elliptical Gaussian + polynomial background to an isolated source.
 
@@ -198,7 +198,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 fits_bg_separate = False
 
             if fits_bg_separate:
-                label_name = f"HYPER_ID_{source_id+1}"
+                label_name = f"HYPER_MAP_{suffix}_ID_{source_id+1}"
                 filename = f"{fits_output_dir_bg_separate}/{label_name}_bg_masked3D.fits"
             
                 # Create a PrimaryHDU object and write the array into the FITS file
@@ -227,7 +227,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 ax.set_zlabel("Flux (Jy)", fontsize=8, fontweight="bold")
                 ax.set_title("Initial Background (Isolated)", fontsize=10, fontweight="bold")
                 
-                label_str = f"HYPER_ID_{source_id+1}"
+                label_str = f"HYPER_MAP_{suffix}_ID_{source_id+1}"
                 outname = os.path.join(output_dir, f"{label_str}_bg_masked3D.png")
                 
                 plt.savefig(outname, dpi=300, bbox_inches="tight")
@@ -414,7 +414,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 model=model_eval,
                 residual=residual_map,
                 output_dir=output_dir_vis,
-                label_name=f"HYPER_ID_{source_id+1}" if source_id is not None else "source",
+                label_name=f"HYPER_MAP_{suffix}_ID_{source_id+1}" if source_id is not None else "source",
                 box_size=best_box,
                 poly_order=best_order,
                 nmse=best_nmse
@@ -441,9 +441,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 # Write the FITS file
                 hdul.writeto(filename, overwrite=True)
             
-            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_ID_{source_id+1}", "cutout")
-            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_ID_{source_id+1}", "model")
-            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_ID_{source_id+1}", "residual")
+            save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "cutout")
+            save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "model")
+            save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "residual")
 
 
       
