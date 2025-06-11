@@ -161,7 +161,12 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             # Convert WCS coordinates to pixel positions
             xpix, ypix = wcs.wcs_world2pix(xcen_fix, ycen_fix, 0)
             xcen = xpix
-            ycen = ypix    
+            ycen = ypix
+        
+        sources = xcen
+        all_sources_xcen = xcen
+        all_sources_ycen = ycen
+     
     else:
         sources = detect_sources(
             map_struct_list=map_struct,
