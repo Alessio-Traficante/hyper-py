@@ -485,9 +485,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
                     # Write the FITS file
                     hdul.writeto(filename, overwrite=True)
                 
-                save_fits(cutout, fits_output_dir_deblended, f"HYPER_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "cutout")
-                save_fits(model_without_j, fits_output_dir_deblended, f"HYPER_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "model")
-                save_fits(source_only_map, fits_output_dir_deblended, f"HYPER_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "residual")
+                save_fits(cutout, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "cutout")
+                save_fits(model_without_j, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "model")
+                save_fits(source_only_map, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "residual")
 
             
             # --- visualize plots of the cutout, model, and residual maps for deblended sources an png files --- #
