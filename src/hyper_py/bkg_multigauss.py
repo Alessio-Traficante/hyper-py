@@ -133,7 +133,7 @@ def estimate_masked_background(cutout, cutout_header, xcen_cut, ycen_cut, aper_s
 
         ax.set_title("Initial Background Model from Masked Map", fontsize=10, fontweight="bold")
         plt.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.12)
-        label_str = f"HYPER_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}" if count_source_blended_indexes is not None else "group"
+        label_str = f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}" if count_source_blended_indexes is not None else "group"
         outname = os.path.join(output_dir_vis, f"{label_str}_bg_masked3D.png")
         plt.savefig(outname, dpi=300, bbox_inches="tight")
         plt.close()

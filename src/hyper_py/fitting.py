@@ -301,7 +301,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     best_order = order
                     best_nmse = nmse
                     best_cutout = cutout
-                    best_header = header
+                    best_header = cutout_header
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
                     best_box = (cutout.shape[1], cutout.shape[0])
@@ -394,7 +394,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             )
             
 
-        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, bg_mean, best_box, best_nmse
+        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, best_header, bg_mean, best_box, best_nmse
 
     # Ensure return is always complete
     return 0, None, None, None, None, None, None, None

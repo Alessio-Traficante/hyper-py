@@ -410,7 +410,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         group_x = xcen[group_indices]
         group_y = ycen[group_indices]        
     
-        fit_status, fit_result, model_fn, bg_order, cutout, cutout_slice, bg_mean, box_size, final_nmse = fit_group_with_background(
+        fit_status, fit_result, model_fn, bg_order, cutout, cutout_slice, cutout_header, bg_mean, box_size, final_nmse = fit_group_with_background(
             image=real_map,
             xcen=group_x,
             ycen=group_y,
@@ -493,7 +493,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             
             # -- Save the cutout, model, and residual maps for deblended sources as fits files -- #
             if fits_deblended:
-                def save_fits(array, output_dir, label_name, extension_name):
+                def save_fits(array, output_dir, label_name, extension_name, header=None):
                     
                     # Ensure the output directory exists
                     os.makedirs(output_dir, exist_ok=True)
@@ -502,15 +502,15 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
                     filename = f"{output_dir}/{label_name}_{extension_name}.fits"
             
                     # Create a PrimaryHDU object and write the array into the FITS file
-                    hdu = fits.PrimaryHDU(array)
+                    hdu = fits.PrimaryHDU(data=array, header=header)
                     hdul = fits.HDUList([hdu])
                     
                     # Write the FITS file
                     hdul.writeto(filename, overwrite=True)
                 
-                save_fits(cutout, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "cutout")
-                save_fits(model_without_j, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "model")
-                save_fits(source_only_map, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "residual")
+                save_fits(cutout, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "cutout", header=cutout_header)
+                save_fits(model_without_j, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "model", header=cutout_header)
+                save_fits(source_only_map, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "residual", header=cutout_header)
 
             
             # --- visualize plots of the cutout, model, and residual maps for deblended sources an png files --- #
