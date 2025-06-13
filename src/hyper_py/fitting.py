@@ -366,7 +366,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "model", header=best_header)
             save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "residual", header=best_header)
 
-
         # --- visualize best fit in png format --- #
         try:
             visualize = config.get("visualization", "visualize_fitting")
