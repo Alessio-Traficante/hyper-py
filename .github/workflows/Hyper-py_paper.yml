@@ -25,4 +25,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Hyper-py-paper
+          path: paper/*.pdf
           path: paper/Hyper-py_paper.pdf  # must match actual output path
