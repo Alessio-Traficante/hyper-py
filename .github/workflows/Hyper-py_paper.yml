@@ -1,27 +1,28 @@
 name: JOSS PDF
+
 on:
   push:
     paths:
       - paper/**
       - .github/workflows/Hyper-py_paper.yml
+  workflow_dispatch:  # allow manual trigger
+
 jobs:
   paper:
     runs-on: ubuntu-latest
     name: Hyper-py JOSS paper
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Build Hyper-py JOSS paper
+
+      - name: Build JOSS paper PDF
         uses: openjournals/openjournals-draft-action@master
         with:
           journal: joss
-          # This should be the path to the paper within your repo.
-          paper-path: paper/Hyper-py_paper.md
-      - name: Upload
+          paper-path: paper/Hyper-py_paper.md  # adjust only if your .md file is not renamed
+
+      - name: Upload compiled PDF
         uses: actions/upload-artifact@v4
         with:
-          name: Hyper-py_paper
-          # This is the output path where Pandoc will write the compiled
-          # PDF. Note, this should be the same directory as the input
-          # paper.md
-          path: Hyper-py_paper.pdf
+          name: Hyper-py-paper
+          path: paper/Hyper-py_paper.pdf  # must match actual output path
