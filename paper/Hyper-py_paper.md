@@ -8,17 +8,17 @@ tags:
 authors:
   - name: Alessio Traficante
     orcid: 0000-0003-1665-6402
-    affiliation: 1  
-    corresponding: true 
+    affiliation: 1
+    corresponding: true
   - name: Fabrizio De Angelis
     affiliation: 1
   - name: Alice Nucara
     affiliation: 1
 affiliations:
- - name: INAF-IAPS, Via Fosso del Cavaliere, 100, 00133 Rome (IT)
-   index: 1
-date: 13 June 2025
+  - name: INAF-IAPS, Via Fosso del Cavaliere, 100, 00133 Rome (IT)
+    index: 1
 bibliography: Hyper_py.bib
+---
 
 
 # Summary
