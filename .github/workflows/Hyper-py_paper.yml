@@ -4,6 +4,7 @@ on:
     paths:
       - paper/**
       - .github/workflows/Hyper-py_paper.yml
+  workflow_dispatch:  # ← add this line to allow manual trigger    
 jobs:
   paper:
     runs-on: ubuntu-latest
@@ -24,4 +25,4 @@ jobs:
           # This is the output path where Pandoc will write the compiled
           # PDF. Note, this should be the same directory as the input
           # paper.md
-          path: Hyper-py_paper.pdf
+          path: paper/paper.pdf
