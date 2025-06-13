@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build JOSS paper PDF
+      - name: Build Hyper JOSS paper PDF
         uses: openjournals/openjournals-draft-action@master
         with:
           journal: joss
