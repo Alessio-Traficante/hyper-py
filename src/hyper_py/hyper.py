@@ -56,6 +56,11 @@ def run_hyper(cfg_path):
     file_log = cfg.get("files", "file_log_name")
     log_path = os.path.join(dir_comm, dir_log, file_log)
     
+    # Ensure the log directory exists
+    log_path_dir = os.path.join(dir_comm, dir_log)
+    os.makedirs(log_path_dir, exist_ok=True)
+
+    
     logger, logger_file_only = setup_logger(log_path, logger_name="HyperLogger", overwrite=True)
     
     
