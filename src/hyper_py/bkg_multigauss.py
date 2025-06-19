@@ -48,36 +48,54 @@ def estimate_masked_background(cutout, cutout_header, xcen_cut, ycen_cut, aper_s
     z_bg = cutout[y_bg, x_bg]
     yy, xx = np.indices(cutout.shape)
     
-    # Select only valid (non-NaN) pixels
-    valid = ~np.isnan(z_bg)
-    x_bg_valid = x_bg[valid]
-    y_bg_valid = y_bg[valid]
-    z_bg_valid = z_bg[valid]
 
-    poly_params = {}
     try:
+        # Select only valid (non-NaN) pixels
+        valid = ~np.isnan(z_bg)
+        x_bg_valid = x_bg[valid]
+        y_bg_valid = y_bg[valid]
+        z_bg_valid = z_bg[valid]
+    
+        # Build the design matrix
         max_order = max(orders)
+        terms = []
+        param_names = []
+    
         for dx in range(max_order + 1):
             for dy in range(max_order + 1 - dx):
-                pname = f"c{dx}_{dy}"
-                A = np.ones_like(z_bg_valid)
-                A = (x_bg_valid ** dx) * (y_bg_valid ** dy)
-                denom = np.sum(A**2)
-                poly_params[pname] = np.sum(z_bg_valid * A) / denom if denom > 0 else 0.0
-
-
+                terms.append((x_bg_valid ** dx) * (y_bg_valid ** dy))
+                param_names.append(f"c{dx}_{dy}")
+    
+        A = np.vstack(terms).T  # shape: (N_pixels, N_terms)
+    
+        # Solve least squares: A @ coeffs ≈ z
+        coeffs, residuals, rank, s = np.linalg.lstsq(A, z_bg_valid, rcond=None)
+    
+        # Map coefficients to names
+        poly_params = dict(zip(param_names, coeffs))
+    
+        # Build the background model
         bg_poly = np.zeros_like(cutout, dtype=float)
         for pname, coeff in poly_params.items():
             dx, dy = map(int, pname[1:].split("_"))
             bg_poly += coeff * (xx ** dx) * (yy ** dy)
-
+    
+        # Subtract background
         cutout_bs = cutout - bg_poly
         logger_file_only.info(f"[INFO] Masked background polynomial (order ≤ {max_order}) subtracted.")
-
+    
     except Exception as e:
         logger_file_only.info(f"[WARNING] Background estimation failed: {e}")
         cutout_bs = cutout.copy()
         bg_poly = np.zeros_like(cutout)
+
+
+
+
+
+
+
+
 
 
     # === Optional 3D visualization ===
