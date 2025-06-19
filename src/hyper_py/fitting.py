@@ -177,7 +177,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
                     # --- Local peak near (xc, yc) in cutout ---
                     prefix = f"g{i}_"
-                    params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*np.max(cutout))
+                    # params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*np.max(cutout))
+                    params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(round(xc)),int(round(yc))])
+
                     params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
                     params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
  
@@ -189,11 +191,12 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         params.add(f"{prefix}x0", value=xc, vary=False)
                         params.add(f"{prefix}y0", value=yc, vary=False) 
 
-                    params.add(f"{prefix}sx", value=aper_inf, min=aper_inf, max=aper_sup)
-                    params.add(f"{prefix}sy", value=aper_inf, min=aper_inf, max=aper_sup)
-                    params.add(f"{prefix}theta", value=0.0) #, min=-np.pi / 2, max=np.pi / 2)
-                    
-                    
+                    avg_aper = (aper_inf + aper_sup)/2. 
+                    params.add(f"{prefix}sx", value=avg_aper*1.2, min=aper_inf, max=aper_sup)
+                    params.add(f"{prefix}sy", value=avg_aper*0.8, min=aper_inf, max=aper_sup)
+                    params.add(f"{prefix}theta", value=0.0, min=-np.pi/2, max=np.pi/2)
+
+
                 # --- Add full 2D polynomial background (including cross terms) ---
                 if not no_background:
                     for deg_x in range(order + 1):
@@ -222,10 +225,11 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                             for deg_y in range(order + 1):
                                 pname = f"c{deg_x}_{deg_y}"
                                 if pname in params:
-                                    # model += params[pname] * (x ** deg_x) * (y ** deg_y)
                                     model += params[pname].value * (x ** deg_x) * (y ** deg_y)
-
+                    # Final check
+                    model = np.where(np.isfinite(model), model, 0.0)
                     return model
+                
 
                 def residual(params, x, y, data, weights=None):
                     model = model_fn(params, x, y)
