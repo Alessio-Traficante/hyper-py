@@ -16,6 +16,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from astropy.io import ascii
 from astropy.table import vstack
 
+from extract_cubes import extract_maps_from_cube
+
 
 def run_hyper(cfg_path):
     # === Load config ===
@@ -37,6 +39,8 @@ def run_hyper(cfg_path):
     dir_maps = paths["input"]["dir_maps"]
     base_table_name = cfg.get("files", "file_table_base")
     map_names = cfg.get("files", "file_map_name")
+    datacube = cfg.get("control", "datacube", False)
+
     
     # If it's a path to a .txt file, read it #
     if isinstance(map_names, str) and map_names.endswith('.txt'):
@@ -46,6 +50,10 @@ def run_hyper(cfg_path):
     # If it's a single string but not a .txt, wrap it in a list
     elif isinstance(map_names, str):
         map_names = [map_names]
+        
+    if datacube:
+        map_names = extract_maps_from_cube(map_names, dir_comm, dir_maps)
+    
         
     # - output - #
     output_dir = paths["output"]["dir_table_out"]

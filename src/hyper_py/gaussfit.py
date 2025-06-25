@@ -45,6 +45,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
     
+    convert_mjy=config.get("units", "convert_mJy")
+
     fit_cfg = config.get("fit_options", {})
     weight_choice = fit_cfg.get("weights", None)
     weight_power_snr = fit_cfg.get("power_snr", 1.0)
@@ -76,7 +78,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         box_sizes = [fix_min_box]
     else:
         max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
-        dynamic_min_box = int(max_fwhm_extent) + fix_min_box
+        dynamic_min_box = int(np.ceil(max_fwhm_extent) + fix_min_box)
         dynamic_max_box = dynamic_min_box + fix_max_box
         box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
 
@@ -198,8 +200,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 vary = config.get("fit_options", "vary", True)
                 
                 params = Parameters()
-                params.add("g_amplitude", value=np.max(cutout), min=0., max=1.1*np.max(cutout))
-                # params.add("g_amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(y0),int(x0)])
+                params.add("g_amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(round(y0)),int(round(x0))])
 
                 if vary == True:
                     params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
@@ -314,7 +315,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     logger_file_only.info(f"[SUCCESS] Fit (box={cutout.shape[1], cutout.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}")
                 else:
                     logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
-                    
+                    nmse = np.nan
         
                 if nmse < min_nmse:
                     best_result = result
@@ -386,6 +387,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         
                 # Create a PrimaryHDU object and write the array into the FITS file
                 hdu = fits.PrimaryHDU(data=array, header=header)
+                if convert_mjy:
+                    hdu.header['BUNIT'] = 'mJy/pixel'
+                else: hdu.header['BUNIT'] = 'Jy/pixel'    
                 hdul = fits.HDUList([hdu])
                 
                 # Write the FITS file

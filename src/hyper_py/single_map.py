@@ -503,8 +503,13 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             
                     # Create a PrimaryHDU object and write the array into the FITS file
                     hdu = fits.PrimaryHDU(data=array, header=header)
-                    hdul = fits.HDUList([hdu])
                     
+                    convert_mjy=cfg.get("units", "convert_mJy")
+                    if convert_mjy:
+                        hdu.header['BUNIT'] = 'mJy/pixel'
+                    else: hdu.header['BUNIT'] = 'Jy/pixel'    
+
+                    hdul = fits.HDUList([hdu])
                     # Write the FITS file
                     hdul.writeto(filename, overwrite=True)
                 
@@ -581,29 +586,54 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
 
 
 ######################## Write Table after photometry ########################
-    data_dict = {
-        "MAP_ID": [suffix] * len(updated_xcen),
-        "HYPER_ID": list(range(1, len(updated_xcen) + 1)),
-        # "HYPER_ID": list(source_id_save),
-        "BAND": [band_ref] * len(updated_xcen),
-        "FLUX_PEAK": list(flux_peak),
-        "FLUX": list(flux),
-        "FLUX_ERR": list(flux_err),
-        "RESIDUALS": list(sky_val),
-        "POLYN": list(poly_order_val),
-        "NMSE": list(nmse_val),
-        "CHI2_RED": list(redchi_val),
-        "FWHM_1": list(radius_val_1),
-        "FWHM_2": list(radius_val_2),
-        "PA": list(PA_val),
-        "STATUS": list(fit_statuts_val),
-        "GLON": list(glon),
-        "GLAT": list(glat),
-        "RA": list(ra_save),
-        "DEC": list(dec),
-        "DEBLEND": list(deblend_val),
-        "CLUSTER": list(cluster_val),
-    }
+
+    if len(updated_xcen) == 0:
+        data_dict = {
+            "MAP_ID": [str(suffix)],
+            "HYPER_ID": [0],
+            "BAND": [band_ref],
+            "FLUX_PEAK": [0.0],
+            "FLUX": [0.0],
+            "FLUX_ERR": [0.0],
+            "RESIDUALS": [0.0],
+            "POLYN": [0],
+            "NMSE": [0.0],
+            "CHI2_RED": [0.0],
+            "FWHM_1": [0.0],
+            "FWHM_2": [0.0],
+            "PA": [0.0],
+            "STATUS": [0],
+            "GLON": [0.0],
+            "GLAT": [0.0],
+            "RA": [0.0],
+            "DEC": [0.0],
+            "DEBLEND": [0],
+            "CLUSTER": [0],
+        }
+    else:
+        data_dict = {
+            "MAP_ID": [str(suffix)] * len(updated_xcen),
+            "HYPER_ID": list(range(1, len(updated_xcen) + 1)),
+            "BAND": [band_ref] * len(updated_xcen),
+            "FLUX_PEAK": list(flux_peak),
+            "FLUX": list(flux),
+            "FLUX_ERR": list(flux_err),
+            "RESIDUALS": list(sky_val),
+            "POLYN": list(poly_order_val),
+            "NMSE": list(nmse_val),
+            "CHI2_RED": list(redchi_val),
+            "FWHM_1": list(radius_val_1),
+            "FWHM_2": list(radius_val_2),
+            "PA": list(PA_val),
+            "STATUS": list(fit_statuts_val),
+            "GLON": list(glon),
+            "GLAT": list(glat),
+            "RA": list(ra_save),
+            "DEC": list(dec),
+            "DEBLEND": list(deblend_val),
+            "CLUSTER": list(cluster_val),
+        }
+
     
     
     # -- Print the output directory and file path --#

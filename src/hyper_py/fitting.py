@@ -24,6 +24,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
     
+    convert_mjy=config.get("units", "convert_mJy")
+
+    
     fit_cfg = config.get("fit_options", {})
     weight_choice = fit_cfg.get("weights", None)
     weight_power_snr = fit_cfg.get("power_snr", 1.0)
@@ -178,7 +181,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     # --- Local peak near (xc, yc) in cutout ---
                     prefix = f"g{i}_"
                     # params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*np.max(cutout))
-                    params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(round(xc)),int(round(yc))])
+                    params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(round(yc)),int(round(xc))])
 
                     params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
                     params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
@@ -301,7 +304,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     logger_file_only.info(f"[SUCCESS] Fit (box={cutout.shape[1], cutout.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}")
                 else:
                     logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
-                    
+                    nmse = np.nan
+
         
                 if nmse < min_nmse:
                     best_result = result
@@ -364,6 +368,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         
                 # Create a PrimaryHDU object and write the array into the FITS file
                 hdu = fits.PrimaryHDU(data=array, header=header)
+                if convert_mjy:
+                    hdu.header['BUNIT'] = 'mJy/pixel'
+                else: hdu.header['BUNIT'] = 'Jy/pixel'    
                 hdul = fits.HDUList([hdu])
                 
                 # Write the FITS file
@@ -403,4 +410,4 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, best_header, bg_mean, best_box, best_nmse
 
     # Ensure return is always complete
-    return 0, None, None, None, None, None, None, None
+    return 0, None, None, None, None, None, None, None, None, None

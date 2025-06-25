@@ -106,9 +106,14 @@ def masked_background_single_sources(cutout_masked, cutout, cutout_header, x0, y
         os.makedirs(fits_output_dir, exist_ok=True)
         label_name = f"HYPER_MAP_{suffix}_ID_{source_id + 1}"
         filename = f"{fits_output_dir}/{label_name}_bg_masked3D.fits"
+        
+        convert_mjy=config.get("units", "convert_mJy")
+
         hdu = fits.PrimaryHDU(data=bg_model, header=cutout_header)
-        hdul = fits.HDUList([hdu])
-        hdul.writeto(filename, overwrite=True)
+        if convert_mjy:
+            hdu.header['BUNIT'] = 'mJy/pixel'
+        else: hdu.header['BUNIT'] = 'Jy/pixel'    
+        hdu.writeto(filename, overwrite=True)
 
     # Optional 3D visualization
     try:

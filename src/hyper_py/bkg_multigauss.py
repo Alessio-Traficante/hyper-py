@@ -123,11 +123,13 @@ def estimate_masked_background(cutout, cutout_header, xcen_cut, ycen_cut, aper_s
         filename = f"{fits_output_dir_bg_separate}/{label_name}_bg_masked3D.fits"
     
         # Create a PrimaryHDU object and write the array into the FITS file
+        convert_mjy=config.get("units", "convert_mJy")
+
         hdu = fits.PrimaryHDU(data=bg_poly, header=cutout_header)
-        hdul = fits.HDUList([hdu])
-            
-        # Write the FITS file
-        hdul.writeto(filename, overwrite=True)
+        if convert_mjy:
+            hdu.header['BUNIT'] = 'mJy/pixel'
+        else: hdu.header['BUNIT'] = 'Jy/pixel'    
+        hdu.writeto(filename, overwrite=True)
 
 
     # --- Visualize separated background estimation in png format --- #
