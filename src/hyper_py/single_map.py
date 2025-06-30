@@ -171,7 +171,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     else:
         sources = detect_sources(
             map_struct_list=map_struct,
-            sigma_thres=cfg.get("detection", "sigma_thres"),
             dist_limit_arcsec=cfg.get("detection", "dist_limit_arcsec", 0),
             real_map=real_map,
             rms_real=real_rms,

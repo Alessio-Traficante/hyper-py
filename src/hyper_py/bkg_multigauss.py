@@ -91,13 +91,6 @@ def estimate_masked_background(cutout, cutout_header, xcen_cut, ycen_cut, aper_s
 
 
 
-
-
-
-
-
-
-
     # === Optional 3D visualization ===
     if config is not None:
         try:

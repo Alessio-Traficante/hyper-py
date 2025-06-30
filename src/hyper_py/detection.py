@@ -7,13 +7,12 @@ from astropy.wcs import WCS
 
 
 
-def select_channel_map(map_struct, sigma_thres):
+def select_channel_map(map_struct):
     beam_dim_ref = map_struct["beam_dim"]
     pix_dim_ref = map_struct["pix_dim"]
-    sigma_thres_nchan = sigma_thres
     FWHM_pix = beam_dim_ref / pix_dim_ref
         
-    return map_struct, FWHM_pix, sigma_thres_nchan
+    return map_struct, FWHM_pix
 
 
 def high_pass_filter(image, kernel_dim=9):
@@ -34,7 +33,8 @@ def normalize_filtered_image(filtered):
     return (filtered / peak) * 100.0 if peak > 0 else filtered
 
 
-def estimate_rms(image, sigma_clip=5.0):
+# --- low values to get as many sources as possible in this first filter stage --- #
+def estimate_rms(image, sigma_clip=2.0):
     values = image[image > 0]
     if len(values) == 0:
         return 0.0
@@ -107,8 +107,8 @@ def filter_by_snr(peaks_table, real_map, rms_real, snr_threshold):
     return peaks_table[keep]
 
 
-def detect_sources(map_struct_list, sigma_thres, dist_limit_arcsec, real_map, rms_real, snr_threshold, roundlim, sharplim, config):
-    map_struct, FWHM_pix, sigma_thres_nchan = select_channel_map(map_struct_list, sigma_thres)
+def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_threshold, roundlim, sharplim, config):
+    map_struct, FWHM_pix = select_channel_map(map_struct_list)
     image = map_struct["map"]
     header = map_struct["header"]
     pix_dim_ref = map_struct["pix_dim"]
@@ -122,7 +122,7 @@ def detect_sources(map_struct_list, sigma_thres, dist_limit_arcsec, real_map, rm
     norm_filtered = normalize_filtered_image(filtered)
         
     rms_detect = estimate_rms(norm_filtered)
-    threshold = sigma_thres_nchan * rms_detect
+    threshold = snr_threshold * rms_detect
         
     peaks = detect_peaks(norm_filtered, threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
     good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup)
