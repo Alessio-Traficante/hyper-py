@@ -62,7 +62,7 @@ survey:
   
 #--------------------- Source Detection ---------------------#
 detection:
-  sigma_thres: 4.0               # Detection threshold in units of RMS (sigma)
+  sigma_thres: 5.0               # Detection threshold in units of RMS (sigma)
   use_manual_rms: false          # Use manually provided RMS noise value to identify sources (True/False)
   rms_value: 1.e-6               # Manual RMS noise value (Jy) - only if use_this_rms is True
   roundlim: [-4.0, 4.0]          # Allowed source roundness range (min, max for DAOFIND)
@@ -105,10 +105,10 @@ fit_options:
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0, 1]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 10                    # Minimum box size (pixels) for variable-size background fitting
+  fix_min_box: 5                     # Minimum box size (pixels) for variable-size background fitting
   fix_max_box:  20                   # Maximum box size (pixels) for variable-size background fitting
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
-  pol_orders_separate: [0, 1]     # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
+  pol_orders_separate: [0, 1]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
 
 
 #--------------------- Fits output Options ---------------------#

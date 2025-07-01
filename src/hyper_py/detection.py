@@ -29,16 +29,26 @@ def high_pass_filter(image, kernel_dim=9):
 
 
 def normalize_filtered_image(filtered):
+    # Step 1: Make a copy to avoid modifying input in-place
+    filtered = np.array(filtered, copy=True)
+    
+    # Step 2: Set all values ≤ 0 to 0
+    filtered[filtered <= 0] = 0.0
+
+    # Step 3: Normalize to peak = 100 (only if peak > 0)
     peak = np.nanmax(filtered)
-    return (filtered / peak) * 100.0 if peak > 0 else filtered
+    normalized = (filtered / peak) * 100.0 if peak > 0 else filtered
+
+    return normalized
 
 
 # --- low values to get as many sources as possible in this first filter stage --- #
-def estimate_rms(image, sigma_clip=2.0):
+def estimate_rms(image, sigma_clip=3.0):
     values = image[image > 0]
     if len(values) == 0:
         return 0.0
-    _, _, sigma = sigma_clipped_stats(values, sigma=sigma_clip)
+    _, _, sigma = sigma_clipped_stats(values, sigma=sigma_clip, maxiters=10, mask_value=0.0)
+    
     return sigma
 
 
@@ -110,7 +120,6 @@ def filter_by_snr(peaks_table, real_map, rms_real, snr_threshold):
 def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_threshold, roundlim, sharplim, config):
     map_struct, FWHM_pix = select_channel_map(map_struct_list)
     image = map_struct["map"]
-    header = map_struct["header"]
     pix_dim_ref = map_struct["pix_dim"]
     beam_dim_ref = map_struct["beam_dim"]
     aper_sup=config.get("photometry", "aper_sup")
@@ -118,13 +127,15 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
     my_dist_limit_arcsec = beam_dim_ref if dist_limit_arcsec == 0 else dist_limit_arcsec
     dist_limit_pix = my_dist_limit_arcsec / pix_dim_ref
 
+
+    # --- identify multiple peaks in filtered image and save good peaks with real snr threshold --- #
     filtered = high_pass_filter(image)
     norm_filtered = normalize_filtered_image(filtered)
         
-    rms_detect = estimate_rms(norm_filtered)
-    threshold = snr_threshold * rms_detect
+    filtered_rms_detect = estimate_rms(norm_filtered)
+    filtered_threshold = 2. * filtered_rms_detect
         
-    peaks = detect_peaks(norm_filtered, threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
+    peaks = detect_peaks(norm_filtered, filtered_threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
     good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup)
     final_sources = filter_by_snr(good_peaks, real_map, rms_real, snr_threshold)
 

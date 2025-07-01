@@ -180,8 +180,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
                     # --- Local peak near (xc, yc) in cutout ---
                     prefix = f"g{i}_"
-                    # params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*np.max(cutout))
-                    params.add(f"{prefix}amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(round(yc)),int(round(xc))])
+                    local_peak = np.nanmax(cutout[int(yc)-1:int(yc)+1, int(xc)-1:int(xc)+1])
+                    params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.2*local_peak)
 
                     params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
                     params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
@@ -194,9 +194,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         params.add(f"{prefix}x0", value=xc, vary=False)
                         params.add(f"{prefix}y0", value=yc, vary=False) 
 
-                    avg_aper = (aper_inf + aper_sup)/2. 
-                    params.add(f"{prefix}sx", value=avg_aper*1.2, min=aper_inf, max=aper_sup)
-                    params.add(f"{prefix}sy", value=avg_aper*0.8, min=aper_inf, max=aper_sup)
+                    params.add(f"{prefix}sx", value=aper_inf, min=aper_inf, max=aper_sup)
+                    params.add(f"{prefix}sy", value=aper_sup, min=aper_inf, max=aper_sup)
                     params.add(f"{prefix}theta", value=0.0, min=-np.pi/2, max=np.pi/2)
 
 

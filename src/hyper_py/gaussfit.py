@@ -200,7 +200,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 vary = config.get("fit_options", "vary", True)
                 
                 params = Parameters()
-                params.add("g_amplitude", value=np.max(cutout), min=0., max=1.1*cutout[int(round(y0)),int(round(x0))])
+                local_peak = np.nanmax(cutout[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
+                params.add("g_amplitude", value=local_peak, min=0.8*local_peak, max=1.2*local_peak)
+
 
                 if vary == True:
                     params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
@@ -210,9 +212,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
 
-                avg_aper = (aper_inf + aper_sup)/2. 
-                params.add("g_sigmax", value=avg_aper*1.2, min=aper_inf, max=aper_sup)
-                params.add("g_sigmay", value=avg_aper*0.8, min=aper_inf, max=aper_sup)
+                params.add("g_sigmax", value=aper_inf, min=aper_inf, max=aper_sup)
+                params.add("g_sigmay", value=aper_sup, min=aper_inf, max=aper_sup)
                 params.add("g_theta", value=0.0, min=-np.pi/2, max=np.pi/2)
 
 

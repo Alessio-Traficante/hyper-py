@@ -139,7 +139,8 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     if use_maual_rms == True:
         real_rms = cfg.get("detection", "rms_value", False)
     else:    
-        real_rms = sigma_clipped_stats(real_map, sigma=3.0)[2]
+        mean, median, std = sigma_clipped_stats(real_map, sigma=3.0, maxiters=10, mask_value=0.0)
+        real_rms = std
 
 
     # --- run sources identification  --- #
