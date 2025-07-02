@@ -42,6 +42,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         
     # --- Load config parameters ---
     beam_pix = map_struct['beam_dim']/map_struct['pix_dim']/2.3548      # beam sigma size in pixels    
+    fwhm_beam_pix = map_struct['beam_dim']/map_struct['pix_dim']      # beam FWHM size in pixels    
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
     
@@ -54,7 +55,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
     fix_min_box = config.get("background", "fix_min_box", 15)     # padding value
     fix_max_box = config.get("background", "fix_max_box", 25)     # range above padding
-    fix_box = config.get("background", "fix_box", False)          # use fixed size instead?
     
     no_background = config.get("background", "no_background", False)
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
@@ -76,20 +76,18 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     header=map_struct['header']
     ny, nx = image.shape
 
-    if fix_box:
-        box_sizes = [fix_min_box]
-    else:
-        max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
-        dynamic_min_box = int(np.ceil(max_fwhm_extent) + fix_min_box)
-        dynamic_max_box = dynamic_min_box + fix_max_box
-        box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+
+    max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
+    dynamic_min_box = int(np.ceil(max_fwhm_extent) + fix_min_box) *2      # *2: (minimum box size both sizes)
+    dynamic_max_box = dynamic_min_box + fix_max_box *2                    # *2: (minimum box size both sizes)
+    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+        
 
     best_result = None
     best_min = np.inf
     best_cutout = None
     best_header = None
     best_slice = None
-    best_bg = None
     best_order = None
     bg_mean = 0.0
     best_box = None
@@ -131,9 +129,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 external_sources.append((sx - xmin, sy - ymin))  # local cutout coords
     
     
-        # #--- Create mask ---#
+        # --- Create mask on NaNs and external sources --- #
         mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
-        masking_radius = max_fwhm_extent #config.get("background", "external_mask_radius", 1.5) * beam_pix  # or set a fixed value
+        masking_radius = max_fwhm_extent 
     
         for ex, ey in external_sources:
             aperture = CircularAperture((ex, ey), r=masking_radius)
@@ -141,14 +139,16 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             if mask_data is not None:
                 mask[mask_data > 0] = False  # Mask external source region
     
-        #--- Apply mask → set masked pixels to np.nan ---#
+        #--- Apply external sources mask → set masked pixels to np.nan ---#
         cutout_masked = np.copy(cutout)
         mask_bg = np.ones_like(cutout_masked, dtype=bool)
         mask_bg[np.isnan(cutout_masked)] = False
         mask_bg[~mask] = False  # mask external sources etc.
-                
+        
+        cutout_masked[~mask_bg] = np.nan
+                        
 
-        # --- Background estimation on masked cutout (optional) --- #
+        # --- Background estimation on cutout masked (optional) --- #
         cutout_ref = np.copy(cutout)
         if fit_separately:
             cutout_after_bg, bg_model, poly_params = masked_background_single_sources(
@@ -159,33 +159,29 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 y0,
                 external_sources,
                 max_fwhm_extent,
+                box_sizes,
                 pol_orders_separate,
                 suffix,
                 source_id,
                 config,
                 logger_file_only
             )
+
+            # - save original map without background - #
+            cutout = np.copy(cutout_after_bg)
+
         else:
             bg_model = np.zeros_like(cutout)
     
             
-        #--- Apply mask → set masked pixels to np.nan ---#
-        cutout_masked = np.copy(cutout_after_bg)
-        mask_bg = np.ones_like(cutout_masked, dtype=bool)
-        mask_bg[np.isnan(cutout_masked)] = False
-        mask_bg[~mask] = False  # mask external sources etc.
-
-        # - save masked from nearby sources cutout - #
-        cutout = cutout_masked
             
-            
-        # --- Fit single 2D elliptical Gaussian (+ background) ---
+        # --- Fit single 2D elliptical Gaussian (+ background) --- #
         # Mask NaNs before computing stats
-        valid = ~np.isnan(cutout)        
-        mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout[valid], sigma=3.0, maxiters=5)
+        valid = ~np.isnan(cutout_masked)        
+        mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout_masked[valid], sigma=3.0, maxiters=10)
         
-        # Create RMS map and propagate NaNs
-        cutout_rms = np.full_like(cutout, std_bg)
+        # Create rms map and propagate NaNs
+        cutout_rms = np.full_like(cutout_masked, std_bg)
         cutout_rms[~valid] = np.nan  
         
         weights = None
@@ -207,13 +203,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 
                 params = Parameters()
                 local_peak = np.nanmax(cutout[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
-                params.add("g_amplitude", value=local_peak, min=0.8*local_peak, max=1.2*local_peak)
-
+                params.add("g_amplitude", value=local_peak, min=0.6*local_peak, max=1.05*local_peak)
 
                 if vary == True:
                     params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
                     params.add("g_centery", value=y0, min=y0 - 1, max=y0 + 1)
-
                 if vary == False:
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
@@ -295,7 +289,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 valid = mask_bg.ravel()
                 x_valid = xx.ravel()[valid]
                 y_valid = yy.ravel()[valid]
-                data_valid = cutout_masked.ravel()[valid]
+                data_valid = cutout.ravel()[valid]
                 weights_valid = weights.ravel()[valid] if weights is not None else None    
             
                 result = minimize(

@@ -40,7 +40,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     no_background = config.get("background", "no_background", False)
     fix_min_box = config.get("background", "fix_min_box", 15)     # padding value
     fix_max_box = config.get("background", "fix_max_box", 25)     # range above padding
-    fix_box = config.get("background", "fix_box", False)          # use fixed size instead?
     orders = config.get("background", "polynomial_orders", [0, 1, 2]) if not no_background else [0]
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
     pol_orders_separate = config.get("background", "pol_orders_separate", [0])
@@ -53,15 +52,12 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         lambda_l2 = 1e-3  # fallback
     
     # --- Determine box_sizes ---
-    if fix_box:
-        box_sizes = [fix_min_box]
-    else:
-        max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
-        positions = np.column_stack([xcen, ycen])
-        max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
-        dynamic_min_box = int(np.ceil(max_dist + max_fwhm_extent + fix_min_box))
-        dynamic_max_box = dynamic_min_box + fix_max_box
-        box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+    max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
+    positions = np.column_stack([xcen, ycen])
+    max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
+    dynamic_min_box = int(np.ceil(max_dist + max_fwhm_extent + fix_min_box*2)) # *2: (minimum box size both sizes)
+    dynamic_max_box = dynamic_min_box + fix_max_box*2                          # *2: (minimum box size both sizes)
+    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))       # ensure odd
         
     best_result = None
     best_min  = np.inf
@@ -91,32 +87,14 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
         cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
 
- 
-                
         yy, xx = np.indices(cutout.shape)
 
         
         #--- estimate cutout rms and weighting scheme ---#         
         xcen_cut = xcen - xmin
         ycen_cut = ycen - ymin
+                
         
-        mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout, sigma=3.0, maxiters=10)
-        cutout_rms = np.full_like(cutout, std_bg)
-
-        mask_weights = ~SigmaClip(sigma=3.0, maxiters=10)(cutout).mask
-        weights = None
-        if weight_choice == "inverse_rms":
-            weights = 1.0 / (cutout_rms + mean_bg)
-        elif weight_choice == "snr":
-            weights = cutout / (cutout_rms + mean_bg)
-        elif weight_choice == "power_snr":
-            weights = ((cutout / (cutout_rms + mean_bg)))**weight_power_snr
-        elif weight_choice == "map":
-            weights = cutout
-        elif weight_choice == "mask":
-            weights = mask_weights.astype(float)
-            
-            
         
         #--- Identify external sources inside box ---#
         external_sources = []
@@ -128,6 +106,24 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             if xmin <= sx <= xmax and ymin <= sy <= ymax:
                 external_sources.append((sx - xmin, sy - ymin))  # local cutout coords
     
+    
+        #--- Create mask of external sources ---#
+        mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
+        masking_radius = max_fwhm_extent #config.get("background", "external_mask_radius", 1.5) * beam_pix  # or set a fixed value
+            
+        for ex, ey in external_sources:
+            aperture = CircularAperture((ex, ey), r=masking_radius)
+            mask_data = aperture.to_mask(method="center").to_image(cutout.shape)
+            if mask_data is not None:
+                mask[mask_data > 0] = False  # Mask external source region
+            
+        #--- Apply mask → set masked pixels to np.nan ---#
+        cutout_masked = np.copy(cutout)
+        cutout_masked[~mask] = np.nan 
+        
+        cutout = cutout_masked
+        
+ 
   
         #=== Estimate separated background masking also external sources  ===#
         if fit_separately:
@@ -146,6 +142,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 ycen_cut=ycen_cut_bg,
                 aper_sup=aper_sup,
                 max_fwhm_extent=max_fwhm_extent,
+                box_sizes=box_sizes,
                 orders=pol_orders_separate,
                 suffix=suffix,
                 count_source_blended_indexes=count_source_blended_indexes,
@@ -157,20 +154,24 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         else:
             bg_model = np.zeros_like(cutout)
     
+       
+        
+        mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout, sigma=3.0, maxiters=10)
+        cutout_rms = np.full_like(cutout, std_bg)
 
-        #--- Create mask of external sources ---#
-        mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
-        masking_radius = max_fwhm_extent #config.get("background", "external_mask_radius", 1.5) * beam_pix  # or set a fixed value
-            
-        for ex, ey in external_sources:
-            aperture = CircularAperture((ex, ey), r=masking_radius)
-            mask_data = aperture.to_mask(method="center").to_image(cutout.shape)
-            if mask_data is not None:
-                mask[mask_data > 0] = False  # Mask external source region
-            
-        #--- Apply mask → set masked pixels to np.nan ---#
-        cutout_masked = np.copy(cutout)
-        cutout_masked[~mask] = np.nan 
+        mask_weights = ~SigmaClip(sigma=3.0, maxiters=10)(cutout).mask
+        weights = None
+        if weight_choice == "inverse_rms":
+            weights = 1.0 / (cutout_rms + mean_bg)
+        elif weight_choice == "snr":
+            weights = cutout / (cutout_rms + mean_bg)
+        elif weight_choice == "power_snr":
+            weights = ((cutout / (cutout_rms + mean_bg)))**weight_power_snr
+        elif weight_choice == "map":
+            weights = cutout
+        elif weight_choice == "mask":
+            weights = mask_weights.astype(float)
+                       
                 
 
         for order in orders:
@@ -184,7 +185,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     # --- Local peak near (xc, yc) in cutout ---
                     prefix = f"g{i}_"
                     local_peak = np.nanmax(cutout[int(yc)-1:int(yc)+1, int(xc)-1:int(xc)+1])
-                    params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.2*local_peak)
+                    params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.05*local_peak)
 
                     params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
                     params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
@@ -416,9 +417,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 nmse=best_nmse
             )
             
-            
 
-            
             
         # --- save separated background estimation in fits format --- #
         try:
@@ -461,7 +460,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     
             fig = plt.figure(figsize=(6, 5))
             ax = fig.add_subplot(111, projection='3d')
-            ax.plot_surface(xx, yy, bg_model, cmap="viridis", linewidth=0, antialiased=True)
+            ax.plot_surface(xx, yy, best_bg_model, cmap="viridis", linewidth=0, antialiased=True)
 
             ax.set_xlabel("X (pix)", fontsize=8, fontweight="bold")
             ax.set_ylabel("Y (pix)", fontsize=8, fontweight="bold")
@@ -484,4 +483,4 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, best_header, bg_mean, best_bg_model, best_box, best_nmse, best_redchi, best_bic
 
     # Ensure return is always complete
-    return 0, None, None, None, None, None, None, None, None, None, None, None
+    return 0, None, None, None, None, None, None, None, None, None, None, None, None
