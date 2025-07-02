@@ -203,12 +203,15 @@ def masked_background_single_sources(
     if best_order is None:
         # If no valid background was found, return unmodified cutout
         logger_file_only.warning("[WARNING] Background fit failed; returning original cutout.")
-        return cutout, np.zeros_like(cutout), {}
+        return cutout, cutout_masked, np.zeros_like(cutout), {}
 
     # Subtract background from the original cutout
     cutout -= best_bg_model
+    
+    cutout_masked -= best_bg_model
+    
     logger_file_only.info(
         f"[INFO] Background subtracted using order {best_order} polynomial."
     )
-
-    return cutout, best_bg_model, best_params
+ 
+    return cutout, cutout_masked, best_bg_model, best_params

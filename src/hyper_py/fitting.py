@@ -56,7 +56,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     positions = np.column_stack([xcen, ycen])
     max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
     dynamic_min_box = int(np.ceil(max_dist + max_fwhm_extent + fix_min_box*2)) # *2: (minimum box size both sizes)
-    dynamic_max_box = dynamic_min_box + fix_max_box*2                          # *2: (minimum box size both sizes)
+    dynamic_max_box = int(np.ceil(max_dist + max_fwhm_extent + fix_max_box*2))                          # *2: (minimum box size both sizes)
     box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))       # ensure odd
         
     best_result = None
@@ -68,7 +68,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     best_box = None
 
     for box in box_sizes:
-        half_box = box // 2 - 1
+        half_box = box // 2 -1
         xmin = max(0, int(np.min(xcen)) - half_box)
         xmax = min(nx, int(np.max(xcen)) + half_box + 1)
         ymin = max(0, int(np.min(ycen)) - half_box)

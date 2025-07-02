@@ -107,8 +107,8 @@ fit_options:
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0, 1]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 10                    # Minimum number of pixels to add at the box for variable-size background fitting
-  fix_max_box:  15                   # Maximum number of pixels to add at the box for variable-size background fitting
+  fix_min_box: 5                    # Minimum number of pixels to add at the box for variable-size background fitting (half-size increment)
+  fix_max_box:  15                   # Maximum number of pixels to add at the box for variable-size background fitting (half-size increment)
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1, 2]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
 
@@ -125,7 +125,7 @@ fits_output:                         # Save Fits files for best fits
 
 #--------------------- Visualization Options ---------------------#
 visualization:                       # Plot and save PNGs for the best Gaussian+background fit
-  visualize_fitting: true           # Visualize final Gaussian+background fit
+  visualize_fitting: false           # Visualize final Gaussian+background fit
   visualize_deblended: false         # for per-source blended maps
   visualize_bg_separate: false       # Visualize 3D background model from masked fit (only if fit_gauss_and_bg_separately = true)
   output_dir_fitting: "Plots/Fitting"          # Subdirectory of dir_comm 

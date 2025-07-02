@@ -26,13 +26,13 @@ def plot_fit_summary(cutout, model, residual, output_dir, label_name="fit", dpi=
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Shared color scale based on cutout range
-    vmin_shared = cutout.min()
-    vmax_shared = cutout.max()
+    # Shared color scale based on cutout range, ignoring NaNs
+    vmin_shared = np.nanmin(cutout)
+    vmax_shared = np.nanmax(cutout)
     
-    # Individual residual rescaled range
-    vmin_resid = residual.min()
-    vmax_resid = residual.max()
+    # Individual residual rescaled range, ignoring NaNs
+    vmin_resid = np.nanmin(residual)
+    vmax_resid = np.nanmax(residual)
 
     data_list = [cutout, model, residual, residual]
     file_tags = ["cutout", "model", "residual", "residual_rescaled"]

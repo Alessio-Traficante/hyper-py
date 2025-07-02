@@ -79,7 +79,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
     max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
     dynamic_min_box = int(np.ceil(max_fwhm_extent) + fix_min_box) *2      # *2: (minimum box size both sizes)
-    dynamic_max_box = dynamic_min_box + fix_max_box *2                    # *2: (minimum box size both sizes)
+    dynamic_max_box = int(np.ceil(max_fwhm_extent) + fix_max_box) *2                    # *2: (minimum box size both sizes)
     box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
         
 
@@ -94,7 +94,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
 
     for box in box_sizes:
-        half_box = box // 2 - 1
+        half_box = box // 2 -1
         xmin = max(0, int(np.min(xcen)) - half_box)
         xmax = min(nx, int(np.max(xcen)) + half_box + 1)
         ymin = max(0, int(np.min(ycen)) - half_box)
@@ -119,39 +119,47 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         
        
         #--- Identify external sources inside box ---#
+        mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
         external_sources = []
         for i in range(len(all_sources_xcen)):
             if i == source_id:
                 continue  # skip sources belonging to current group
             sx = all_sources_xcen[i]
             sy = all_sources_ycen[i]
-            if xmin <= sx <= xmax and ymin <= sy <= ymax:
-                external_sources.append((sx - xmin, sy - ymin))  # local cutout coords
-    
-    
-        # --- Create mask on NaNs and external sources --- #
-        mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
-        masking_radius = max_fwhm_extent 
-    
-        for ex, ey in external_sources:
-            aperture = CircularAperture((ex, ey), r=masking_radius)
-            mask_data = aperture.to_mask(method="center").to_image(cutout.shape)
-            if mask_data is not None:
-                mask[mask_data > 0] = False  # Mask external source region
+            
+            if xmin <= sx <= xmax and ymin <= sy <= ymax:            
+                ex = sx - xmin
+                ey = sy - ymin
+                external_sources.append((ex, ey))  # local cutout coords
+                
+                # Define a bounding box around the source, clipped to cutout size
+                masking_radius = max_fwhm_extent 
+                masking_radius_pix=np.round(masking_radius) 
+
+                xmin_box = max(0, int(ex - masking_radius_pix))
+                xmax_box = min(nx, int(ex + masking_radius_pix + 1))
+                ymin_box = max(0, int(ey - masking_radius_pix))
+                ymax_box = min(ny, int(ey + masking_radius_pix + 1))
+                
+                # Create coordinate grid for the local region
+                mask[ymin_box:ymax_box, xmin_box:xmax_box] = False 
+
     
         #--- Apply external sources mask → set masked pixels to np.nan ---#
         cutout_masked = np.copy(cutout)
         mask_bg = np.ones_like(cutout_masked, dtype=bool)
-        mask_bg[np.isnan(cutout_masked)] = False
+        mask_bg[np.isnan(cutout_masked)] = False        
         mask_bg[~mask] = False  # mask external sources etc.
         
+        ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
         cutout_masked[~mask_bg] = np.nan
-                        
+        
+ 
 
         # --- Background estimation on cutout masked (optional) --- #
         cutout_ref = np.copy(cutout)
         if fit_separately:
-            cutout_after_bg, bg_model, poly_params = masked_background_single_sources(
+            cutout_after_bg, cutout_masked_after_bg, bg_model, poly_params = masked_background_single_sources(
                 cutout_masked,
                 cutout_ref, 
                 cutout_header,
@@ -169,11 +177,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
             # - save original map without background - #
             cutout = np.copy(cutout_after_bg)
+            cutout_masked = cutout_masked_after_bg
 
         else:
-            bg_model = np.zeros_like(cutout)
-    
-            
+            bg_model = np.zeros_like(cutout_masked)
+        
             
         # --- Fit single 2D elliptical Gaussian (+ background) --- #
         # Mask NaNs before computing stats
@@ -188,13 +196,13 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         if weight_choice == "inverse_rms":
             weights = 1.0 / (cutout_rms + mean_bg)
         elif weight_choice == "snr":
-            weights = (cutout / (cutout_rms + mean_bg))
+            weights = (cutout_masked / (cutout_rms + mean_bg))
         elif weight_choice == "power_snr":
-            weights = ((cutout / (cutout_rms + mean_bg)))**weight_power_snr
+            weights = ((cutout_masked / (cutout_rms + mean_bg)))**weight_power_snr
         elif weight_choice == "map":
-            weights = cutout
+            weights = cutout_masked
         elif weight_choice == "mask":
-            mask_stats = ~SigmaClip(sigma=3.0)(cutout).mask
+            mask_stats = ~SigmaClip(sigma=3.0)(cutout_masked).mask
             weights = mask_stats.astype(float)
 
         for order in orders:
@@ -202,8 +210,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 vary = config.get("fit_options", "vary", True)
                 
                 params = Parameters()
-                local_peak = np.nanmax(cutout[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
-                params.add("g_amplitude", value=local_peak, min=0.6*local_peak, max=1.05*local_peak)
+                local_peak = np.nanmax(cutout_masked[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
+                params.add("g_amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
 
                 if vary == True:
                     params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
@@ -285,11 +293,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                             minimize_kwargs[key] = float(val) 
                             
            
-                # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources within each box) --- # 
+                # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources from external sources within each box) --- # 
                 valid = mask_bg.ravel()
                 x_valid = xx.ravel()[valid]
                 y_valid = yy.ravel()[valid]
-                data_valid = cutout.ravel()[valid]
+                data_valid = cutout_masked.ravel()[valid]
                 weights_valid = weights.ravel()[valid] if weights is not None else None    
             
                 result = minimize(
@@ -304,12 +312,16 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                              
                 # --- Evaluate reduced chi**2 and NMSE (Normalized Mean Squared Error) ---
                 if result.success:
-                    # Evaluate model on grid
+                    # Evaluate model on grid #
                     model_eval = model_fn(result.params, xx, yy)
                 
-                    # Compute normalized mean squared error
-                    mse = np.mean((model_eval - cutout)**2)
-                    nmse = mse / (np.mean(cutout**2) + 1e-12)
+                    # Compute normalized mean squared error only on valid pixels
+                    valid_mask = np.isfinite(cutout_masked) & np.isfinite(model_eval)
+                    residual = (model_eval - cutout_masked)[valid_mask]
+                    mse = np.mean(residual**2)
+                    
+                    norm = np.mean(cutout_masked[valid_mask]**2) + 1e-12
+                    nmse = mse / norm
                     
                     redchi = result.redchi
                     bic = result.bic 
@@ -331,12 +343,12 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     best_redchi = redchi
                     best_bic = bic
                     best_order = order
-                    best_cutout = cutout
+                    best_cutout = cutout_masked
                     best_header = cutout_header
                     best_bg_model = bg_model
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
-                    best_box = (cutout.shape[1], cutout.shape[0])
+                    best_box = (cutout_masked.shape[1], cutout_masked.shape[0])
                     best_min = my_min
 
 
