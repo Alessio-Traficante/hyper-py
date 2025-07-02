@@ -94,47 +94,5 @@ def masked_background_single_sources(cutout_masked, cutout, cutout_header, x0, y
     cutout -= bg_model
     logger_file_only.info("[INFO] Background subtracted from cutout.")
 
-    # Save background model as FITS
-    try:
-        fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
-        dir_comm = config.get("paths", "dir_comm")
-        fits_output_dir = dir_comm + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")
-    except Exception:
-        fits_bg_separate = False
-
-    if fits_bg_separate:
-        os.makedirs(fits_output_dir, exist_ok=True)
-        label_name = f"HYPER_MAP_{suffix}_ID_{source_id + 1}"
-        filename = f"{fits_output_dir}/{label_name}_bg_masked3D.fits"
-        
-        convert_mjy=config.get("units", "convert_mJy")
-
-        hdu = fits.PrimaryHDU(data=bg_model, header=cutout_header)
-        if convert_mjy:
-            hdu.header['BUNIT'] = 'mJy/pixel'
-        else: hdu.header['BUNIT'] = 'Jy/pixel'    
-        hdu.writeto(filename, overwrite=True)
-
-    # Optional 3D visualization
-    try:
-        visualize_bg = config.get("visualization", "visualize_bg_separate", False)
-        output_dir = dir_comm + config.get("visualization", "output_dir_bg_separate")
-    except Exception:
-        visualize_bg = False
-
-    if visualize_bg:
-        os.makedirs(output_dir, exist_ok=True)
-        fig = plt.figure(figsize=(6, 5))
-        ax = fig.add_subplot(111, projection="3d")
-        ax.plot_surface(xx, yy, bg_model, cmap="viridis", linewidth=0, antialiased=True)
-        ax.set_xlabel("X (pix)", fontsize=8, fontweight="bold")
-        ax.set_ylabel("Y (pix)", fontsize=8, fontweight="bold")
-        ax.set_zlabel("Flux (Jy)", fontsize=8, fontweight="bold")
-        ax.set_title("Initial Background (Isolated)", fontsize=10, fontweight="bold")
-
-        label_str = f"HYPER_MAP_{suffix}_ID_{source_id + 1}"
-        outname = os.path.join(output_dir, f"{label_str}_bg_masked3D.png")
-        plt.savefig(outname, dpi=300, bbox_inches="tight")
-        plt.close()
 
     return cutout, bg_model, poly_params

@@ -13,9 +13,10 @@ from hyper_py.logger import setup_logger
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from astropy.io import ascii
+from astropy.io import ascii, fits
 from astropy.table import vstack
 
+import numpy as np
 from extract_cubes import extract_maps_from_cube
 
 
@@ -53,6 +54,8 @@ def run_hyper(cfg_path):
         
     if datacube:
         map_names = extract_maps_from_cube(map_names, dir_comm, dir_maps)
+        background_slices = []
+        slice_cutout_header = []
     
         
     # - output - #
@@ -91,33 +94,41 @@ def run_hyper(cfg_path):
             futures = {
                 executor.submit(single_map, name, cfg, dir_comm): name
                 for name in map_names
-            }   
+            }
             for future in as_completed(futures):
                 map_name = futures[future]
                 try:
-                    table = future.result()
-                    results.append((map_name))
+                    suffix, bg_model, cutout_header = future.result()
+                    results.append(suffix)
+                    if datacube:
+                        background_slices.append(bg_model)
+                        slice_cutout_header.append(cutout_header)
+                    
                     logger.info(f"✅ Finished processing {map_name}")
                 except Exception as e:
                     logger.error(f"❌ Error processing {map_name}: {e}")
     else:
         for map_name in map_names:
             logger.info(f"📡 Running HYPER on: {map_name}")
-            single_map(map_name, cfg, dir_comm, logger, logger_file_only)
-            results.append((map_name))
+            suffix, bg_model, cutout_header = single_map(map_name, cfg, dir_comm, logger, logger_file_only)
+            results.append(suffix)
+            if datacube:
+                background_slices.append(bg_model)
+                slice_cutout_header.append(cutout_header)
             
+    
                             
     # --- Collect all output tables --- #
     all_tables = []
-    for map_name in results:
+    for suffix in results:
         try:
-            suffix = Path(map_name).stem
-            output_table_path = os.path.join(dir_comm, output_dir, f"{base_table_name}_{suffix}.txt")
+            suffix_clean = Path(suffix).stem  # remove ".fits"
+            output_table_path = os.path.join(dir_comm, output_dir, f"{base_table_name}_{suffix_clean}.txt")
             table = ascii.read(output_table_path, format="ipac")
             all_tables.append(table)
         except Exception as e:
-            logger_file_only.error(f"[ERROR] Failed to load table for {map_name}: {e}")
-                    
+            logger_file_only.error(f"[ERROR] Failed to load table for {suffix}: {e}")
+    
     
     # === Merge and write combined tables ===
     final_table = vstack(all_tables)
@@ -136,6 +147,49 @@ def run_hyper(cfg_path):
     final_table.write(ipac_path, format='ipac', overwrite=True)
     final_table.write(csv_path, format='csv', overwrite=True)
     logger_file_only.info(f"\n✅ Final merged table saved to:\n- {ipac_path}\n- {csv_path}")
+    
+    
+    
+    # === Combine all bg_models into a datacube ===
+    if datacube:
+        # 1. Determine common crop size
+        min_ny = min(bg.shape[0] for bg in background_slices)
+        min_nx = min(bg.shape[1] for bg in background_slices)
+    
+        def central_crop(array, ny, nx):
+            y0 = (array.shape[0] - ny) // 2
+            x0 = (array.shape[1] - nx) // 2
+            return array[y0:y0+ny, x0:x0+nx]
+    
+        # 2. Centrally crop all backgrounds
+        cropped_bgs = [central_crop(bg, min_ny, min_nx) for bg in background_slices]
+    
+        # 3. Stack into cube
+        bg_cube = np.stack(cropped_bgs, axis=0)
+    
+        # 4. Adjust WCS header
+        ref_header = slice_cutout_header[0].copy()
+        old_ny, old_nx = background_slices[0].shape  
+    
+        ref_header['NAXIS'] = 3
+        ref_header['NAXIS1'] = min_nx
+        ref_header['NAXIS2'] = min_ny
+        ref_header['NAXIS3'] = bg_cube.shape[0]
+        ref_header['CTYPE3'] = 'SLICE'
+        ref_header['CRPIX3'] = 1
+        ref_header['CRVAL3'] = 1
+        ref_header['CDELT3'] = 1
+        ref_header['BUNIT'] = 'mJy/pixel'
+    
+        # Also update CRPIX1 and CRPIX2 to reflect cropping (recenter WCS)
+        dx = (old_nx - min_nx) // 2
+        dy = (old_ny - min_ny) // 2
+        ref_header['CRPIX1'] -= dx
+        ref_header['CRPIX2'] -= dy
+    
+        output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
+        fits.PrimaryHDU(data=bg_cube, header=ref_header).writeto(output_cube_path, overwrite=True)
+        logger.info(f"📦 Background cube saved to: {output_cube_path}")
     
     logger.info("****************** ✅ Hyper finished !!! ******************")
     

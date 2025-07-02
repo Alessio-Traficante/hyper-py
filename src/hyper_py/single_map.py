@@ -3,10 +3,12 @@ from hyper_py.paths_io import get_hyper_single_map_paths
 
 import numpy as np
 from astropy.wcs import WCS
-from astropy.stats import sigma_clipped_stats
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy.io import fits
+from astropy.stats import SigmaClip
+
+
 
 
 from hyper_py.survey import get_beam_info
@@ -83,8 +85,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     PA_val = []
     sky_val = []
     poly_order_val = []
-    redchi_val = []
     nmse_val = []
+    redchi_val = []
+    bic_val = []
     updated_xcen = []
     updated_ycen = []
     flux_peak = []
@@ -103,12 +106,12 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         return x if isinstance(x, Iterable) and not isinstance(x, str) else [x] * n
     
     # --- Load fixed table if specified --- #
-    use_fixed_table = cfg.get("control", "use_fixed_source_table", False)
+    use_fixed_table = cfg.get("detection", "use_fixed_source_table", False)
     fixed_radius = cfg.get("photometry", "fixed_radius", False)
     fixed_peaks  = cfg.get("detection", "fixed_peaks", False)
     
     if use_fixed_table:
-        table_path = os.path.join(dir_comm, cfg.get("control", "fixed_source_table_path"))
+        table_path = os.path.join(dir_comm, cfg.get("detection", "fixed_source_table_path"))
         fixed_sources = ascii.read(table_path, format="ipac")
     
     
@@ -126,6 +129,11 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     )
     
     real_map = map_struct["map"]
+    
+    # # --- zero-mean for the input map --- #
+    # map_zero_mean = real_map - np.nanmean(real_map)
+    # real_map = map_zero_mean
+    
     header = map_struct["header"]
     wcs = WCS(header)
     pix_dim = map_struct["pix_dim"]
@@ -134,15 +142,17 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     band_ref = int(band_ref)
     
 
-    # --- map rms used to define real sources in the map --- #
+    # --- map rms used to define real sources in the map - accounting for non-zero background --- #
     use_maual_rms = cfg.get("detection", "use_manual_rms", False)
     if use_maual_rms == True:
         real_rms = cfg.get("detection", "rms_value", False)
-    else:    
-        mean, median, std = sigma_clipped_stats(real_map, sigma=3.0, maxiters=10, mask_value=0.0)
-        real_rms = std
-
-
+    else:         
+        sigma_clip = SigmaClip(sigma=3.0, maxiters=10)
+        map_zero_mean_detect = real_map - np.nanmean(real_map)
+        clipped = sigma_clip(map_zero_mean_detect)    
+        real_rms = np.sqrt(np.nanmean(clipped**2))
+        
+        
     # --- run sources identification  --- #
     if fixed_peaks:
         if use_fixed_table:
@@ -173,7 +183,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         sources = detect_sources(
             map_struct_list=map_struct,
             dist_limit_arcsec=cfg.get("detection", "dist_limit_arcsec", 0),
-            real_map=real_map,
+            real_map=map_zero_mean_detect,
             rms_real=real_rms,
             snr_threshold=cfg.get("detection", "sigma_thres"),
             roundlim=cfg.get("detection", "roundlim", [-1.0, 1.0]),
@@ -290,7 +300,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
                 
         logger_file_only.info(f"Photometry on isolated source {idx_iso + 1} of {len(isolated)}")
     
-        fit_status, fit_result, model_fn, bg_order, cutout, (yslice, xslice), bg_mean, final_nmse = fit_isolated_gaussian(
+        fit_status, fit_result, model_fn, bg_order, cutout, (yslice, xslice), bg_mean, bg_model, cutout_header, final_nmse, final_redchi, final_bic = fit_isolated_gaussian(
             image=real_map,
             xcen=xcen[i],
             ycen=ycen[i],
@@ -331,11 +341,15 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
  
         # --- Zero out the Gaussian component ---
         params_bg_only = fit_result.params.copy()
-        params_bg_only["g_amplitude"].set(value=0.0)       
+        for name in params_bg_only:
+            if name.startswith("g_"):
+                params_bg_only[name].set(value=0.0)
+
         model_bg_only = model_fn(params_bg_only, xx, yy)
         
         # --- Final cleaned map for aperture photometry ---
-        source_only_map = cutout - model_bg_only   
+        source_only_map = cutout - model_bg_only 
+        
                 
         # --- Photometry: use centroid within cutout ---
         phot_single = aperture_photometry_on_sources(
@@ -348,7 +362,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             PA_val=[theta]
         )
 
-        # --- populate the Table ---
+        # --- populate the Table --- #
  
         # - flux peak in mJy/beam -#
         xc_rel = int(round(fit_result.params["g_centerx"].value)) 
@@ -369,8 +383,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         updated_ycen.append(fit_result.params["g_centery"].value + yslice.start)
         sky_val.append(bg_mean)
         poly_order_val.append(bg_order)
-        redchi_val.append(fit_result.redchi)
         nmse_val.append(final_nmse)
+        redchi_val.append(final_redchi)
+        bic_val.append(final_bic)
         
         fit_statuts_val.append(fit_status)
         deblend_val.append(0)       # not deblended
@@ -410,7 +425,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         group_x = xcen[group_indices]
         group_y = ycen[group_indices]        
     
-        fit_status, fit_result, model_fn, bg_order, cutout, cutout_slice, cutout_header, bg_mean, box_size, final_nmse = fit_group_with_background(
+        fit_status, fit_result, model_fn, bg_order, cutout, cutout_slice, cutout_header, bg_mean, bg_model, box_size, final_nmse, final_redchi, final_bic = fit_group_with_background(
             image=real_map,
             xcen=group_x,
             ycen=group_y,
@@ -455,7 +470,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             # --- Create residual map where only source j is preserved ---
             params_sub = fit_result.params.copy()
             
-
             # Zero the current source j only
             for name in params_sub:
                 if name.startswith(f"g{j}_"):
@@ -550,8 +564,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
 
             sky_val.append(bg_mean)
             poly_order_val.append(bg_order)
-            redchi_val.append(fit_result.redchi)
             nmse_val.append(final_nmse)
+            redchi_val.append(final_redchi)
+            bic_val.append(final_bic)
             
             fit_statuts_val.append(fit_status)
             deblend_val.append(1)                   # multi-Gaussian fit
@@ -622,6 +637,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             "POLYN": list(poly_order_val),
             "NMSE": list(nmse_val),
             "CHI2_RED": list(redchi_val),
+            "BIC": list(bic_val),
             "FWHM_1": list(radius_val_1),
             "FWHM_2": list(radius_val_2),
             "PA": list(PA_val),
@@ -686,7 +702,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             f.write(f"ellipse({xw:.8f},{yw:.8f},{a:.4f}\",{b:.4f}\",{angle:.3f})\n")
             f.write(f"point({xw:.8f},{yw:.8f}) # point=cross text={{ID {i}}}\n")
         
-    
+        
+        
+    return map_name, bg_model, cutout_header
     
 #################################### MAIN CALL ####################################
 if __name__ == "__main__":

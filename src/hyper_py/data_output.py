@@ -47,6 +47,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, base_filename="hype
         'POLYN':     'Polynomial background order',
         'NMSE':      'Normalized Mean Squared Error of fit: scale-independent metric of model-data agreement',
         'CHI2_RED':  'Reduced chi-squared of Gaussian + background fit (valid only if residuals are Gaussian-distributed with constant variance)',
+        'BIC':       'Bayesian Information Criterion: model selection metric that penalizes overfitting; lower BIC indicates better trade-off between goodness of fit and model complexity',
         'FWHM_1':    'First axis FWHM (arcsec)',
         'FWHM_2':    'Second axis FWHM (arcsec)',
         'PA':        'Position angle (deg East of North)',
@@ -65,7 +66,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, base_filename="hype
         'FLUX': '.3f', 'FLUX_ERR': '.3f', 'FLUX_PEAK': '.5f',
         'FLUX_PEAK_JY': '.4f', 'RESIDUALS': '.5f',
         'FWHM_1': '.3f', 'FWHM_2': '.3f', 'PA': '.1f',
-        'NMSE': '.3f', 'CHI2_RED': '.3f', 'POLYN': 'd',
+        'NMSE': '.3f', 'CHI2_RED': '.3f', 'BIC': '.2f', 'POLYN': 'd',
         'BAND': 'd', 'STATUS': 'd',
         'DEBLEND': 'd', 'CLUSTER': 'd',
     }

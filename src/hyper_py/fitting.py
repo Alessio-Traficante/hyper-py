@@ -4,6 +4,8 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.stats import SigmaClip, sigma_clipped_stats
 from scipy.spatial.distance import pdist
+import matplotlib.pyplot as plt
+
 from hyper_py.visualization import plot_fit_summary
 from bkg_multigauss import estimate_masked_background
 
@@ -28,6 +30,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
     
     fit_cfg = config.get("fit_options", {})
+    minimize_method = config.get("fit_options", "min_method", "redchi")
     weight_choice = fit_cfg.get("weights", None)
     weight_power_snr = fit_cfg.get("power_snr", 1.0)
 
@@ -61,7 +64,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
         
     best_result = None
-    min_nmse = np.inf
+    best_min  = np.inf
     best_cutout = None
     best_header = None
     best_slice = None
@@ -136,7 +139,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 xcen_cut_bg = np.concatenate([xcen_cut_bg, ex_arr])
                 ycen_cut_bg = np.concatenate([ycen_cut_bg, ey_arr])
             
-            cutout_bs, bg_poly = estimate_masked_background(
+            cutout_bs, bg_model = estimate_masked_background(
                 cutout=cutout,
                 cutout_header=cutout_header,
                 xcen_cut=xcen_cut_bg,
@@ -152,7 +155,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             )
             cutout = cutout_bs
         else:
-            bg_poly = np.zeros_like(cutout)
+            bg_model = np.zeros_like(cutout)
     
 
         #--- Create mask of external sources ---#
@@ -292,30 +295,38 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     # Evaluate model on grid
                     model_eval = model_fn(result.params, xx, yy)
                 
-                    redchi = result.redchi
-
                     # Compute normalized mean squared error
-                    numerator = np.sum((model_eval - cutout)**2)
-                    denominator = np.sum(cutout**2) + 1e-12  # avoid division by zero
-                    nmse = numerator / denominator
+                    mse = np.mean((model_eval - cutout)**2)
+                    nmse = mse / (np.mean(cutout**2) + 1e-12)
                     
+                    redchi = result.redchi
+                    bic = result.bic 
+                    
+                    if minimize_method == "redchi" : my_min = redchi
+                    if minimize_method == "nmse"   : my_min = nmse
+                    if minimize_method == "bic"    : my_min = bic                   
                 
                     logger_file_only.info(f"[SUCCESS] Fit (box={cutout.shape[1], cutout.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}")
                 else:
-                    logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
                     nmse = np.nan
+                    redchi = np.nan
+                    bic = np.nan
+                    logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
 
         
-                if nmse < min_nmse:
+                if my_min < best_min:
                     best_result = result
-                    best_order = order
                     best_nmse = nmse
+                    best_redchi = redchi
+                    best_bic = bic
+                    best_order = order
                     best_cutout = cutout
                     best_header = cutout_header
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
+                    best_bg_model = bg_model
                     bg_mean = median_bg
                     best_box = (cutout.shape[1], cutout.shape[0])
-                    min_nmse = nmse
+                    best_min = my_min
 
             except Exception as e:
                 logger.error(f"[ERROR] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order}): {e}")
@@ -405,8 +416,72 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 nmse=best_nmse
             )
             
+            
 
-        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, best_header, bg_mean, best_box, best_nmse
+            
+            
+        # --- save separated background estimation in fits format --- #
+        try:
+            fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
+            dir_comm =  config.get("paths", "dir_comm")
+            fits_output_dir_bg_separate = dir_comm + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")  
+        except:
+            fits_bg_separate = False
+
+
+        if fits_bg_separate:
+            # Ensure the output directory exists
+            os.makedirs(fits_output_dir_bg_separate, exist_ok=True)
+            
+            label_name = f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}"
+            filename = f"{fits_output_dir_bg_separate}/{label_name}_bg_masked3D.fits"
+        
+            # Create a PrimaryHDU object and write the array into the FITS file
+            convert_mjy=config.get("units", "convert_mJy")
+
+            hdu = fits.PrimaryHDU(data=bg_model, header=cutout_header)
+            if convert_mjy:
+                hdu.header['BUNIT'] = 'mJy/pixel'
+            else: hdu.header['BUNIT'] = 'Jy/pixel'    
+            hdu.writeto(filename, overwrite=True)
+
+
+        # --- Visualize 3D separated background estimation in png format --- #
+        try:
+            visualize_bg = config.get("visualization", "visualize_bg_separate", False)
+        except Exception:
+            visualize_bg = False
+
+        if visualize_bg:
+            logger_file_only.info("[INFO] Plotting 3D background model from masked map subtraction...")  
+            
+            dir_comm =  config.get("paths", "dir_comm")
+            output_dir_vis = dir_comm + config.get("visualization", "output_dir_bg_separate")
+            os.makedirs(output_dir_vis, exist_ok=True)
+                    
+            fig = plt.figure(figsize=(6, 5))
+            ax = fig.add_subplot(111, projection='3d')
+            ax.plot_surface(xx, yy, bg_model, cmap="viridis", linewidth=0, antialiased=True)
+
+            ax.set_xlabel("X (pix)", fontsize=8, fontweight="bold")
+            ax.set_ylabel("Y (pix)", fontsize=8, fontweight="bold")
+            ax.set_zlabel("Flux (Jy)", fontsize=8, fontweight="bold")
+            for label in (ax.get_xticklabels() + ax.get_yticklabels() + ax.get_zticklabels()):
+                label.set_fontsize(8)
+                label.set_fontweight("bold")
+
+            ax.set_title("Initial Background Model from Masked Map", fontsize=10, fontweight="bold")
+            plt.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.12)
+            label_str = f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}" if count_source_blended_indexes is not None else "group"
+            outname = os.path.join(output_dir_vis, f"{label_str}_bg_masked3D.png")
+            plt.savefig(outname, dpi=300, bbox_inches="tight")
+            plt.close()     
+            
+            
+            
+            
+
+        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, best_header, bg_mean, best_bg_model, best_box, best_nmse, best_redchi, best_bic
 
     # Ensure return is always complete
-    return 0, None, None, None, None, None, None, None, None, None
+    return 0, None, None, None, None, None, None, None, None, None, None, None

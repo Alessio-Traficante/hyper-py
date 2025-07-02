@@ -107,8 +107,8 @@ def filter_by_snr(peaks_table, real_map, rms_real, snr_threshold):
     for row in peaks_table:
         x = int(round(row['xcentroid']))
         y = int(round(row['ycentroid']))
-        if 0 <= y < real_map.shape[0] and 0 <= x < real_map.shape[1]:
-            peak_val = real_map[y, x]
+        if 0 <= y < real_map.shape[0] and 0 <= x < real_map.shape[1]:            
+            peak_val = real_map[y, x] 
             snr = peak_val / rms_real if rms_real > 0 else 0
             keep.append(snr >= snr_threshold)
         else:

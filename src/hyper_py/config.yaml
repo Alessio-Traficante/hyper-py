@@ -1,6 +1,6 @@
 #--------------------- File Paths ---------------------#
 paths:
-  dir_comm: "/Users/alessio/Dropbox/Work/ALMA/ALMA_LMC/Hyper-py/"                            # Main directory for input/output data
+  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/"                            # Main directory for input/output data
   input:  
       dir_maps: "Maps" #"Maps"                        # Subdirectory of dir_comm containing input map files
   output:
@@ -11,7 +11,7 @@ paths:
 
 #--------------------- File Names ---------------------#
 files:
-  file_map_name: '30Dor.txt'       # Input FITS map(s) for analysis (in dir_maps). 
+  file_map_name: 'test.txt'       # Input FITS map(s) for analysis (in dir_maps). 
                                   # Can be either:
                                   # - a list of filenames: ["map1.fits", "map2.fits"]
                                   # - OR a .txt file with one filename per line placed in the "dir_maps" folder
@@ -23,13 +23,11 @@ files:
 
 #--------------------- Pipeline Control ---------------------#
 control:
-  parallel_maps: true      # Enable parallel execution over multiple maps (True/False)
+  parallel_maps: false      # Enable parallel execution over multiple maps (True/False)
   n_cores: 5               # Number of CPU cores to use for multiprocessing - better <= tot maps
   
-  detection_only: false                   # Only perform source detection without photometry (True/False) 
-  use_fixed_source_table: false           # If True, use an external IPAC table for peak + aperture
-  fixed_source_table_path: "52831_sources.txt"  # IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_comm)
-  datacube : false         # select if the input map is a datacube    
+  detection_only: false                  # Only perform source detection without photometry (True/False) 
+  datacube : false                        # select if the input map is a datacube    
 
 #--------------------- Units Conversion ---------------------#
 units:
@@ -69,6 +67,9 @@ detection:
   sharplim: [-2.0, 2.0]          # Allowed source sharpness range (min, max for DAOFIND)   
   dist_limit_arcsec: 0           # minimum distance to separate sources. Default: 0 -> beam distance
 
+  use_fixed_source_table: false           # If True, use an external IPAC table for peak + aperture
+  fixed_source_table_path: "52831_sources.txt"  # IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_comm)
+
   fixed_peaks: false             # Use fixed peaks instead of automatic (True/False)
   xcen_fix: [84.7090236, 84.7114699]          # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
   ycen_fix: [-69.0776622, -69.0773034]        # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
@@ -80,21 +81,22 @@ photometry:
   aper_sup: 1.5                    # Maximum size factor for Gaussian FWHM (also used as outer annulus radius factor)
   
   fixed_radius: false              # Use fixed aperture radii instead of Gaussian fitting (True/False)
-  fwhm_1: [0.7]                      # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
-  fwhm_2: [0.4]                      # Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true)
-  PA_val: [136.901]                  # Fixed aperture position angle (deg East of North; only if radius_fix = true)
+  fwhm_1: [0.7]                    # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
+  fwhm_2: [0.4]                    # Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true)
+  PA_val: [136.901]                # Fixed aperture position angle (deg East of North; only if radius_fix = true)
 
 
 #---------------------- Model fit Settings ----------------------#
 fit_options:
   fit_method: "leastsq"        # Optimization algorithm ('leastsq')
-  max_nfev: 10000              # Maximum number of function evaluations
-  xtol: 1e-7                   # Tolerance on parameter change for convergence
-  ftol: 1e-7                   # Tolerance on cost function change for convergence
-  gtol: 1e-7                   # Tolerance on gradient orthogonality
+  max_nfev: 50000              # Maximum number of function evaluations
+  xtol: 1e-8                   # Tolerance on parameter change for convergence
+  ftol: 1e-8                   # Tolerance on cost function change for convergence
+  gtol: 1e-8                   # Tolerance on gradient orthogonality
   calc_covar: false            # Estimate parameter covariance matrix
   weights: "snr"               # Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'map', or 'mask'
   power_snr: 5                 # SNR**power_snr - this value gives more weight to the bright pixels
+  min_method: "nmse"           # Criterion to select best fit: 'nmse', 'redchi', or 'bic'
   verbose: false               # Print full fit report
   use_l2_regularization: true  # Enable L2 regularization on background terms
   lambda_l2: 1e-4              # Regularization strength
@@ -105,8 +107,8 @@ fit_options:
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0, 1]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 5                     # Minimum box size (pixels) for variable-size background fitting
-  fix_max_box:  20                   # Maximum box size (pixels) for variable-size background fitting
+  fix_min_box: 10                    # Minimum number of pixels to add at the box for variable-size background fitting
+  fix_max_box:  14                   # Maximum number of pixels to add at the box for variable-size background fitting
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
 

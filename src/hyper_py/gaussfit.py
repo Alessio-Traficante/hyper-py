@@ -48,6 +48,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     convert_mjy=config.get("units", "convert_mJy")
 
     fit_cfg = config.get("fit_options", {})
+    minimize_method = config.get("fit_options", "min_method", "redchi")
     weight_choice = fit_cfg.get("weights", None)
     weight_power_snr = fit_cfg.get("power_snr", 1.0)
 
@@ -59,6 +60,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
     orders = config.get("background", "polynomial_orders", [0, 1, 2]) if not no_background else [0]
     pol_orders_separate = config.get("background", "pol_orders_separate", [1])  # only if fit_separately
+
 
     use_l2 = fit_cfg.get("use_l2_regularization", False)
     lambda_l2 = fit_cfg.get("lambda_l2", 1e-3)
@@ -83,10 +85,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
 
     best_result = None
-    min_nmse = np.inf
+    best_min = np.inf
     best_cutout = None
     best_header = None
     best_slice = None
+    best_bg = None
     best_order = None
     bg_mean = 0.0
     best_box = None
@@ -162,12 +165,15 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 config,
                 logger_file_only
             )
+        else:
+            bg_model = np.zeros_like(cutout)
+    
             
-            #--- Apply mask → set masked pixels to np.nan ---#
-            cutout_masked = np.copy(cutout_after_bg)
-            mask_bg = np.ones_like(cutout_masked, dtype=bool)
-            mask_bg[np.isnan(cutout_masked)] = False
-            mask_bg[~mask] = False  # mask external sources etc.
+        #--- Apply mask → set masked pixels to np.nan ---#
+        cutout_masked = np.copy(cutout_after_bg)
+        mask_bg = np.ones_like(cutout_masked, dtype=bool)
+        mask_bg[np.isnan(cutout_masked)] = False
+        mask_bg[~mask] = False  # mask external sources etc.
 
         # - save masked from nearby sources cutout - #
         cutout = cutout_masked
@@ -211,7 +217,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 if vary == False:
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
-
+ 
+                    
                 params.add("g_sigmax", value=aper_inf, min=aper_inf, max=aper_sup)
                 params.add("g_sigmay", value=aper_sup, min=aper_inf, max=aper_sup)
                 params.add("g_theta", value=0.0, min=-np.pi/2, max=np.pi/2)
@@ -303,31 +310,41 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                              
                 # --- Evaluate reduced chi**2 and NMSE (Normalized Mean Squared Error) ---
                 if result.success:
-                    redchi = result.redchi
-
                     # Evaluate model on grid
                     model_eval = model_fn(result.params, xx, yy)
                 
                     # Compute normalized mean squared error
-                    numerator = np.sum((model_eval - cutout)**2)
-                    denominator = np.sum(cutout**2) + 1e-12  # avoid division by zero
-                    nmse = numerator / denominator
-                
-                    logger_file_only.info(f"[SUCCESS] Fit (box={cutout.shape[1], cutout.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}")
+                    mse = np.mean((model_eval - cutout)**2)
+                    nmse = mse / (np.mean(cutout**2) + 1e-12)
+                    
+                    redchi = result.redchi
+                    bic = result.bic 
+                    
+                    if minimize_method == "redchi" : my_min = redchi
+                    if minimize_method == "nmse"   : my_min = nmse
+                    if minimize_method == "bic"    : my_min = bic
+                    logger_file_only.info(f"[SUCCESS] Fit (box={cutout.shape[1], cutout.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}, BIC = {bic:.2e}")
                 else:
-                    logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
                     nmse = np.nan
+                    redchi = np.nan
+                    bic = np.nan
+                    logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
         
-                if nmse < min_nmse:
+        
+                if my_min < best_min:
                     best_result = result
                     best_nmse = nmse
+                    best_redchi = redchi
+                    best_bic = bic
                     best_order = order
                     best_cutout = cutout
                     best_header = cutout_header
+                    best_bg_model = bg_model
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
                     best_box = (cutout.shape[1], cutout.shape[0])
-                    min_nmse = nmse
+                    best_min = my_min
+
 
             except Exception as e:
                 logger.error(f"[ERROR] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order}): {e}")
@@ -344,32 +361,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         residual_map = best_cutout - model_eval
         
 
-        # --- visualize best fit in png format --- #
-        try:
-            visualize = config.get("visualization", "visualize_fitting")
-        except:
-            visualize = False
-
-        try:
-            dir_comm =  config.get("paths", "dir_comm")
-            output_dir_vis = dir_comm + config.get("visualization", "output_dir_fitting")
-        except:
-            output_dir_vis = "Images/Fitting"
-
-        if visualize:
-            logger_file_only.info("2D and 3D visualization of the Gaussian fits and residual ON")
-            plot_fit_summary(
-                cutout=best_cutout,
-                model=model_eval,
-                residual=residual_map,
-                output_dir=output_dir_vis,
-                label_name=f"HYPER_MAP_{suffix}_ID_{source_id+1}" if source_id is not None else "source",
-                box_size=best_box,
-                poly_order=best_order,
-                nmse=best_nmse
-           )
-       
-        
         # --- save best fit in fits format --- #
         try:
             fits_fitting = config.get("fits_output", "fits_fitting", False)
@@ -399,10 +390,82 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "cutout", header = best_header)
             save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "model", header = best_header)
             save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "residual", header = best_header)
+            
 
+        # --- visualize best fit in png format --- #
+        try:
+            visualize = config.get("visualization", "visualize_fitting")
+        except:
+            visualize = False
 
-      
+        try:
+            dir_comm =  config.get("paths", "dir_comm")
+            output_dir_vis = dir_comm + config.get("visualization", "output_dir_fitting")
+        except:
+            output_dir_vis = "Images/Fitting"
+
+        if visualize:
+            logger_file_only.info("2D and 3D visualization of the Gaussian fits and residual ON")
+            plot_fit_summary(
+                cutout=best_cutout,
+                model=model_eval,
+                residual=residual_map,
+                output_dir=output_dir_vis,
+                label_name=f"HYPER_MAP_{suffix}_ID_{source_id+1}" if source_id is not None else "source",
+                box_size=best_box,
+                poly_order=best_order,
+                nmse=best_nmse
+           )
+       
         
-        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, bg_mean, best_nmse
+
+
+        # --- Optionally save separated background model as FITS --- #
+        try:
+            fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
+            dir_comm = config.get("paths", "dir_comm")
+            fits_output_dir = dir_comm + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")
+        except Exception:
+            fits_bg_separate = False
+
+        if fits_bg_separate:
+            os.makedirs(fits_output_dir, exist_ok=True)
+            label_name = f"HYPER_MAP_{suffix}_ID_{source_id + 1}"
+            filename = f"{fits_output_dir}/{label_name}_bg_masked3D.fits"
+            
+            convert_mjy=config.get("units", "convert_mJy")
+
+            hdu = fits.PrimaryHDU(data=best_bg_model, header=best_header)
+            if convert_mjy:
+                hdu.header['BUNIT'] = 'mJy/pixel'
+            else: hdu.header['BUNIT'] = 'Jy/pixel'    
+            hdu.writeto(filename, overwrite=True)
+            
+            
+        # --- Optionally save separated background 3D visualization as png format --- #
+        try:
+            visualize_bg = config.get("visualization", "visualize_bg_separate", False)
+            output_dir = dir_comm + config.get("visualization", "output_dir_bg_separate")
+        except Exception:
+            visualize_bg = False
+
+        if visualize_bg:
+            os.makedirs(output_dir, exist_ok=True)
+            fig = plt.figure(figsize=(6, 5))
+            ax = fig.add_subplot(111, projection="3d")
+            ax.plot_surface(xx, yy, best_bg_model, cmap="viridis", linewidth=0, antialiased=True)
+            ax.set_xlabel("X (pix)", fontsize=8, fontweight="bold")
+            ax.set_ylabel("Y (pix)", fontsize=8, fontweight="bold")
+            ax.set_zlabel("Flux (Jy)", fontsize=8, fontweight="bold")
+            ax.set_title("Initial Background (Isolated)", fontsize=10, fontweight="bold")
+
+            label_str = f"HYPER_MAP_{suffix}_ID_{source_id + 1}"
+            outname = os.path.join(output_dir, f"{label_str}_bg_masked3D.png")
+            plt.savefig(outname, dpi=300, bbox_inches="tight")
+            plt.close()      
+
+        
+        
+        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, bg_mean, best_bg_model, best_header, best_nmse, best_redchi, best_bic
     else:
-        return 0, None, None, None, None, None, None, None
+        return 0, None, None, None, None, None, None, None, None, None, None, None
