@@ -7,7 +7,7 @@ from scipy.spatial.distance import pdist
 import matplotlib.pyplot as plt
 
 from hyper_py.visualization import plot_fit_summary
-from bkg_multigauss import estimate_masked_background
+from bkg_multigauss import multigauss_background
 
 from photutils.aperture import CircularAperture
 
@@ -69,8 +69,13 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
 
     
+
+    # - initialize map and header - #    
+    header=map_struct['header']
+    ny, nx = image.shape
+
     
-        
+    # - initialize params - #     
     best_result = None
     best_min  = np.inf
     best_cutout = None
@@ -78,111 +83,145 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     best_slice = None
     best_order = None
     best_box = None
+    
+    
+    
+    
+    #=== Estimate separated background masking also external sources  ===#
+    if fit_separately:
+       
+        cutout_after_bg, cutout_header, bg_model, mask_bg, xcen_cut, ycen_cut, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = multigauss_background(
+            minimize_method=minimize_method, 
+            image=image,
+            header=header,
+            xcen=xcen,
+            ycen=ycen,
+            nx=nx,
+            ny=ny,
+            all_sources_xcen=all_sources_xcen,
+            all_sources_ycen=all_sources_ycen,
+            aper_sup=aper_sup,
+            max_fwhm_extent=max_fwhm_extent,
+            box_sizes=box_sizes,
+            pol_orders_separate=pol_orders_separate,
+            suffix=suffix,
+            group_id=group_id, 
+            count_source_blended_indexes=count_source_blended_indexes,
+            config=config,
+            logger=logger,
+            logger_file_only=logger_file_only
+        )
+        
+        # - save original map without background - #
+        cutout = np.copy(cutout_after_bg)
+        cutout_masked = cutout_after_bg
+        box_sizes = box_sizes_after_bg
+    else:
+        bg_model = None
 
+
+    
+    
+    # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
-        half_box = box // 2 -1
-        xmin = max(0, int(np.min(xcen)) - half_box)
-        xmax = min(nx, int(np.max(xcen)) + half_box + 1)
-        ymin = max(0, int(np.min(ycen)) - half_box)
-        ymax = min(ny, int(np.max(ycen)) + half_box + 1)
-
-        cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
-        if cutout.size == 0 or np.isnan(cutout).all():
-            continue
         
-        
-        #- save cutout header -#
-        cutout_wcs = WCS(header).deepcopy()
-        cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
-        cutout_wcs.wcs.crpix[1] -= ymin  # CRPIX2
-        cutout_header = cutout_wcs.to_header()
-        #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
-        cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
+        if not fit_separately:
+            half_box = box // 2 -1
+            xmin = max(0, int(np.mean(xcen)) - half_box)
+            xmax = min(nx, int(np.mean(xcen)) + half_box + 1)
+            ymin = max(0, int(np.mean(ycen)) - half_box)
+            ymax = min(ny, int(np.mean(ycen)) + half_box + 1)
+    
+            cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
+            if cutout.size == 0 or np.isnan(cutout).all():
+                continue
+            
+            
+            #- save cutout header -#
+            cutout_wcs = WCS(header).deepcopy()
+            cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
+            cutout_wcs.wcs.crpix[1] -= ymin  # CRPIX2
+            cutout_header = cutout_wcs.to_header()
+            #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
+            cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
+    
+            yy, xx = np.indices(cutout.shape)
+    
+            
+            #--- estimate cutout rms and weighting scheme ---#         
+            xcen_cut = xcen - xmin
+            ycen_cut = ycen - ymin
+                    
 
-        yy, xx = np.indices(cutout.shape)
-
-        
-        #--- estimate cutout rms and weighting scheme ---#         
-        xcen_cut = xcen - xmin
-        ycen_cut = ycen - ymin
+            
+            #--- Identify external sources inside box ---#
+            mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
+            external_sources = []
+            for i in range(len(all_sources_xcen)):
+                if i in group_indices:
+                    continue  # skip sources belonging to current group
+                sx = all_sources_xcen[i]
+                sy = all_sources_ycen[i]
                 
+                if xmin <= sx <= xmax and ymin <= sy <= ymax:
+                    ex = sx - xmin
+                    ey = sy - ymin
+                    external_sources.append((ex, ey))  # local cutout coords
         
+                    # Define a bounding box around the source, clipped to cutout size
+                    masking_radius = max_fwhm_extent/2.   # radius
+                    masking_radius_pix=np.round(masking_radius) 
         
-        #--- Identify external sources inside box ---#
-        external_sources = []
-        for i in range(len(all_sources_xcen)):
-            if i in group_indices:
-                continue  # skip sources belonging to current group
-            sx = all_sources_xcen[i]
-            sy = all_sources_ycen[i]
-            if xmin <= sx <= xmax and ymin <= sy <= ymax:
-                external_sources.append((sx - xmin, sy - ymin))  # local cutout coords
-    
-    
-        #--- Create mask of external sources ---#
-        mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
-        masking_radius = max_fwhm_extent #config.get("background", "external_mask_radius", 1.5) * beam_pix  # or set a fixed value
-            
-        for ex, ey in external_sources:
-            aperture = CircularAperture((ex, ey), r=masking_radius)
-            mask_data = aperture.to_mask(method="center").to_image(cutout.shape)
-            if mask_data is not None:
-                mask[mask_data > 0] = False  # Mask external source region
-            
-        #--- Apply mask → set masked pixels to np.nan ---#
-        cutout_masked = np.copy(cutout)
-        cutout_masked[~mask] = np.nan 
-        
-        cutout = cutout_masked
-        
+                    xmin_box = max(0, int(ex - masking_radius_pix))
+                    xmax_box = min(nx, int(ex + masking_radius_pix + 1))
+                    ymin_box = max(0, int(ey - masking_radius_pix))
+                    ymax_box = min(ny, int(ey + masking_radius_pix + 1))
+                    
+                    # Create coordinate grid for the local region
+                    mask[ymin_box:ymax_box, xmin_box:xmax_box] = False 
+                
+                
+                
+            #--- Apply external sources mask → set masked pixels to np.nan ---#
+            cutout_masked = np.copy(cutout)
+            mask_bg = np.ones_like(cutout_masked, dtype=bool)
+            mask_bg[np.isnan(cutout_masked)] = False        
+            mask_bg[~mask] = False  # mask external sources etc.
+                
+            ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
+            cutout_masked[~mask_bg] = np.nan
+         
+                   
  
   
-        #=== Estimate separated background masking also external sources  ===#
-        if fit_separately:
-            xcen_cut_bg = np.copy(xcen_cut)
-            ycen_cut_bg = np.copy(ycen_cut)
 
-            if len(external_sources) > 0:
-                ex_arr, ey_arr = np.array(external_sources).T
-                xcen_cut_bg = np.concatenate([xcen_cut_bg, ex_arr])
-                ycen_cut_bg = np.concatenate([ycen_cut_bg, ey_arr])
-            
-            cutout_bs, bg_model = estimate_masked_background(
-                cutout=cutout,
-                cutout_header=cutout_header,
-                xcen_cut=xcen_cut_bg,
-                ycen_cut=ycen_cut_bg,
-                aper_sup=aper_sup,
-                max_fwhm_extent=max_fwhm_extent,
-                box_sizes=box_sizes,
-                orders=pol_orders_separate,
-                suffix=suffix,
-                count_source_blended_indexes=count_source_blended_indexes,
-                config=config,
-                logger=logger,
-                logger_file_only=logger_file_only
-            )
-            cutout = cutout_bs
-        else:
-            bg_model = np.zeros_like(cutout)
-    
+
+
+
+
        
         
-        mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout, sigma=3.0, maxiters=10)
-        cutout_rms = np.full_like(cutout, std_bg)
+        # Mask NaNs before computing stats
+        valid = ~np.isnan(cutout_masked)        
+        mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout_masked[valid], sigma=3.0, maxiters=10)
+        
+        # Create rms map and propagate NaNs
+        cutout_rms = np.full_like(cutout_masked, std_bg)
+        cutout_rms[~valid] = np.nan 
+        
 
-        mask_weights = ~SigmaClip(sigma=3.0, maxiters=10)(cutout).mask
         weights = None
         if weight_choice == "inverse_rms":
             weights = 1.0 / (cutout_rms + mean_bg)
         elif weight_choice == "snr":
-            weights = cutout / (cutout_rms + mean_bg)
+            weights = (cutout_masked / (cutout_rms + mean_bg))
         elif weight_choice == "power_snr":
-            weights = ((cutout / (cutout_rms + mean_bg)))**weight_power_snr
+            weights = ((cutout_masked / (cutout_rms + mean_bg)))**weight_power_snr
         elif weight_choice == "map":
-            weights = cutout
+            weights = cutout_masked
         elif weight_choice == "mask":
-            weights = mask_weights.astype(float)
+            mask_stats = ~SigmaClip(sigma=3.0)(cutout_masked).mask
+            weights = mask_stats.astype(float)
                        
                 
 
@@ -194,11 +233,16 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 # --- Add Gaussian components ---
                 for i, (xc, yc) in enumerate(zip(xcen_cut, ycen_cut)):
 
-                    # --- Local peak near (xc, yc) in cutout ---
+                    # --- Local peak near (xc, yc) in cutout_masked ---
                     prefix = f"g{i}_"
-                    local_peak = np.nanmax(cutout[int(yc)-1:int(yc)+1, int(xc)-1:int(xc)+1])
-                    params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.05*local_peak)
-
+                    local_peak = np.nanmax(cutout_masked[int(yc)-1:int(yc)+1, int(xc)-1:int(xc)+1])
+                    
+                    # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
+                    if fit_separately:
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
+                    else:
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.05*local_peak)
+                        
                     params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
                     params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
  
@@ -213,15 +257,25 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     params.add(f"{prefix}sx", value=aper_inf, min=aper_inf, max=aper_sup)
                     params.add(f"{prefix}sy", value=aper_sup, min=aper_inf, max=aper_sup)
                     params.add(f"{prefix}theta", value=0.0, min=-np.pi/2, max=np.pi/2)
+                    
+                    
+                    
+
+        
 
 
                 # --- Add full 2D polynomial background (including cross terms) ---
                 if not no_background:
-                    for deg_x in range(order + 1):
-                        for deg_y in range(order + 1):
-                            pname = f"c{deg_x}_{deg_y}"
-                            val = median_bg if (deg_x == 0 and deg_y == 0) else 0.0
-                            params.add(pname, value=val, vary=True)
+                    max_order_all = max(orders)
+
+                    for dx in range(max_order_all + 1):
+                        for dy in range(max_order_all + 1 - dx):
+                            pname = f"c{dx}_{dy}"
+                            val = median_bg if (dx == 0 and dy == 0) else 1e-5
+                            params.add(pname, value=val, vary=(dx + dy <= order))
+                            
+                            
+                            
 
                 def model_fn(params, x, y):
                     model = np.zeros_like(x, dtype=float)
@@ -239,11 +293,14 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         model += A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
 
                     if not no_background:
-                        for deg_x in range(order + 1):
-                            for deg_y in range(order + 1):
-                                pname = f"c{deg_x}_{deg_y}"
-                                if pname in params:
-                                    model += params[pname].value * (x ** deg_x) * (y ** deg_y)
+                        max_order_all = max(orders)
+
+                        for dx in range(max_order_all + 1):
+                            for dy in range(max_order_all + 1 - dx):
+                                pname = f"c{dx}_{dy}"
+                                val = median_bg if (dx == 0 and dy == 0) else 1e-5
+                                params.add(pname, value=val, vary=(dx + dy <= order))
+                                
                     # Final check
                     model = np.where(np.isfinite(model), model, 0.0)
                     return model
@@ -303,28 +360,32 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     **minimize_kwargs
                 )     
  
-                # --- Evaluate reduced chi**2 and NMSE (Normalized Mean Squared Error) ---
+                # --- Evaluate reduced chi**2, BIC and NMSE (Normalized Mean Squared Error) statistics --- #
                 if result.success:
-                    # Evaluate model on grid
+                    # Evaluate model on grid #
                     model_eval = model_fn(result.params, xx, yy)
                 
-                    # Compute normalized mean squared error
-                    mse = np.mean((model_eval - cutout)**2)
-                    nmse = mse / (np.mean(cutout**2) + 1e-12)
+                    # Compute normalized mean squared error only on valid pixels
+                    valid_mask = np.isfinite(cutout_masked) & np.isfinite(model_eval)
+                    residual = (model_eval - cutout_masked)[valid_mask]
+                    mse = np.mean(residual**2)
+                    
+                    norm = np.mean(cutout_masked[valid_mask]**2) + 1e-12
+                    nmse = mse / norm
                     
                     redchi = result.redchi
                     bic = result.bic 
-                    
+                                        
                     if minimize_method == "redchi" : my_min = redchi
                     if minimize_method == "nmse"   : my_min = nmse
-                    if minimize_method == "bic"    : my_min = bic                   
-                
-                    logger_file_only.info(f"[SUCCESS] Fit (box={cutout.shape[1], cutout.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}")
+                    if minimize_method == "bic"    : my_min = bic
+                    logger_file_only.info(f"[SUCCESS] Fit (box={cutout_masked.shape[1], cutout_masked.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}, BIC = {bic:.2e}")
                 else:
                     nmse = np.nan
                     redchi = np.nan
                     bic = np.nan
-                    logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
+                    logger_file_only.error(f"[FAILURE] Fit failed (box={cutout_masked.shape[1], cutout_masked.shape[0]}, order={order})")
+                    
 
         
                 if my_min < best_min:
@@ -332,18 +393,23 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     best_nmse = nmse
                     best_redchi = redchi
                     best_bic = bic
-                    best_order = order
-                    best_cutout = cutout
+                    if fit_separately:
+                        best_order = back_order
+                    else:
+                        best_order = order    
+                    best_cutout = cutout_masked
                     best_header = cutout_header
-                    best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     best_bg_model = bg_model
+                    best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
-                    best_box = (cutout.shape[1], cutout.shape[0])
+                    best_box = (cutout_masked.shape[1], cutout_masked.shape[0])
                     best_min = my_min
 
             except Exception as e:
-                logger.error(f"[ERROR] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order}): {e}")
+                logger.error(f"[ERROR] Fit failed (box={cutout_masked.shape[1], cutout_masked.shape[0]}, order={order}): {e}")
                 continue
+
+
 
     if best_result is not None:
         fit_status = 1  # 1 if True, 0 if False
@@ -431,7 +497,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             
 
             
-        # --- save separated background estimation in fits format --- #
+        # --- Optionally save separated background model as FITS --- #
         try:
             fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
             dir_comm =  config.get("paths", "dir_comm")
@@ -487,7 +553,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             outname = os.path.join(output_dir_vis, f"{label_str}_bg_masked3D.png")
             plt.savefig(outname, dpi=300, bbox_inches="tight")
             plt.close()     
-            
             
             
             

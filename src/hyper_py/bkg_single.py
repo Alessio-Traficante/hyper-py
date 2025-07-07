@@ -123,18 +123,18 @@ def masked_background_single_sources(
         #--- Identify external sources inside box and add to main source ---#
         mask_bg = np.ones_like(cutout, dtype=bool)
 
-
-        for i in range(len(all_sources_xcen)):
-            if i == source_id:
-                continue  # skip sources belonging to current group
-            sx = all_sources_xcen[i]
-            sy = all_sources_ycen[i]
+        for i in range(len(all_sources_xcen)):                 
+             if (all_sources_xcen[i]-xmin != x0) and (all_sources_ycen[i]-ymin != y0):    
+                 sx = all_sources_xcen[i]
+                 sy = all_sources_ycen[i]
+                
+                 if xmin <= sx <= xmax and ymin <= sy <= ymax:            
+                     ex = sx - xmin
+                     ey = sy - ymin
+                     all_sources_to_mask.append((ex, ey))
+                     external_sources.append((ex, ey))
+                     
             
-            if xmin <= sx <= xmax and ymin <= sy <= ymax:            
-                ex = sx - xmin
-                ey = sy - ymin
-                all_sources_to_mask.append((ex, ey))
-                external_sources.append((ex, ey))
 
         # --- Mask all external sources using simple 2D Gaussian fitting --- #
         cut_local = cutout
@@ -365,9 +365,6 @@ def masked_background_single_sources(
                 else:
                     my_min = nmse  # fallback
             
-                # print(source_id, box, cutout_eval.shape, nmse, bic, redchi)
-                
-
                 
             
                 if my_min < best_min:

@@ -127,13 +127,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     else:    
         bg_model = None
     
+        
     
-    # 
-    print(source_id, box_sizes, back_order)
-# 
-
-
-
+    # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
         
         if not fit_separately:
@@ -197,8 +193,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
             cutout_masked[~mask_bg] = np.nan
             
-                 
- 
+
             
         # --- Fit single 2D elliptical Gaussian (+ background) --- #
         # Mask NaNs before computing stats
@@ -229,8 +224,13 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 
                 params = Parameters()
                 local_peak = np.nanmax(cutout_masked[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
-                params.add("g_amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
                 
+                # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
+                if fit_separately:
+                    params.add("g_amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
+                else:
+                    params.add("g_amplitude", value=local_peak, min=0.5*local_peak, max=1.05*local_peak)
+                    
                 if vary == True:
                     params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
                     params.add("g_centery", value=y0, min=y0 - 1, max=y0 + 1)
@@ -266,10 +266,14 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     model = A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
 
                     if not no_background:
-                        for dx in range(order + 1):
-                            for dy in range(order + 1 - dx):
+                        max_order_all = max(orders)
+
+                        for dx in range(max_order_all + 1):
+                            for dy in range(max_order_all + 1 - dx):
                                 pname = f"c{dx}_{dy}"
-                                model += p[pname].value * (x ** dx) * (y ** dy)
+                                val = median_bg if (dx == 0 and dy == 0) else 1e-5
+                                params.add(pname, value=val, vary=(dx + dy <= order))
+                                
                     # Final check
                     model = np.where(np.isfinite(model), model, 0.0)
                     return model
@@ -327,7 +331,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 )     
       
                              
-                # --- Evaluate reduced chi**2 and NMSE (Normalized Mean Squared Error) ---
+                # --- Evaluate reduced chi**2, BIC and NMSE (Normalized Mean Squared Error) statistics --- #
                 if result.success:
                     # Evaluate model on grid #
                     model_eval = model_fn(result.params, xx, yy)
@@ -359,7 +363,10 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     best_nmse = nmse
                     best_redchi = redchi
                     best_bic = bic
-                    best_order = order
+                    if fit_separately:
+                        best_order = back_order
+                    else:
+                        best_order = order    
                     best_cutout = cutout_masked
                     best_header = cutout_header
                     best_bg_model = bg_model
