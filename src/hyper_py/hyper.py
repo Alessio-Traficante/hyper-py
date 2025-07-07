@@ -152,10 +152,6 @@ def run_hyper(cfg_path):
     
     # === Combine all bg_models into a datacube ===
     if datacube:
-        
-        print(initial_header)
-        
-        
         # 1. Determine common crop size
         min_ny = min(bg.shape[0] for bg in background_slices)
         min_nx = min(bg.shape[1] for bg in background_slices)
@@ -178,8 +174,8 @@ def run_hyper(cfg_path):
         old_ny, old_nx = background_slices[0].shape  
     
         # ref_header['NAXIS'] = 3
-        ref_header['NAXIS1'] = min_nx
-        ref_header['NAXIS2'] = min_ny
+        # ref_header['NAXIS1'] = min_nx
+        # ref_header['NAXIS2'] = min_ny
         # ref_header['NAXIS3'] = bg_cube.shape[0]
         ref_header['CTYPE3'] = 'SLICE'
         ref_header['BUNIT'] = 'mJy/pixel'
