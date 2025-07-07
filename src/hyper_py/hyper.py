@@ -152,6 +152,10 @@ def run_hyper(cfg_path):
     
     # === Combine all bg_models into a datacube ===
     if datacube:
+        
+        print(initial_header)
+        
+        
         # 1. Determine common crop size
         min_ny = min(bg.shape[0] for bg in background_slices)
         min_nx = min(bg.shape[1] for bg in background_slices)
@@ -168,7 +172,7 @@ def run_hyper(cfg_path):
         bg_cube = np.stack(cropped_bgs, axis=0)
     
         # 4. Adjust WCS header
-        ref_header = initial_header
+        ref_header = initial_header.copy()
         
         # ref_header = slice_cutout_header[0].copy()
         old_ny, old_nx = background_slices[0].shape  
