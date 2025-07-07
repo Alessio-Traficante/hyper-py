@@ -98,7 +98,7 @@ def run_hyper(cfg_path):
             for future in as_completed(futures):
                 map_name = futures[future]
                 try:
-                    suffix, bg_model, cutout_header = future.result()
+                    suffix, bg_model, cutout_header, initial_header = future.result()
                     results.append(suffix)
                     if datacube:
                         background_slices.append(bg_model)
@@ -110,7 +110,7 @@ def run_hyper(cfg_path):
     else:
         for map_name in map_names:
             logger.info(f"📡 Running HYPER on: {map_name}")
-            suffix, bg_model, cutout_header = single_map(map_name, cfg, dir_comm, logger, logger_file_only)
+            suffix, bg_model, cutout_header, initial_header = single_map(map_name, cfg, dir_comm, logger, logger_file_only)
             results.append(suffix)
             if datacube:
                 background_slices.append(bg_model)
@@ -168,17 +168,16 @@ def run_hyper(cfg_path):
         bg_cube = np.stack(cropped_bgs, axis=0)
     
         # 4. Adjust WCS header
-        ref_header = slice_cutout_header[0].copy()
+        ref_header = initial_header
+        
+        # ref_header = slice_cutout_header[0].copy()
         old_ny, old_nx = background_slices[0].shape  
     
-        ref_header['NAXIS'] = 3
+        # ref_header['NAXIS'] = 3
         ref_header['NAXIS1'] = min_nx
         ref_header['NAXIS2'] = min_ny
-        ref_header['NAXIS3'] = bg_cube.shape[0]
+        # ref_header['NAXIS3'] = bg_cube.shape[0]
         ref_header['CTYPE3'] = 'SLICE'
-        ref_header['CRPIX3'] = 1
-        ref_header['CRVAL3'] = 1
-        ref_header['CDELT3'] = 1
         ref_header['BUNIT'] = 'mJy/pixel'
     
         # Also update CRPIX1 and CRPIX2 to reflect cropping (recenter WCS)

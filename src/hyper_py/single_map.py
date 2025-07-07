@@ -704,7 +704,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         
         
         
-    return map_name, bg_model, cutout_header
+    return map_name, bg_model, cutout_header, header
     
 #################################### MAIN CALL ####################################
 if __name__ == "__main__":
