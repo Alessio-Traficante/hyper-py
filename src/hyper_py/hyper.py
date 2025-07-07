@@ -173,9 +173,6 @@ def run_hyper(cfg_path):
         # ref_header = slice_cutout_header[0].copy()
         old_ny, old_nx = background_slices[0].shape  
     
-        # ref_header['NAXIS'] = 3
-        # ref_header['NAXIS1'] = min_nx
-        # ref_header['NAXIS2'] = min_ny
         # ref_header['NAXIS3'] = bg_cube.shape[0]
         ref_header['CTYPE3'] = 'SLICE'
         ref_header['BUNIT'] = 'mJy/pixel'
@@ -198,8 +195,9 @@ def run_hyper(cfg_path):
             if key in ref_header:
                 del ref_header[key]
 
+
+        print('PIPPO', dx, dy)
         # Now create the HDU
-    
         output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
         fits.PrimaryHDU(data=bg_cube, header=ref_header).writeto(output_cube_path, overwrite=True)
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
