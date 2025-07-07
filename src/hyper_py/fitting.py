@@ -23,9 +23,12 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
     # --- Load config parameters ---
     beam_pix = map_struct['beam_dim']/map_struct['pix_dim']/2.3548      # beam sigma size in pixels    
+    fwhm_beam_pix = map_struct['beam_dim']/map_struct['pix_dim']      # beam FWHM size in pixels    
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
-    
+    max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
+
+
     convert_mjy=config.get("units", "convert_mJy")
 
     
@@ -55,9 +58,18 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
     positions = np.column_stack([xcen, ycen])
     max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
-    dynamic_min_box = int(np.ceil(max_dist + max_fwhm_extent + fix_min_box*2)) # *2: (minimum box size both sizes)
-    dynamic_max_box = int(np.ceil(max_dist + max_fwhm_extent + fix_max_box*2))                          # *2: (minimum box size both sizes)
-    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))       # ensure odd
+    # dynamic_min_box = int(np.ceil(max_dist + max_fwhm_extent + fix_min_box*2)) # *2: (minimum box size both sizes)
+    # dynamic_max_box = int(np.ceil(max_dist + max_fwhm_extent + fix_max_box*2))                          # *2: (minimum box size both sizes)
+    # box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))       # ensure odd
+     
+    
+    # box size is a multiplicative factor of the fwhm_beam_pix + maximum source size: max_fwhm_extent*2 + distance between common sources
+    dynamic_min_box = int(np.ceil(fix_min_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
+    dynamic_max_box = int(np.ceil(fix_max_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
+    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+
+    
+    
         
     best_result = None
     best_min  = np.inf

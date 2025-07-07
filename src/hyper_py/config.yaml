@@ -77,8 +77,8 @@ detection:
 
 #--------------------- Photometry Settings ---------------------#
 photometry:
-  aper_inf: 1.0                    # Minimum size factor for Gaussian FWHM (also used as inner annulus radius factor)
-  aper_sup: 1.5                    # Maximum size factor for Gaussian FWHM (also used as outer annulus radius factor)
+  aper_inf: 1.0                    # Minimum size factor for Gaussian FWHM (used as minimum radius)
+  aper_sup: 2.0                    # Maximum size factor for Gaussian FWHM (used as maximum radius)
   
   fixed_radius: false              # Use fixed aperture radii instead of Gaussian fitting (True/False)
   fwhm_1: [0.7]                    # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
@@ -88,7 +88,7 @@ photometry:
 
 #---------------------- Model fit Settings ----------------------#
 fit_options:
-  fit_method: "leastsq"        # Optimization algorithm ('leastsq')
+  fit_method: "least_squares"  # Optimization algorithm for Gaussian fitting ('leastsq')
   max_nfev: 50000              # Maximum number of function evaluations
   xtol: 1e-8                   # Tolerance on parameter change for convergence
   ftol: 1e-8                   # Tolerance on cost function change for convergence
@@ -98,17 +98,19 @@ fit_options:
   power_snr: 5                 # SNR**power_snr - this value gives more weight to the bright pixels
   min_method: "nmse"           # Criterion to select best fit: 'nmse', 'redchi', or 'bic'
   verbose: false               # Print full fit report
-  use_l2_regularization: true  # Enable L2 regularization on background terms
+  use_l2_regularization: true  # Enable L2 regularization on background terms (only in Gaussian+background fitting)
   lambda_l2: 1e-4              # Regularization strength
   vary: false                  # Allow source peak to vary during Gaussian fit
-        
-
+  
+  bg_fitters: ['least_squares']                       # Background fitting methods to try: 'least_squares', 'huber', 'theilsen'
+  huber_epsilons: [1.1, 1.35, 1.7, 2.0]               # List of epsilon values for HuberRegressor (used only if 'huber' is in bg_fitters)
+  
 #--------------------- Background Estimation ---------------------#
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
-  polynomial_orders: [0, 1]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 5                    # Minimum number of pixels to add at the box for variable-size background fitting (half-size increment)
-  fix_max_box:  15                   # Maximum number of pixels to add at the box for variable-size background fitting (half-size increment)
+  polynomial_orders: [0]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
+  fix_min_box: 3                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
+  fix_max_box:  6                   # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1, 2]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
 

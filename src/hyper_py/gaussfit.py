@@ -45,6 +45,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     fwhm_beam_pix = map_struct['beam_dim']/map_struct['pix_dim']      # beam FWHM size in pixels    
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
+    max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
+
     
     convert_mjy=config.get("units", "convert_mJy")
 
@@ -73,16 +75,18 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
 
     # === Determine box size ===
+    # box size is a multiplicative factor of the fwhm_beam_pix + maximum source size: max_fwhm_extent*2
+    dynamic_min_box = int(np.ceil(fix_min_box*fwhm_beam_pix)*2 + max_fwhm_extent*2)
+    dynamic_max_box = int(np.ceil(fix_max_box*fwhm_beam_pix)*2 + max_fwhm_extent*2)
+    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+    
+
+    # - initialize map and header - #    
     header=map_struct['header']
     ny, nx = image.shape
 
 
-    max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
-    dynamic_min_box = int(np.ceil(max_fwhm_extent) + fix_min_box) *2      # *2: (minimum box size both sizes)
-    dynamic_max_box = int(np.ceil(max_fwhm_extent) + fix_max_box) *2                    # *2: (minimum box size both sizes)
-    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
-        
-
+    # - initialize params - #
     best_result = None
     best_min = np.inf
     best_cutout = None
@@ -91,102 +95,116 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     best_order = None
     bg_mean = 0.0
     best_box = None
+    
+
+
+    # --- Background estimation on cutout masked (optional) --- #
+    # cutout_ref = np.copy(cutout)
+    if fit_separately:
+        cutout_after_bg, cutout_header, bg_model, mask_bg, x0, y0, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = masked_background_single_sources(
+            minimize_method, 
+            image,
+            header,
+            xcen,
+            ycen,
+            nx, ny,
+            all_sources_xcen,
+            all_sources_ycen,
+            max_fwhm_extent,
+            box_sizes,
+            pol_orders_separate,
+            suffix,
+            source_id,
+            config,
+            logger,
+            logger_file_only
+        )
+
+        # - save original map without background - #
+        cutout = np.copy(cutout_after_bg)
+        cutout_masked = cutout_after_bg
+        box_sizes = box_sizes_after_bg
+    else:    
+        bg_model = None
+    
+    
+    # 
+    print(source_id, box_sizes, back_order)
+# 
+
 
 
     for box in box_sizes:
-        half_box = box // 2 -1
-        xmin = max(0, int(np.min(xcen)) - half_box)
-        xmax = min(nx, int(np.max(xcen)) + half_box + 1)
-        ymin = max(0, int(np.min(ycen)) - half_box)
-        ymax = min(ny, int(np.max(ycen)) + half_box + 1)
-
-        cutout = image[ymin:ymax, xmin:xmax].copy()
-        if cutout.size == 0 or np.isnan(cutout).all():
-            logger.warning("[WARNING] Empty or invalid cutout. Skipping.")
-            continue
-      
-        #- save cutout header -#
-        cutout_wcs = WCS(header).deepcopy()
-        cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
-        cutout_wcs.wcs.crpix[1] -= ymin  # CRPIX2
-        cutout_header = cutout_wcs.to_header()
-        #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
-        cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
-                      
-        yy, xx = np.indices(cutout.shape)
-        x0 = xcen - xmin
-        y0 = ycen - ymin
         
-       
-        #--- Identify external sources inside box ---#
-        mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
-        external_sources = []
-        for i in range(len(all_sources_xcen)):
-            if i == source_id:
-                continue  # skip sources belonging to current group
-            sx = all_sources_xcen[i]
-            sy = all_sources_ycen[i]
-            
-            if xmin <= sx <= xmax and ymin <= sy <= ymax:            
-                ex = sx - xmin
-                ey = sy - ymin
-                external_sources.append((ex, ey))  # local cutout coords
-                
-                # Define a bounding box around the source, clipped to cutout size
-                masking_radius = max_fwhm_extent 
-                masking_radius_pix=np.round(masking_radius) 
-
-                xmin_box = max(0, int(ex - masking_radius_pix))
-                xmax_box = min(nx, int(ex + masking_radius_pix + 1))
-                ymin_box = max(0, int(ey - masking_radius_pix))
-                ymax_box = min(ny, int(ey + masking_radius_pix + 1))
-                
-                # Create coordinate grid for the local region
-                mask[ymin_box:ymax_box, xmin_box:xmax_box] = False 
-
+        if not fit_separately:
+            half_box = box // 2 -1
+            xmin = max(0, int(np.min(xcen)) - half_box)
+            xmax = min(nx, int(np.max(xcen)) + half_box + 1)
+            ymin = max(0, int(np.min(ycen)) - half_box)
+            ymax = min(ny, int(np.max(ycen)) + half_box + 1)
     
-        #--- Apply external sources mask → set masked pixels to np.nan ---#
-        cutout_masked = np.copy(cutout)
-        mask_bg = np.ones_like(cutout_masked, dtype=bool)
-        mask_bg[np.isnan(cutout_masked)] = False        
-        mask_bg[~mask] = False  # mask external sources etc.
+            cutout = image[ymin:ymax, xmin:xmax].copy()
+            if cutout.size == 0 or np.isnan(cutout).all():
+                logger.warning("[WARNING] Empty or invalid cutout. Skipping.")
+                continue
+          
+            #- save cutout header -#
+            cutout_wcs = WCS(header).deepcopy()
+            cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
+            cutout_wcs.wcs.crpix[1] -= ymin  # CRPIX2
+            cutout_header = cutout_wcs.to_header()
+            #- preserve other non-WCS cards (e.g. instrument, DATE-OBS) -#
+            cutout_header.update({k: header[k] for k in header if k not in cutout_header and k not in ['COMMENT', 'HISTORY']})
+                          
+            yy, xx = np.indices(cutout.shape)
+            x0 = xcen - xmin
+            y0 = ycen - ymin
+            
+           
+            #--- Identify external sources inside box ---#
+            mask = np.ones_like(cutout, dtype=bool)  # True = valid, False = masked
+            external_sources = []
+            for i in range(len(all_sources_xcen)):
+                if i == source_id:
+                    continue  # skip sources belonging to current group
+                sx = all_sources_xcen[i]
+                sy = all_sources_ycen[i]
+                
+                if xmin <= sx <= xmax and ymin <= sy <= ymax:            
+                    ex = sx - xmin
+                    ey = sy - ymin
+                    external_sources.append((ex, ey))  # local cutout coords
+                    
+                    # Define a bounding box around the source, clipped to cutout size
+                    masking_radius = max_fwhm_extent/2.   # radius
+                    masking_radius_pix=np.round(masking_radius) 
+    
+                    xmin_box = max(0, int(ex - masking_radius_pix))
+                    xmax_box = min(nx, int(ex + masking_radius_pix + 1))
+                    ymin_box = max(0, int(ey - masking_radius_pix))
+                    ymax_box = min(ny, int(ey + masking_radius_pix + 1))
+                    
+                    # Create coordinate grid for the local region
+                    mask[ymin_box:ymax_box, xmin_box:xmax_box] = False 
+    
         
-        ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
-        cutout_masked[~mask_bg] = np.nan
-        
+            #--- Apply external sources mask → set masked pixels to np.nan ---#
+            cutout_masked = np.copy(cutout)
+            mask_bg = np.ones_like(cutout_masked, dtype=bool)
+            mask_bg[np.isnan(cutout_masked)] = False        
+            mask_bg[~mask] = False  # mask external sources etc.
+            
+            ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
+            cutout_masked[~mask_bg] = np.nan
+            
+                 
  
-
-        # --- Background estimation on cutout masked (optional) --- #
-        cutout_ref = np.copy(cutout)
-        if fit_separately:
-            cutout_after_bg, cutout_masked_after_bg, bg_model, poly_params = masked_background_single_sources(
-                cutout_masked,
-                cutout_ref, 
-                cutout_header,
-                x0,
-                y0,
-                external_sources,
-                max_fwhm_extent,
-                box_sizes,
-                pol_orders_separate,
-                suffix,
-                source_id,
-                config,
-                logger_file_only
-            )
-
-            # - save original map without background - #
-            cutout = np.copy(cutout_after_bg)
-            cutout_masked = cutout_masked_after_bg
-
-        else:
-            bg_model = np.zeros_like(cutout_masked)
-        
             
         # --- Fit single 2D elliptical Gaussian (+ background) --- #
         # Mask NaNs before computing stats
         valid = ~np.isnan(cutout_masked)        
         mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout_masked[valid], sigma=3.0, maxiters=10)
+                
         
         # Create rms map and propagate NaNs
         cutout_rms = np.full_like(cutout_masked, std_bg)
@@ -212,15 +230,14 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 params = Parameters()
                 local_peak = np.nanmax(cutout_masked[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
                 params.add("g_amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
-
+                
                 if vary == True:
                     params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
                     params.add("g_centery", value=y0, min=y0 - 1, max=y0 + 1)
                 if vary == False:
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
- 
-                    
+     
                 params.add("g_sigmax", value=aper_inf, min=aper_inf, max=aper_sup)
                 params.add("g_sigmay", value=aper_sup, min=aper_inf, max=aper_sup)
                 params.add("g_theta", value=0.0, min=-np.pi/2, max=np.pi/2)
@@ -305,7 +322,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     params,
                     args=(x_valid.ravel(), y_valid.ravel(), data_valid),
                     kws={'weights': weights_valid},
-                    method=fit_cfg.get("fit_method", "leastsq"),
+                    method=fit_cfg.get("fit_method", "least_squares"),
                     **minimize_kwargs
                 )     
       
@@ -325,7 +342,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     
                     redchi = result.redchi
                     bic = result.bic 
-                    
+                                        
                     if minimize_method == "redchi" : my_min = redchi
                     if minimize_method == "nmse"   : my_min = nmse
                     if minimize_method == "bic"    : my_min = bic
@@ -350,8 +367,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     bg_mean = median_bg
                     best_box = (cutout_masked.shape[1], cutout_masked.shape[0])
                     best_min = my_min
-
-
+                    
             except Exception as e:
                 logger.error(f"[ERROR] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order}): {e}")
                 continue
