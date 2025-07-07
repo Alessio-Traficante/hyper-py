@@ -184,7 +184,6 @@ def run_hyper(cfg_path):
         # ref_header['CRPIX2'] -= dy
         
         
-        # # shift assoluto del ritaglio rispetto all'origine
         x_shift = min_nx
         y_shift = min_ny
         
@@ -204,8 +203,6 @@ def run_hyper(cfg_path):
             if key in ref_header:
                 del ref_header[key]
 
-
-        print('PIPPO', old_nx, old_ny, dx, dy)
     
         output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
         fits.PrimaryHDU(data=bg_cube, header=ref_header).writeto(output_cube_path, overwrite=True)
