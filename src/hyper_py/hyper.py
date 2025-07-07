@@ -169,24 +169,14 @@ def run_hyper(cfg_path):
     
         # 4. Adjust WCS header
         ref_header = initial_header.copy()
-        # original_ny, original_nx = bg_cube[0].shape  
         
-        # # ref_header = slice_cutout_header[0].copy()
-        # # original_ny, original_nx = background_slices[0].shape  
-    
-        # # Also update CRPIX1 and CRPIX2 to reflect cropping (recenter WCS)
-        # dx = (original_nx - min_nx) // 2
-        # dy = (original_ny - min_ny) // 2
-        # ref_header['CRPIX1'] -= dx
-        # ref_header['CRPIX2'] -= dy
+        # Compute x/y shifts for CRPIX update (from center-crop)
+        old_ny, old_nx = background_slices[0].shape
+        dy = (old_ny - min_ny) // 2
+        dx = (old_nx - min_nx) // 2
         
-       
-        x_shift = min_nx
-        y_shift = min_ny
-        
-        # aggiornamento del pixel di riferimento WCS
-        ref_header['CRPIX1'] -= x_shift
-        ref_header['CRPIX2'] -= y_shift
+        ref_header['CRPIX1'] -= dx
+        ref_header['CRPIX2'] -= dy
 
 
         # ref_header['NAXIS3'] = bg_cube.shape[0]
