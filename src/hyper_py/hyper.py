@@ -178,10 +178,19 @@ def run_hyper(cfg_path):
         ref_header['BUNIT'] = 'mJy/pixel'
     
         # Also update CRPIX1 and CRPIX2 to reflect cropping (recenter WCS)
-        dx = (old_nx - min_nx) // 2
-        dy = (old_ny - min_ny) // 2
-        ref_header['CRPIX1'] -= dx
-        ref_header['CRPIX2'] -= dy
+        # dx = (old_nx - min_nx) // 2
+        # dy = (old_ny - min_ny) // 2
+        # ref_header['CRPIX1'] -= dx
+        # ref_header['CRPIX2'] -= dy
+        
+        
+        # # shift assoluto del ritaglio rispetto all'origine
+        x_shift = min_nx
+        y_shift = min_ny
+        
+        # aggiornamento del pixel di riferimento WCS
+        ref_header['CRPIX1'] -= x_shift
+        ref_header['CRPIX2'] -= y_shift
         
         
         # Update the axes explicitly before creating the HDU
