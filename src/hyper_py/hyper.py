@@ -185,6 +185,20 @@ def run_hyper(cfg_path):
         dy = (old_ny - min_ny) // 2
         ref_header['CRPIX1'] -= dx
         ref_header['CRPIX2'] -= dy
+        
+        
+        # Update the axes explicitly before creating the HDU
+        ref_header['NAXIS'] = 3
+        ref_header['NAXIS1'] = bg_cube.shape[2]  # nx
+        ref_header['NAXIS2'] = bg_cube.shape[1]  # ny
+        ref_header['NAXIS3'] = bg_cube.shape[0]  # nz
+
+        # Clean structural keywords if they already exist elsewhere
+        for key in ['SIMPLE', 'BITPIX', 'EXTEND']:
+            if key in ref_header:
+                del ref_header[key]
+
+        # Now create the HDU
     
         output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
         fits.PrimaryHDU(data=bg_cube, header=ref_header).writeto(output_cube_path, overwrite=True)
