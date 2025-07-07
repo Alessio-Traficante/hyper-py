@@ -169,27 +169,28 @@ def run_hyper(cfg_path):
     
         # 4. Adjust WCS header
         ref_header = initial_header.copy()
+        old_ny, old_nx = bg_cube[0].shape  
         
         # ref_header = slice_cutout_header[0].copy()
-        old_ny, old_nx = background_slices[0].shape  
+        # old_ny, old_nx = background_slices[0].shape  
     
         # ref_header['NAXIS3'] = bg_cube.shape[0]
         ref_header['CTYPE3'] = 'SLICE'
         ref_header['BUNIT'] = 'mJy/pixel'
     
         # Also update CRPIX1 and CRPIX2 to reflect cropping (recenter WCS)
-        # dx = (old_nx - min_nx) // 2
-        # dy = (old_ny - min_ny) // 2
-        # ref_header['CRPIX1'] -= dx
-        # ref_header['CRPIX2'] -= dy
+        dx = (old_nx - min_nx) // 2
+        dy = (old_ny - min_ny) // 2
+        ref_header['CRPIX1'] -= dx
+        ref_header['CRPIX2'] -= dy
         
         
-        x_shift = min_nx
-        y_shift = min_ny
+        # x_shift = min_nx
+        # y_shift = min_ny
         
-        # aggiornamento del pixel di riferimento WCS
-        ref_header['CRPIX1'] -= x_shift
-        ref_header['CRPIX2'] -= y_shift
+        # # aggiornamento del pixel di riferimento WCS
+        # ref_header['CRPIX1'] -= x_shift
+        # ref_header['CRPIX2'] -= y_shift
         
         
         # Update the axes explicitly before creating the HDU
