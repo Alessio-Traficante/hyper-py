@@ -196,8 +196,8 @@ def run_hyper(cfg_path):
                 del ref_header[key]
 
 
-        print('PIPPO', dx, dy)
-        # Now create the HDU
+        print('PIPPO', old_nx, old_ny, dx, dy)
+    
         output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
         fits.PrimaryHDU(data=bg_cube, header=ref_header).writeto(output_cube_path, overwrite=True)
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
