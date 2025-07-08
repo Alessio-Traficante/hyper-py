@@ -169,7 +169,7 @@ def run_hyper(cfg_path):
     
         # 4. Adjust WCS header
         new_header = initial_header.copy()
-        cropped_header = cutout_header[0].copy()
+        cropped_header = slice_cutout_header[0].copy()
         
         
         # 2. Update spatial WCS keywords (X and Y axes) from the cropped header

@@ -84,7 +84,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     #=== Estimate separated background masking also external sources  ===#
     if fit_separately:
        
-        cutout_after_bg, cutout_header, bg_model, mask_bg, xcen_cut, ycen_cut, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = multigauss_background(
+        cutout_after_bg, cutout_full_with_bg, cutout_header, bg_model, mask_bg, xcen_cut, ycen_cut, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = multigauss_background(
             minimize_method=minimize_method, 
             image=image,
             header=header,
@@ -109,6 +109,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         # - save original map without background - #
         cutout = np.copy(cutout_after_bg)
         cutout_masked = cutout_after_bg
+        cutout_masked_full = cutout_full_with_bg
         box_sizes = box_sizes_after_bg
     else:
         bg_model = None
@@ -246,11 +247,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     params.add(f"{prefix}theta", value=0.0, min=-np.pi/2, max=np.pi/2)
                     
                     
-                    
-
-        
-
-
+ 
                 # --- Add full 2D polynomial background (including cross terms) ---
                 if not no_background:
                     max_order_all = max(orders)
@@ -261,8 +258,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                             val = median_bg if (dx == 0 and dy == 0) else 1e-5
                             params.add(pname, value=val, vary=(dx + dy <= order))
                             
-                            
-                            
+                                                      
 
                 def model_fn(params, x, y):
                     model = np.zeros_like(x, dtype=float)
@@ -385,6 +381,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     else:
                         best_order = order    
                     best_cutout = cutout_masked
+                    best_cutout_masked_full = cutout_masked_full
                     best_header = cutout_header
                     best_bg_model = bg_model
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
@@ -453,6 +450,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 hdul.writeto(filename, overwrite=True)
             
             save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "cutout", header=best_header)
+            save_fits(best_cutout_masked_full, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "cutout_masked_full", header=best_header)
             save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "model", header=best_header)
             save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{count_source_blended_indexes[0]}_{count_source_blended_indexes[1]}", "residual", header=best_header)
 
@@ -473,6 +471,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         
             plot_fit_summary(
                 cutout=best_cutout,
+                cutout_masked_full=best_cutout_masked_full,
                 model=model_eval,
                 residual=residual_map,
                 output_dir=output_dir_vis,

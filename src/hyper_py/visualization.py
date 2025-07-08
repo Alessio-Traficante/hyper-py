@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 
-def plot_fit_summary(cutout, model, residual, output_dir, label_name="fit", dpi=300,
+def plot_fit_summary(cutout, cutout_masked_full, model, residual, output_dir, label_name="fit", dpi=300,
                      box_size=None, poly_order=None, nmse=None):
     """
     Save 2D and 3D plots of cutout, model, and residual.
@@ -35,18 +35,20 @@ def plot_fit_summary(cutout, model, residual, output_dir, label_name="fit", dpi=
     vmax_resid = np.nanmax(residual)
 
     data_list = [cutout, model, residual, residual]
-    file_tags = ["cutout", "model", "residual", "residual_rescaled"]
+    file_tags = ["cutout", "cutout masked full", "model", "residual", "residual_rescaled"]
 
     if box_size is not None:
         titles = [
-            f"Original Map Cutout  • Box = {box_size} px   ",
+            f"Map Cutout Back. subt.  • Box = {box_size} px   ",
+            f"Original Map Cutout masked  • Box = {box_size} px   ",
             f"Model (Gauss. + Backgr.)  • Box = {box_size} px   ",
             f"Residual (Data − Model)  • Box = {box_size} px   ",
             f"Residual (Rescaled)  • Box = {box_size} px   "
         ]
     else:
         titles = [
-            "Original Map Cutout  • Box = NaN ",
+            "Map Cutout Back. subt  • Box = NaN ",
+            "Original Map Cutout masked  • Box = NaN   ",
             "Model (Gauss. + Backgr.)  • Box = NaN ",
             "Residual (Data − Model)  • Box = NaN ",
             "Residual (Rescaled)  • Box = NaN "

@@ -101,7 +101,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     # --- Background estimation on cutout masked (optional) --- #
     # cutout_ref = np.copy(cutout)
     if fit_separately:
-        cutout_after_bg, cutout_header, bg_model, mask_bg, x0, y0, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = masked_background_single_sources(
+        cutout_after_bg, cutout_full_with_bg, cutout_header, bg_model, mask_bg, x0, y0, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = masked_background_single_sources(
             minimize_method, 
             image,
             header,
@@ -123,6 +123,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # - save original map without background - #
         cutout = np.copy(cutout_after_bg)
         cutout_masked = cutout_after_bg
+        cutout_masked_full = cutout_full_with_bg
         box_sizes = box_sizes_after_bg
     else:    
         bg_model = None
@@ -368,6 +369,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     else:
                         best_order = order    
                     best_cutout = cutout_masked
+                    best_cutout_masked_full = cutout_masked_full
                     best_header = cutout_header
                     best_bg_model = bg_model
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
@@ -417,6 +419,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 hdul.writeto(filename, overwrite=True)
             
             save_fits(best_cutout, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "cutout", header = best_header)
+            save_fits(best_cutout_masked_full, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "cutout masked full", header = best_header)
             save_fits(model_eval, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "model", header = best_header)
             save_fits(residual_map, fits_output_dir_fitting, f"HYPER_MAP_{suffix}_ID_{source_id+1}", "residual", header = best_header)
             
@@ -437,6 +440,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             logger_file_only.info("2D and 3D visualization of the Gaussian fits and residual ON")
             plot_fit_summary(
                 cutout=best_cutout,
+                cutout_masked_full = best_cutout_masked_full,
                 model=model_eval,
                 residual=residual_map,
                 output_dir=output_dir_vis,

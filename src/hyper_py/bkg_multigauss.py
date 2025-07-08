@@ -341,6 +341,7 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                                   
                     best_cutout = cutout
                     best_cutout_masked = cutout_masked
+                    best_cutout_masked_full = cutout_masked_all
                     best_bg_model = bg_model_full
                     best_header = cutout_header
                     best_mask_bg = mask_bg
@@ -364,7 +365,7 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
     if best_order is None:
         # If no valid background was found, return unmodified cutout
         logger_file_only.warning("[WARNING] Background fit failed; returning original cutout.")
-        return cutout_masked, None, np.zeros_like(cutout), np.zeros_like(cutout), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {}
+        return cutout_masked, np.zeros_like(cutout), None, np.zeros_like(cutout), np.zeros_like(cutout), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {}
 
     else:
         # Subtract background from the original cutout
@@ -375,4 +376,4 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
             f"[INFO] Background subtracted using order {best_order} polynomial."
     )
  
-    return best_cutout_masked, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params
+    return best_cutout_masked, best_cutout_masked_full, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params
