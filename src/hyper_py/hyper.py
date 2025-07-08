@@ -53,7 +53,7 @@ def run_hyper(cfg_path):
         map_names = [map_names]
         
     if datacube:
-        map_names = extract_maps_from_cube(map_names, dir_comm, dir_maps)
+        map_names, cube_header = extract_maps_from_cube(map_names, dir_comm, dir_maps)
         background_slices = []
         slice_cutout_header = []
     
@@ -168,10 +168,10 @@ def run_hyper(cfg_path):
         bg_cube = np.stack(cropped_bgs, axis=0)
     
         # 4. Adjust WCS header
-        new_header = initial_header.copy()
+        new_header = cube_header.copy()
         cropped_header = slice_cutout_header[0].copy()
         
-        
+ 
         # 2. Update spatial WCS keywords (X and Y axes) from the cropped header
         spatial_keys = [
             'NAXIS1', 'NAXIS2',

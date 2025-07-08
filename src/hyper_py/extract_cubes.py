@@ -13,15 +13,15 @@ def extract_maps_from_cube(cube_names, dir_comm, dir_maps):
         cube_path = os.path.join(dir_comm, dir_maps, cube_name)
         with fits.open(cube_path) as hdul:
             data = hdul[0].data
-            header = hdul[0].header
-            wcs = WCS(header)
+            cube_header = hdul[0].header
+            wcs = WCS(cube_header)
 
             if data.ndim != 3:
                 raise ValueError(f"{cube_name} is not a 3D datacube.")
 
             for i in range(data.shape[0]):
                 slice_data = data[i, :, :]
-                slice_header = header.copy()
+                slice_header = cube_header.copy()
                 slice_header['CRPIX3'] = i + 1  # track the slice index
                 slice_header['NAXIS'] = 2  # force 2D output
                 for key in list(slice_header.keys()):
@@ -36,4 +36,4 @@ def extract_maps_from_cube(cube_names, dir_comm, dir_maps):
                 fits.writeto(out_path, slice_data, slice_header, overwrite=True)
                 extracted_maps.append(out_name)
 
-    return extracted_maps
+    return extracted_maps, cube_header

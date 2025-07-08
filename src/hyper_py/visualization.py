@@ -34,7 +34,7 @@ def plot_fit_summary(cutout, cutout_masked_full, model, residual, output_dir, la
     vmin_resid = np.nanmin(residual)
     vmax_resid = np.nanmax(residual)
 
-    data_list = [cutout, model, residual, residual]
+    data_list = [cutout, cutout_masked_full, model, residual, residual]
     file_tags = ["cutout", "cutout masked full", "model", "residual", "residual_rescaled"]
 
     if box_size is not None:
