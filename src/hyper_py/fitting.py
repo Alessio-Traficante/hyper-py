@@ -55,20 +55,14 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         lambda_l2 = 1e-3  # fallback
     
     # --- Determine box_sizes ---
-    max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
     positions = np.column_stack([xcen, ycen])
     max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
-    # dynamic_min_box = int(np.ceil(max_dist + max_fwhm_extent + fix_min_box*2)) # *2: (minimum box size both sizes)
-    # dynamic_max_box = int(np.ceil(max_dist + max_fwhm_extent + fix_max_box*2))                          # *2: (minimum box size both sizes)
-    # box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))       # ensure odd
-     
     
     # box size is a multiplicative factor of the fwhm_beam_pix + maximum source size: max_fwhm_extent*2 + distance between common sources
     dynamic_min_box = int(np.ceil(fix_min_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
     dynamic_max_box = int(np.ceil(fix_max_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
     box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
-
-    
+ 
 
     # - initialize map and header - #    
     header=map_struct['header']
@@ -127,10 +121,10 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         
         if not fit_separately:
             half_box = box // 2 -1
-            xmin = max(0, int(np.mean(xcen)) - half_box)
-            xmax = min(nx, int(np.mean(xcen)) + half_box + 1)
-            ymin = max(0, int(np.mean(ycen)) - half_box)
-            ymax = min(ny, int(np.mean(ycen)) + half_box + 1)
+            xmin = max(0, round(np.mean(xcen)) - half_box)
+            xmax = min(nx, round(np.mean(xcen)) + half_box + 1)
+            ymin = max(0, round(np.mean(ycen)) - half_box)
+            ymax = min(ny, round(np.mean(ycen)) + half_box + 1)
     
             cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
             if cutout.size == 0 or np.isnan(cutout).all():
@@ -192,13 +186,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             cutout_masked[~mask_bg] = np.nan
          
                    
- 
-  
-
-
-
-
-
        
         
         # Mask NaNs before computing stats
@@ -239,7 +226,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     
                     # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
                     if fit_separately:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.05*local_peak)
                     else:
                         params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.05*local_peak)
                         

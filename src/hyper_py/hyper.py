@@ -168,37 +168,46 @@ def run_hyper(cfg_path):
         bg_cube = np.stack(cropped_bgs, axis=0)
     
         # 4. Adjust WCS header
-        ref_header = initial_header.copy()
+        new_header = initial_header.copy()
+        cropped_header = cutout_header[0].copy()
         
-        # Compute x/y shifts for CRPIX update (from center-crop)
-        old_ny, old_nx = background_slices[0].shape
-        dy = (old_ny - min_ny) // 2
-        dx = (old_nx - min_nx) // 2
         
-        ref_header['CRPIX1'] -= dx
-        ref_header['CRPIX2'] -= dy
-
-
-        # ref_header['NAXIS3'] = bg_cube.shape[0]
-        ref_header['CTYPE3'] = 'SLICE'
-        ref_header['BUNIT'] = 'mJy/pixel'
-    
-         
+        # 2. Update spatial WCS keywords (X and Y axes) from the cropped header
+        spatial_keys = [
+            'NAXIS1', 'NAXIS2',
+            'CRPIX1', 'CRPIX2',
+            'CRVAL1', 'CRVAL2',
+            'CDELT1', 'CDELT2',
+            'CTYPE1', 'CTYPE2',
+            'CUNIT1', 'CUNIT2',
+            'CD1_1', 'CD1_2', 'CD2_1', 'CD2_2',
+            'PC1_1', 'PC1_2', 'PC2_1', 'PC2_2',
+            'CROTA1', 'CROTA2'
+        ]
         
-        # Update the axes explicitly before creating the HDU
-        ref_header['NAXIS'] = 3
-        ref_header['NAXIS1'] = bg_cube.shape[2]  # nx
-        ref_header['NAXIS2'] = bg_cube.shape[1]  # ny
-        ref_header['NAXIS3'] = bg_cube.shape[0]  # nz
-
-        # Clean structural keywords if they already exist elsewhere
-        for key in ['SIMPLE', 'BITPIX', 'EXTEND']:
-            if key in ref_header:
-                del ref_header[key]
+        for key in spatial_keys:
+            if key in cropped_header:
+                new_header[key] = cropped_header[key]
+        
+        # 3. Update full shape to match the background cube
+        new_header['NAXIS'] = 3
+        new_header['NAXIS1'] = bg_cube.shape[2]  # X axis
+        new_header['NAXIS2'] = bg_cube.shape[1]  # Y axis
+        new_header['NAXIS3'] = bg_cube.shape[0]  # Z axis
+        
+        # 4. Ensure WCSAXES is at least 3
+        new_header['WCSAXES'] = max(new_header.get('WCSAXES', 3), 3)
+        
+        # Optional: clean inconsistent axis-specific keys (e.g., if 4D originally)
+        for ax in [4, 5]:
+            for prefix in ['CTYPE', 'CRPIX', 'CRVAL', 'CDELT', 'CUNIT']:
+                key = f"{prefix}{ax}"
+                if key in new_header:
+                    del new_header[key]
 
     
         output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
-        fits.PrimaryHDU(data=bg_cube, header=ref_header).writeto(output_cube_path, overwrite=True)
+        fits.PrimaryHDU(data=bg_cube, header=new_header).writeto(output_cube_path, overwrite=True)
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
     
     logger.info("****************** ✅ Hyper finished !!! ******************")

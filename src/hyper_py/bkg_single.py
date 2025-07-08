@@ -176,8 +176,8 @@ def masked_background_single_sources(
             yy_full, xx_full = np.indices(cut_local.shape)
             model_vals = g_fit(xx_full, yy_full)
         
-            # Mask pixels above 1-FWHM threshold (≈ 0.6065 × peak)
-            threshold = g_fit.amplitude.value * np.exp(-0.5)
+            # Mask pixels above 1-FWHM threshold (≈ 0.0625 × peak)
+            threshold = g_fit.amplitude.value * 0.0625 # np.exp(-0.5)
             mask_bg[model_vals > threshold] = False
         
         
@@ -229,8 +229,8 @@ def masked_background_single_sources(
             yy_full, xx_full = np.indices(cut_local.shape)
             model_vals = g_fit(xx_full, yy_full)
         
-            # Mask pixels above 1-FWHM threshold (≈ 0.6065 × peak)
-            threshold = g_fit.amplitude.value * np.exp(-0.5)
+            # Mask pixels above 1-FWHM threshold (≈ 0.0625 × peak)
+            threshold = g_fit.amplitude.value * 0.0625 # np.exp(-0.5)
             mask_bg_all[model_vals > threshold] = False
 
         # --- Apply main sources mask → set masked pixels to np.nan --- #
@@ -295,7 +295,6 @@ def masked_background_single_sources(
             
                 # Rebuild coeff_dict
                 coeff_dict = dict(zip(param_names, coeffs))
-            
                 
                                
                 # --- Estimate best_min on common mask size for all runs --- #
@@ -342,7 +341,6 @@ def masked_background_single_sources(
                 residual_valid_best_min = bg_model_local_valid_best_min - z_valid_best_min
                 
                 
-               
                 mse = np.mean(residual_valid_best_min ** 2)
                 norm = np.mean(z_valid ** 2) + 1e-12
                 nmse = mse / norm
@@ -364,7 +362,6 @@ def masked_background_single_sources(
                     my_min = redchi 
                 else:
                     my_min = nmse  # fallback
-            
                 
             
                 if my_min < best_min:

@@ -110,7 +110,7 @@ background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
   fix_min_box: 3                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
-  fix_max_box:  3                   # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
+  fix_max_box:  5                   # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1, 2]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
 
@@ -127,9 +127,9 @@ fits_output:                         # Save Fits files for best fits
 
 #--------------------- Visualization Options ---------------------#
 visualization:                       # Plot and save PNGs for the best Gaussian+background fit
-  visualize_fitting: true           # Visualize final Gaussian+background fit
-  visualize_deblended: true         # for per-source blended maps
-  visualize_bg_separate: true       # Visualize 3D background model from masked fit (only if fit_gauss_and_bg_separately = true)
+  visualize_fitting: false           # Visualize final Gaussian+background fit
+  visualize_deblended: false         # for per-source blended maps
+  visualize_bg_separate: false       # Visualize 3D background model from masked fit (only if fit_gauss_and_bg_separately = true)
   output_dir_fitting: "Plots/Fitting"          # Subdirectory of dir_comm 
   output_dir_deblended: "Plots/Deblended"      # Subdirectory of dir_comm  
   output_dir_bg_separate: "Plots/Bg_separate"  # Subdirectory of dir_comm  
