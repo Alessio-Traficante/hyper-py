@@ -55,8 +55,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     weight_choice = fit_cfg.get("weights", None)
     weight_power_snr = fit_cfg.get("power_snr", 1.0)
 
-    fix_min_box = config.get("background", "fix_min_box", 15)     # padding value
-    fix_max_box = config.get("background", "fix_max_box", 25)     # range above padding
+    fix_min_box = config.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+    fix_max_box = config.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
     
     no_background = config.get("background", "no_background", False)
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
@@ -102,7 +102,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     best_box = None
     
 
-
     # --- Background estimation on cutout masked (optional) --- #
     # cutout_ref = np.copy(cutout)
     if fit_separately:
@@ -133,7 +132,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     else:    
         bg_model = None
     
-        
+
     
     # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
@@ -370,7 +369,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     my_min = np.nan
                     logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
         
-        
                 if my_min < best_min:
                     best_result = result
                     best_nmse = nmse
@@ -388,13 +386,13 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     bg_mean = median_bg
                     best_box = (cutout_masked.shape[1], cutout_masked.shape[0])
                     best_min = my_min
+
                     
             except Exception as e:
                 logger.error(f"[ERROR] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order}): {e}")
                 continue
             
-        
-            
+                
     if best_result is not None:
         fit_status = 1  # 1 if True, 0 if False
         
@@ -461,8 +459,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 poly_order=best_order,
                 nmse=best_nmse
            )
-       
-        
 
 
         # --- Optionally save separated background model as FITS --- #
@@ -511,5 +507,5 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
         
         return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, bg_mean, best_bg_model, best_header, best_nmse, best_redchi, best_bic
-    else:
-        return 0, None, None, None, None, None, None, None, None, None, None, None
+    else:   
+        return 0, None, None, None, None, (None, None), None, None, None, None, None, None

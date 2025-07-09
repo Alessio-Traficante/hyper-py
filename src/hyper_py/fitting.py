@@ -41,8 +41,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     lambda_l2 = fit_cfg.get("lambda_l2", 1e-3)
 
     no_background = config.get("background", "no_background", False)
-    fix_min_box = config.get("background", "fix_min_box", 15)     # padding value
-    fix_max_box = config.get("background", "fix_max_box", 25)     # range above padding
+    fix_min_box = config.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+    fix_max_box = config.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
     orders = config.get("background", "polynomial_orders", [0, 1, 2]) if not no_background else [0]
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
     pol_orders_separate = config.get("background", "pol_orders_separate", [0])
@@ -549,5 +549,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
         return fit_status, best_result, model_fn, best_order, best_cutout, best_cutout_masked_full, best_slice, best_header, bg_mean, best_bg_model, best_box, best_nmse, best_redchi, best_bic
 
-    # Ensure return is always complete
-    return 0, None, None, None, None, None, None, None, None, None, None, None, None, None
+    else:
+        # Ensure return is always complete
+        return 0, None, None, None, None, None, (None, None), None, None, None, None, None, None, None

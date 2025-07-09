@@ -41,6 +41,9 @@ def run_hyper(cfg_path):
     base_table_name = cfg.get("files", "file_table_base")
     map_names = cfg.get("files", "file_map_name")
     datacube = cfg.get("control", "datacube", False)
+    fix_min_box = cfg.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+    fix_max_box = cfg.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
+
 
     
     # If it's a path to a .txt file, read it #
@@ -211,34 +214,35 @@ def run_hyper(cfg_path):
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
     
     
-        # === Also create a full-size cube with padded background slices ===
-        full_ny = cube_header['NAXIS2']
-        full_nx = cube_header['NAXIS1']
-       
-        padded_bgs = []
-        for cropped in cropped_bgs:
-            padded = np.full((full_ny, full_nx), np.nan, dtype=float)
-            cy, cx = cropped.shape
-            y0 = (full_ny - cy) // 2
-            x0 = (full_nx - cx) // 2
-            padded[y0:y0+cy, x0:x0+cx] = cropped
-            padded_bgs.append(padded)
-       
-        # Stack into padded cube
-        bg_cube_full = np.stack(padded_bgs, axis=0)
-       
-        # Use the original header (just update shape)
-        padded_header = cube_header.copy()
-        padded_header['NAXIS'] = 3
-        padded_header['NAXIS1'] = full_nx
-        padded_header['NAXIS2'] = full_ny
-        padded_header['NAXIS3'] = len(padded_bgs)
-        padded_header['WCSAXES'] = max(padded_header.get('WCSAXES', 3), 3)
-       
-        # Save full-size cube
-        output_full_cube = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
-        fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_full_cube, overwrite=True)
-        logger.info(f"📦 Full-size padded background cube saved to: {output_full_cube}")
+        # === Also create a full-size cube with padded background slices if cropped size is smaller then original size === #
+        if not (np.isinf(fix_min_box)) and not (np.isinf(fix_max_box)):
+            full_ny = cube_header['NAXIS2']
+            full_nx = cube_header['NAXIS1']
+           
+            padded_bgs = []
+            for cropped in cropped_bgs:
+                padded = np.full((full_ny, full_nx), np.nan, dtype=float)
+                cy, cx = cropped.shape
+                y0 = (full_ny - cy) // 2
+                x0 = (full_nx - cx) // 2
+                padded[y0:y0+cy, x0:x0+cx] = cropped
+                padded_bgs.append(padded)
+           
+            # Stack into padded cube
+            bg_cube_full = np.stack(padded_bgs, axis=0)
+           
+            # Use the original header (just update shape)
+            padded_header = cube_header.copy()
+            padded_header['NAXIS'] = 3
+            padded_header['NAXIS1'] = full_nx
+            padded_header['NAXIS2'] = full_ny
+            padded_header['NAXIS3'] = len(padded_bgs)
+            padded_header['WCSAXES'] = max(padded_header.get('WCSAXES', 3), 3)
+           
+            # Save full-size cube
+            output_full_cube = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
+            fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_full_cube, overwrite=True)
+            logger.info(f"📦 Full-size padded background cube saved to: {output_full_cube}")
        
        
 

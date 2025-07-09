@@ -297,7 +297,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
 
 ######################## ISOLATED sources photometry ########################
     for idx_iso, i in enumerate(isolated):
-                
+                        
         logger_file_only.info(f"Photometry on isolated source {idx_iso + 1} of {len(isolated)}")
     
         fit_status, fit_result, model_fn, bg_order, cutout, (yslice, xslice), bg_mean, bg_model, cutout_header, final_nmse, final_redchi, final_bic = fit_isolated_gaussian(
@@ -313,8 +313,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             logger=logger,
             logger_file_only=logger_file_only
         )
+        
         if fit_result is None:
-            logger.error(f"Fit failed for isolated source {i}")
+            logger_file_only.error(f"Fit failed for isolated source {i}")
             continue
         
         # --- Extract fitted Gaussian parameters ---
@@ -393,7 +394,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         
         source_id_save.append(i+1)    #source_id to save in params files
             
-    
     tot_fitted_isolated = len(updated_xcen)    
     logger.info(f"✓ Fitted {tot_fitted_isolated} isolated sources with Gaussian + background")
 

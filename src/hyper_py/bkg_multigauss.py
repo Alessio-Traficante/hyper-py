@@ -399,8 +399,6 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         best_cutout -= best_bg_model
         best_cutout_masked -= best_bg_model
         
-        logger_file_only.info(
-            f"[INFO] Background subtracted using order {best_order} polynomial."
-    )
+        logger_file_only.info(f"[INFO] Background subtracted using order {best_order} polynomial.")
  
-    return best_cutout_masked, best_cutout_masked_full, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params
+        return best_cutout_masked, best_cutout_masked_full, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params
