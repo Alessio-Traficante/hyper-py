@@ -111,7 +111,7 @@ fit_options:
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 3                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
+  fix_min_box: 3                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
   fix_max_box:  5                   # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1, 2]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)

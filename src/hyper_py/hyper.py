@@ -154,24 +154,103 @@ def run_hyper(cfg_path):
     
     # === Combine all bg_models into a datacube ===
     if datacube:
+        # # 1. Determine common crop size
+        # min_ny = min(bg.shape[0] for bg in background_slices)
+        # min_nx = min(bg.shape[1] for bg in background_slices)
+    
+        # def central_crop(array, ny, nx):
+        #     y0 = (array.shape[0] - ny) // 2
+        #     x0 = (array.shape[1] - nx) // 2
+        #     return array[y0:y0+ny, x0:x0+nx]
+    
+        # # 2. Centrally crop all backgrounds
+        # cropped_bgs = [central_crop(bg, min_ny, min_nx) for bg in background_slices]
+    
+        # # 3. Stack into cube
+        # bg_cube = np.stack(cropped_bgs, axis=0)
+    
+        # # 4. Adjust WCS header
+        # new_header = cube_header.copy()
+        # cropped_header = slice_cutout_header[0].copy()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         # 1. Determine common crop size
-        min_ny = min(bg.shape[0] for bg in background_slices)
-        min_nx = min(bg.shape[1] for bg in background_slices)
-    
-        def central_crop(array, ny, nx):
-            y0 = (array.shape[0] - ny) // 2
-            x0 = (array.shape[1] - nx) // 2
-            return array[y0:y0+ny, x0:x0+nx]
-    
-        # 2. Centrally crop all backgrounds
-        cropped_bgs = [central_crop(bg, min_ny, min_nx) for bg in background_slices]
-    
-        # 3. Stack into cube
+        all_shapes = [bg.shape for bg in background_slices]
+        ny_list = [s[0] for s in all_shapes]
+        nx_list = [s[1] for s in all_shapes]
+        min_ny = min(ny_list)
+        min_nx = min(nx_list)
+        
+        # 2. Find index of slice matching both min_ny and min_nx
+        matching_index = None
+        for i, (ny, nx) in enumerate(all_shapes):
+            if ny == min_ny and nx == min_nx:
+                matching_index = i
+                break
+        
+        # 3. If no exact match, find best fit (one axis matches)
+        if matching_index is None:
+            for i, (ny, nx) in enumerate(all_shapes):
+                if ny == min_ny or nx == min_nx:
+                    matching_index = i
+                    break
+        
+        # If still None (should not happen), fallback to first
+        if matching_index is None:
+            matching_index = 0
+        
+        # 4. Use that slice's header
+        cropped_header = slice_cutout_header[matching_index].copy()
+        
+        # 5. Define crop with optional NaN padding
+        def central_crop_or_pad(array, target_ny, target_nx):
+            ny, nx = array.shape
+            if ny == target_ny and nx == target_nx:
+                return array
+            else:
+                cropped = np.full((target_ny, target_nx), np.nan, dtype=array.dtype)
+                y0 = (ny - target_ny) // 2
+                x0 = (nx - target_nx) // 2
+                y1 = y0 + target_ny
+                x1 = x0 + target_nx
+                # Clip to valid range
+                y0 = max(0, y0)
+                x0 = max(0, x0)
+                y1 = min(ny, y1)
+                x1 = min(nx, x1)
+                sub = array[y0:y1, x0:x1]
+        
+                # Paste subarray into center of padded frame
+                sy, sx = sub.shape
+                start_y = (target_ny - sy) // 2
+                start_x = (target_nx - sx) // 2
+                cropped[start_y:start_y+sy, start_x:start_x+sx] = sub
+                return cropped
+        
+        # 6. Centrally crop or pad all backgrounds to (min_ny, min_nx)
+        cropped_bgs = [central_crop_or_pad(bg, min_ny, min_nx) for bg in background_slices]
+        
+        # 7. Stack into cube
         bg_cube = np.stack(cropped_bgs, axis=0)
-    
-        # 4. Adjust WCS header
+        
+        # 8. Adjust WCS header (preserve original logic)
         new_header = cube_header.copy()
-        cropped_header = slice_cutout_header[0].copy()
+        
+        
+        
+        
+        
+        
+        
         
  
         # 2. Update spatial WCS keywords (X and Y axes) from the cropped header
