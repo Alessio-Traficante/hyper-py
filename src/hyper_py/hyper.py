@@ -42,7 +42,6 @@ def run_hyper(cfg_path):
     map_names = cfg.get("files", "file_map_name")
     datacube = cfg.get("control", "datacube", False)
     fix_min_box = cfg.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
-    fix_max_box = cfg.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
 
 
     
@@ -215,7 +214,7 @@ def run_hyper(cfg_path):
     
     
         # === Also create a full-size cube with padded background slices if cropped size is smaller then original size === #
-        if not (np.isinf(fix_min_box)) and not (np.isinf(fix_max_box)):
+        if fix_min_box == 0:
             full_ny = cube_header['NAXIS2']
             full_nx = cube_header['NAXIS1']
            

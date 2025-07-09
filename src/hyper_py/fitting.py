@@ -56,7 +56,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         
     
     # === Determine box size === #
-    if np.isinf(fix_min_box) or np.isinf(fix_max_box):
+    if fix_min_box == 0:
         # Use entire map size directly
         box_sizes = [(ny, nx)]
     else:
