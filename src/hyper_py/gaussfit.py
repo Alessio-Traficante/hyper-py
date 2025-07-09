@@ -89,7 +89,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         dynamic_max_box = int(np.ceil(fix_max_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
         box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
 
-
+    
 
     # - initialize params - #
     best_result = None
@@ -131,20 +131,28 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         box_sizes = box_sizes_after_bg
     else:    
         bg_model = None
-    
-
+        
+        
     
     # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
         
         if not fit_separately:
-            half_box = box // 2 -1
-            xmin = max(0, int(np.min(xcen)) - half_box)
-            xmax = min(nx, int(np.max(xcen)) + half_box + 1)
-            ymin = max(0, int(np.min(ycen)) - half_box)
-            ymax = min(ny, int(np.max(ycen)) + half_box + 1)
-    
-            cutout = image[ymin:ymax, xmin:xmax].copy()
+            if fix_min_box != 0:
+                half_box = box // 2 -1
+                xmin = max(0, int(np.min(xcen)) - half_box)
+                xmax = min(nx, int(np.max(xcen)) + half_box + 1)
+                ymin = max(0, int(np.min(ycen)) - half_box)
+                ymax = min(ny, int(np.max(ycen)) + half_box + 1)
+                
+                cutout = image[ymin:ymax, xmin:xmax].copy()
+            else:
+                xmin = 0
+                xmax = box_sizes[0]
+                ymin = 0
+                ymax = box_sizes[1]
+                cutout = image
+
             if cutout.size == 0 or np.isnan(cutout).all():
                 logger.warning("[WARNING] Empty or invalid cutout. Skipping.")
                 continue
@@ -198,7 +206,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
             cutout_masked[~mask_bg] = np.nan
             
-
             
         # --- Fit single 2D elliptical Gaussian (+ background) --- #
         # Mask NaNs before computing stats
@@ -330,8 +337,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 x_valid = xx.ravel()[valid]
                 y_valid = yy.ravel()[valid]
                 data_valid = cutout_masked.ravel()[valid]
-                weights_valid = weights.ravel()[valid] if weights is not None else None    
-            
+                weights_valid = weights.ravel()[valid] if weights is not None else None   
+                
+                             
                 result = minimize(
                     residual,
                     params,
@@ -381,7 +389,10 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     best_cutout = cutout_masked
                     best_cutout_masked_full = cutout_masked_full
                     best_header = cutout_header
+                    
+                    bg_model = np.where(np.isfinite(cutout_masked), bg_model, np.nan)
                     best_bg_model = bg_model
+                    
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
                     best_box = (cutout_masked.shape[1], cutout_masked.shape[0])

@@ -705,7 +705,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             f.write(f"point({xw:.8f},{yw:.8f}) # point=cross text={{ID {i}}}\n")
         
         
-        
     return map_name, bg_model, cutout_header, header
     
 #################################### MAIN CALL ####################################

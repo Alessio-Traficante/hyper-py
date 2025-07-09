@@ -37,6 +37,10 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         reg = TheilSenRegressor(fit_intercept=False, max_subpopulation=1e4, random_state=42)
         fitters.append(("TheilSen", None, reg))
         
+
+    # --- identify if trun on whole map (fix_min_box = 0) or not --- #
+    fix_min_box = config.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+        
     
     # - Initialize parameters - #
     best_params = {}
@@ -47,13 +51,21 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
 
 
     for box in box_sizes:  
-        half_box = box // 2 -1
-        xmin = max(0, round(np.mean(xcen)) - half_box)
-        xmax = min(nx, round(np.mean(xcen)) + half_box + 1)
-        ymin = max(0, round(np.mean(ycen)) - half_box)
-        ymax = min(ny, round(np.mean(ycen)) + half_box + 1)
-        
-        cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
+        if fix_min_box != 0:
+            half_box = box // 2 -1
+            xmin = max(0, int(np.min(xcen)) - half_box)
+            xmax = min(nx, int(np.max(xcen)) + half_box + 1)
+            ymin = max(0, int(np.min(ycen)) - half_box)
+            ymax = min(ny, int(np.max(ycen)) + half_box + 1)
+            
+            cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
+        else:
+            xmin = 0
+            xmax = box_sizes[0]
+            ymin = 0
+            ymax = box_sizes[1]
+            cutout = np.array(image)
+
         if cutout.size == 0 or np.isnan(cutout).all():
             continue
 
@@ -71,7 +83,9 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         
         
         # ---Initialize mask: True = valid pixel for background fitting --- #
-        mask_bg = np.ones_like(cutout, dtype=bool)
+        # mask_bg = np.ones_like(cutout, dtype=bool)
+        mask_bg = np.isfinite(cutout)
+
         
         all_sources_to_mask = []
         all_sources_to_mask.extend(zip(x0, y0))
@@ -157,20 +171,36 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         
         
         # # ---- interpolate NaNs at the edges of the maps --- #
-        # Define kernel for smoothing around missing values
-        sigma = 2.0
-        kernel = Gaussian2DKernel(x_stddev=sigma)
+        # --- Count NaNs in edge pixels ---
+        edge_thickness = round(max_fwhm_extent)  # pixels to define the edge region
         
-        # Interpolate NaNs
-        interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
+        edge_mask = np.zeros_like(cutout_masked, dtype=bool)
+        edge_mask[:edge_thickness, :] = True  # top edge
+        edge_mask[-edge_thickness:, :] = True  # bottom edge
+        edge_mask[:, :edge_thickness] = True  # left edge
+        edge_mask[:, -edge_thickness:] = True  # right edge
+        
+        n_edge_total = np.sum(edge_mask)
+        n_edge_nan = np.sum(edge_mask & ~np.isfinite(cutout_masked))
+        nan_fraction = n_edge_nan / n_edge_total
+        
+        # --- Only interpolate if edge NaNs < threshold ---
+        nan_threshold = 0.3  # allow up to 30% NaNs in edge region
+        
+        if nan_fraction < nan_threshold:
+            sigma = 2.0
+            kernel = Gaussian2DKernel(x_stddev=sigma)
+            interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
+            
+            cutout_masked = interpolated_map
+            mask_bg = np.ones_like(cutout_masked, dtype=bool)
+        
+            if np.any(~np.isfinite(interpolated_map)):
+                logger_file_only.warning("⚠️ Some NaNs remain after interpolation!")
+        else:
+            logger_file_only.warning(f"⚠️ Too many NaNs at edges (fraction: {nan_fraction:.2f}) — interpolation skipped.")
 
-        cutout_masked = interpolated_map
-        mask_bg = np.ones_like(cutout_masked, dtype=bool)
-        if np.any(~np.isfinite(interpolated_map)):
-            logger_file_only.warning("Warning: Some NaNs remain after interpolation!")
-
-
-
+        
         
 
         # --- Mask all main sources using simple 2D Gaussian fitting for background estimation purposes --- #
@@ -243,7 +273,7 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
             cutout_reference_mask = np.copy(cutout_masked_all)
             ref_ny, ref_nx = cutout_reference_mask.shape
             ref_box_size = box
-
+            
         
         # ------------------ Loop over polynomial orders ------------------
         for order in pol_orders_separate:
@@ -283,30 +313,34 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                     
                                
                 # --- Estimate best_min on common mask size for all runs --- #
-                half_ref_box = ref_box_size // 2 -1
-                
-                x_start = max(0, round(np.mean(x0)) - half_ref_box) 
-                x_end   = min(nx, round(np.mean(x0)) + half_ref_box +1) 
-                y_start = max(0, round(np.mean(y0)) - half_ref_box)  
-                y_end   = min(ny, round(np.mean(y0)) + half_ref_box +1) 
-                
-                                 
-                # --- Check bounds ---
-                if x_start < 0:
-                    x_start = 0
-                if y_start < 0:    
-                    y_start = 0
-                    # logger_file_only.warning(f"[SKIP] Box size {box} cannot be cropped to match reference.")
-                    # continue  # this cutout is too small to extract the reference region               
-                if (x_end > cutout_masked_all.shape[1]):
-                    x_end = cutout_masked_all.shape[1]
+                if fix_min_box != 0:                    
+                    half_ref_box_x = ref_nx // 2 -1 
+                    half_ref_box_y = ref_ny // 2 -1
+                    
+                    x_start = max(0, round(np.mean(x0)) - half_ref_box_x) 
+                    x_end   = x_start + ref_nx #max(ref_nx, round(np.mean(x0)) + half_ref_box_x +1) 
+                    y_start = max(0, round(np.mean(y0)) - half_ref_box_y)  
+                    y_end   = y_start + ref_ny #max(ref_ny, round(np.mean(y0)) + half_ref_box_y +1)
+                            
+                    if (x_end > cutout_masked_all.shape[1]):
+                        x_start = x_start - (x_end - cutout_masked_all.shape[1])
+                        x_end = cutout_masked_all.shape[1]
 
-                if (y_end > cutout_masked_all.shape[0]):
-                    y_end = cutout_masked_all.shape[0]
+                    if (y_end > cutout_masked_all.shape[0]):
+                        y_start = y_start - (y_end - cutout_masked_all.shape[0])
+                        y_end = cutout_masked_all.shape[0]
+                   
+                    cutout_eval = cutout_masked_all[y_start:y_end, x_start:x_end]
+
+                else:
+                    xmin = 0
+                    xmax = box_sizes[0]
+                    ymin = 0
+                    ymax = box_sizes[1]
+                    cutout_eval = cutout_masked_all
 
                 
                 # --- Crop current cutout to match reference size ---
-                cutout_eval = cutout_masked_all[y_start:y_end, x_start:x_end]
                 shared_valid_mask = np.isfinite(cutout_reference_mask) & np.isfinite(cutout_eval)
                 
                                          

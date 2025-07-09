@@ -87,7 +87,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     
     #=== Estimate separated background masking also external sources  ===#
     if fit_separately:
-       
         cutout_after_bg, cutout_full_with_bg, cutout_header, bg_model, mask_bg, xcen_cut, ycen_cut, xx, yy, xmin, xmax, ymin, ymax, box_sizes_after_bg, back_order, poly_params = multigauss_background(
             minimize_method=minimize_method, 
             image=image,
@@ -124,17 +123,24 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     for box in box_sizes:
         
         if not fit_separately:
-            half_box = box // 2 -1
-            xmin = max(0, round(np.mean(xcen)) - half_box)
-            xmax = min(nx, round(np.mean(xcen)) + half_box + 1)
-            ymin = max(0, round(np.mean(ycen)) - half_box)
-            ymax = min(ny, round(np.mean(ycen)) + half_box + 1)
-    
-            cutout = np.array(image[ymin:ymax, xmin:xmax], dtype=np.float64)        
+            if fix_min_box != 0:
+                half_box = box // 2 -1
+                xmin = max(0, int(np.min(xcen)) - half_box)
+                xmax = min(nx, int(np.max(xcen)) + half_box + 1)
+                ymin = max(0, int(np.min(ycen)) - half_box)
+                ymax = min(ny, int(np.max(ycen)) + half_box + 1)
+                
+                cutout = image[ymin:ymax, xmin:xmax].copy()
+            else:
+                xmin = 0
+                xmax = box_sizes[0]
+                ymin = 0
+                ymax = box_sizes[1]
+                cutout = image
+
             if cutout.size == 0 or np.isnan(cutout).all():
                 continue
-            
-            
+                   
             #- save cutout header -#
             cutout_wcs = WCS(header).deepcopy()
             cutout_wcs.wcs.crpix[0] -= xmin  # CRPIX1
@@ -387,7 +393,10 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     best_cutout = cutout_masked
                     best_cutout_masked_full = cutout_masked_full
                     best_header = cutout_header
+                    
+                    bg_model = np.where(np.isfinite(cutout_masked), bg_model, np.nan)
                     best_bg_model = bg_model
+
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
                     best_box = (cutout_masked.shape[1], cutout_masked.shape[0])

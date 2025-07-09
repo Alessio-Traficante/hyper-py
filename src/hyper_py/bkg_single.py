@@ -82,6 +82,9 @@ def masked_background_single_sources(
         fitters.append(("TheilSen", None, reg))
         
     
+    # --- identify if trun on whole map (fix_min_box = 0) or not --- #
+    fix_min_box = config.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+
     
     # - Initialize parameters - #
     best_params = {}
@@ -90,17 +93,24 @@ def masked_background_single_sources(
 
     cutout_reference_mask = None
 
-    
 
     # ------------------ Loop over box sizes ------------------ #
     for box in box_sizes:
-        half_box = box // 2 -1
-        xmin = max(0, int(np.min(xcen)) - half_box)
-        xmax = min(nx, int(np.max(xcen)) + half_box + 1)
-        ymin = max(0, int(np.min(ycen)) - half_box)
-        ymax = min(ny, int(np.max(ycen)) + half_box + 1)
-
-        cutout = image[ymin:ymax, xmin:xmax].copy()
+        if fix_min_box != 0:
+            half_box = box // 2 -1
+            xmin = max(0, int(np.min(xcen)) - half_box)
+            xmax = min(nx, int(np.max(xcen)) + half_box + 1)
+            ymin = max(0, int(np.min(ycen)) - half_box)
+            ymax = min(ny, int(np.max(ycen)) + half_box + 1)
+            
+            cutout = image[ymin:ymax, xmin:xmax].copy()
+        else:
+            xmin = 0
+            xmax = box_sizes[0]
+            ymin = 0
+            ymax = box_sizes[1]
+            cutout = image
+                
         
         if cutout.size == 0 or np.isnan(cutout).all():
             logger.warning("[WARNING] Empty or invalid cutout. Skipping.")
@@ -118,7 +128,8 @@ def masked_background_single_sources(
         
         
         # ---Initialize mask: True = valid pixel for background fitting --- #
-        mask_bg = np.ones_like(cutout, dtype=bool)
+        # mask_bg = np.ones_like(cutout, dtype=bool)
+        mask_bg = np.isfinite(cutout)
 
         all_sources_to_mask = []
         all_sources_to_mask.append((x0, y0))
@@ -129,8 +140,6 @@ def masked_background_single_sources(
         external_sources = []
 
         #--- Identify external sources inside box and add to main source ---#
-        mask_bg = np.ones_like(cutout, dtype=bool)
-
         for i in range(len(all_sources_xcen)):                 
              if (all_sources_xcen[i]-xmin != x0) and (all_sources_ycen[i]-ymin != y0):    
                  sx = all_sources_xcen[i]
@@ -198,8 +207,8 @@ def masked_background_single_sources(
         
         # # ---- interpolate NaNs at the edges of the maps --- #
         # --- Count NaNs in edge pixels ---
-        edge_thickness = 3  # pixels to define the edge region
-        ny, nx = cutout_masked.shape
+        edge_thickness = round(max_fwhm_extent)  # pixels to define the edge region
+        # ny_masked, nx_masked = cutout_masked.shape
         
         edge_mask = np.zeros_like(cutout_masked, dtype=bool)
         edge_mask[:edge_thickness, :] = True  # top edge
@@ -220,15 +229,13 @@ def masked_background_single_sources(
             interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
             
             cutout_masked = interpolated_map
-            mask_bg = np.ones_like(cutout_masked, dtype=bool)
+            mask_bg = np.isfinite(cutout)
         
             if np.any(~np.isfinite(interpolated_map)):
                 logger_file_only.warning("⚠️ Some NaNs remain after interpolation!")
         else:
             logger_file_only.warning(f"⚠️ Too many NaNs at edges (fraction: {nan_fraction:.2f}) — interpolation skipped.")
     
-        
-        
 
 
         # --- Mask all main sources using simple 2D Gaussian fitting for background estimation purposes --- #
@@ -293,8 +300,7 @@ def masked_background_single_sources(
         x_valid = x_bg[valid]
         y_valid = y_bg[valid]
         z_valid = clipped.data[valid]
-
-
+          
 
         # - identify the reference mask to estimate best_min from the first run - #
         if cutout_reference_mask is None:
@@ -342,34 +348,41 @@ def masked_background_single_sources(
                 
                                
                 # --- Estimate best_min on common mask size for all runs --- #
-                half_ref_box = ref_box_size // 2 -1
-                
-                x_start = max(0, int((x0)) - half_ref_box)
-                x_end   = min(nx, int(x0) + half_ref_box +1)
-                y_start = max(0, int((y0)) - half_ref_box)
-                y_end   = min(ny, int(y0) + half_ref_box +1)
-                 
-                # --- Check bounds ---
-                if (x_start < 0 or y_start < 0):
+                if fix_min_box != 0:
+                    half_ref_box = ref_box_size // 2 -1
+                    
+                    x_start = max(0, int((x0)) - half_ref_box)
+                    x_end   = min(nx, int(x0) + half_ref_box +1)
+                    y_start = max(0, int((y0)) - half_ref_box)
+                    y_end   = min(ny, int(y0) + half_ref_box +1)
+                    
+                    # --- Check bounds ---
+                    if (x_start < 0 or y_start < 0):
+                        x_start = 0
+                        y_start = 0
+                        logger_file_only.warning(f"[SKIP] Box size {box} cannot be cropped to match reference.")
+                        continue  # this cutout is too small to extract the reference region               
+                    if (x_end > cutout_masked_all.shape[1]):
+                        x_end = cutout_masked_all.shape[1]
+    
+                    if (y_end > cutout_masked_all.shape[0]):
+                        y_end = cutout_masked_all.shape[0]
+                    cutout_eval = cutout_masked_all[y_start:y_end, x_start:x_end]
+                else:
                     x_start = 0
+                    x_end = box_sizes[0]
                     y_start = 0
-                    logger_file_only.warning(f"[SKIP] Box size {box} cannot be cropped to match reference.")
-                    continue  # this cutout is too small to extract the reference region               
-                if (x_end > cutout_masked_all.shape[1]):
-                    x_end = cutout_masked_all.shape[1]
+                    y_end = box_sizes[1]
+                    cutout_eval = cutout_masked_all
 
-                if (y_end > cutout_masked_all.shape[0]):
-                    y_end = cutout_masked_all.shape[0]
 
-                
                 # --- Crop current cutout to match reference size ---
-                cutout_eval = cutout_masked_all[y_start:y_end, x_start:x_end]
                 shared_valid_mask = np.isfinite(cutout_reference_mask) & np.isfinite(cutout_eval)
-                
-                                         
+                                                        
                 if np.count_nonzero(shared_valid_mask) < 10:
                     continue  # Not enough shared pixels
-                
+    
+                                            
                 yy_best_min, xx_best_min = np.where(shared_valid_mask)
                 z_valid_best_min = cutout_eval[yy_best_min, xx_best_min]
                 x_valid_best_min = xx_best_min
@@ -383,7 +396,7 @@ def masked_background_single_sources(
                     
                 # Then compute your residual and metric
                 residual_valid_best_min = bg_model_local_valid_best_min - z_valid_best_min
-                
+                                
                 
                 mse = np.mean(residual_valid_best_min ** 2)
                 norm = np.mean(z_valid ** 2) + 1e-12
@@ -406,8 +419,9 @@ def masked_background_single_sources(
                     my_min = redchi 
                 else:
                     my_min = nmse  # fallback
-                
-            
+                    
+                    
+           
                 if my_min < best_min:
                     # Evaluate full model only once now
                     bg_model_full = np.zeros_like(xx, dtype=np.float64)
@@ -444,8 +458,8 @@ def masked_background_single_sources(
                     best_eps = eps
                     
                     best_min = my_min
+            
                     
-
 
     # ------------------ Final background subtraction ------------------
     if best_order is None:
