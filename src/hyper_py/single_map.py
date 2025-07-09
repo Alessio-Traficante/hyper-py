@@ -425,7 +425,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         group_x = xcen[group_indices]
         group_y = ycen[group_indices]        
     
-        fit_status, fit_result, model_fn, bg_order, cutout, cutout_slice, cutout_header, bg_mean, bg_model, box_size, final_nmse, final_redchi, final_bic = fit_group_with_background(
+        fit_status, fit_result, model_fn, bg_order, cutout, cutout_masked_full, cutout_slice, cutout_header, bg_mean, bg_model, box_size, final_nmse, final_redchi, final_bic = fit_group_with_background(
             image=real_map,
             xcen=group_x,
             ycen=group_y,
@@ -528,6 +528,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
                     hdul.writeto(filename, overwrite=True)
                 
                 save_fits(cutout, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "cutout", header=cutout_header)
+                save_fits(cutout_masked_full, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "cutout_masked_full", header=cutout_header)
                 save_fits(model_without_j, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "model", header=cutout_header)
                 save_fits(source_only_map, fits_output_dir_deblended, f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source", "residual", header=cutout_header)
 
@@ -535,7 +536,8 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             # --- visualize plots of the cutout, model, and residual maps for deblended sources an png files --- #
             if visualize_deblended:     
                 plot_fit_summary(
-                    cutout=cutout,                     # original cutout
+                    cutout=cutout,                          # original cutout background subtracted
+                    cutout_masked_full=cutout_masked_full,  # original cutout masked
                     model=model_without_j,               # model of only source j
                     residual=source_only_map,         # what you're analyzing
                     output_dir=visualize_output_dir_deblended,    # or configurable

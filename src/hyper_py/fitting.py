@@ -53,15 +53,20 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     except Exception as e:
         logger.warning(f"[WARNING] lambda_l2 is not a float: {lambda_l2} → {e}")
         lambda_l2 = 1e-3  # fallback
+        
     
-    # --- Determine box_sizes ---
-    positions = np.column_stack([xcen, ycen])
-    max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
-    
-    # box size is a multiplicative factor of the fwhm_beam_pix + maximum source size: max_fwhm_extent*2 + distance between common sources
-    dynamic_min_box = int(np.ceil(fix_min_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
-    dynamic_max_box = int(np.ceil(fix_max_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
-    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+    # === Determine box size === #
+    if np.isinf(fix_min_box) or np.isinf(fix_max_box):
+        # Use entire map size directly
+        box_sizes = [(ny, nx)]
+    else:
+        positions = np.column_stack([xcen, ycen])
+        max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0
+        # box size is a multiplicative factor of the fwhm_beam_pix + maximum source size: max_fwhm_extent*2 + distance between common sources (max_dist)
+        dynamic_min_box = int(np.ceil(fix_min_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
+        dynamic_max_box = int(np.ceil(fix_max_box*fwhm_beam_pix)*2 + max_fwhm_extent*2 + max_dist)
+        box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+
  
 
     # - initialize map and header - #    
@@ -77,7 +82,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     best_slice = None
     best_order = None
     best_box = None
-    
     
     
     
@@ -115,7 +119,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         bg_model = None
 
 
-    
     
     # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
@@ -187,8 +190,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             cutout_masked[~mask_bg] = np.nan
          
                    
-       
-        
+               
         # Mask NaNs before computing stats
         valid = ~np.isnan(cutout_masked)        
         mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout_masked[valid], sigma=3.0, maxiters=10)
@@ -212,7 +214,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             weights = mask_stats.astype(float)
                        
                 
-
         for order in orders:
             try:
                 vary = config.get("fit_options", "vary", True)
@@ -227,9 +228,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     
                     # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
                     if fit_separately:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.05*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.3*local_peak)
                     else:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.05*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.5*local_peak)
                         
                     params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
                     params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
@@ -242,11 +243,11 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         params.add(f"{prefix}x0", value=xc, vary=False)
                         params.add(f"{prefix}y0", value=yc, vary=False) 
 
-                    params.add(f"{prefix}sx", value=aper_inf, min=aper_inf, max=aper_sup)
-                    params.add(f"{prefix}sy", value=aper_sup, min=aper_inf, max=aper_sup)
+                    params.add(f"{prefix}sx", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
+                    params.add(f"{prefix}sy", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
                     params.add(f"{prefix}theta", value=0.0, min=-np.pi/2, max=np.pi/2)
-                    
-                    
+                   
+                                        
  
                 # --- Add full 2D polynomial background (including cross terms) ---
                 if not no_background:
@@ -258,18 +259,17 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                             val = median_bg if (dx == 0 and dy == 0) else 1e-5
                             params.add(pname, value=val, vary=(dx + dy <= order))
                             
-                                                      
 
-                def model_fn(params, x, y):
+                def model_fn(p, x, y):
                     model = np.zeros_like(x, dtype=float)
                     for i in range(len(xcen_cut)):
                         prefix = f"g{i}_"
-                        A = params[f"{prefix}amplitude"]
-                        x0 = params[f"{prefix}x0"]
-                        y0 = params[f"{prefix}y0"]
-                        sx = params[f"{prefix}sx"]
-                        sy = params[f"{prefix}sy"]
-                        th = params[f"{prefix}theta"]
+                        A = p[f"{prefix}amplitude"]
+                        x0 = p[f"{prefix}x0"]
+                        y0 = p[f"{prefix}y0"]
+                        sx = p[f"{prefix}sx"]
+                        sy = p[f"{prefix}sy"]
+                        th = p[f"{prefix}theta"]
                         a = (np.cos(th)**2)/(2*sx**2) + (np.sin(th)**2)/(2*sy**2)
                         b = -np.sin(2*th)/(4*sx**2) + np.sin(2*th)/(4*sy**2)
                         c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
@@ -313,7 +313,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
                 # --- Extract extra minimize kwargs from config ---
                 fit_cfg = config.get("fit_options", {})
-                minimize_keys = [ "max_nfev", "xtol", "ftol", "gtol", "calc_covar"]
+                minimize_keys = ["max_nfev", "xtol", "ftol", "gtol", "calc_covar", "loss", "f_scale"]
                 minimize_kwargs = {}
                 
                 for key in minimize_keys:
@@ -323,9 +323,12 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                             minimize_kwargs[key] = bool(val)
                         elif key == "max_nfev":
                             minimize_kwargs[key] = int(val)
+                        elif key in ["loss"]:  # must be string
+                            minimize_kwargs[key] = str(val)
                         else:
-                            minimize_kwargs[key] = float(val) 
-                
+                            minimize_kwargs[key] = float(val)
+                            
+                                           
                         
                # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources within each box) ---
                 valid = ~np.isnan(cutout_masked)
@@ -367,6 +370,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     nmse = np.nan
                     redchi = np.nan
                     bic = np.nan
+                    my_min = np.nan
                     logger_file_only.error(f"[FAILURE] Fit failed (box={cutout_masked.shape[1], cutout_masked.shape[0]}, order={order})")
                     
 
@@ -543,7 +547,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             
             
 
-        return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, best_header, bg_mean, best_bg_model, best_box, best_nmse, best_redchi, best_bic
+        return fit_status, best_result, model_fn, best_order, best_cutout, best_cutout_masked_full, best_slice, best_header, bg_mean, best_bg_model, best_box, best_nmse, best_redchi, best_bic
 
     # Ensure return is always complete
-    return 0, None, None, None, None, None, None, None, None, None, None, None, None
+    return 0, None, None, None, None, None, None, None, None, None, None, None, None, None

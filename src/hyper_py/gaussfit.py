@@ -74,16 +74,21 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         lambda_l2 = 1e-3  # fallback
 
 
-    # === Determine box size ===
-    # box size is a multiplicative factor of the fwhm_beam_pix + maximum source size: max_fwhm_extent*2
-    dynamic_min_box = int(np.ceil(fix_min_box*fwhm_beam_pix)*2 + max_fwhm_extent*2)
-    dynamic_max_box = int(np.ceil(fix_max_box*fwhm_beam_pix)*2 + max_fwhm_extent*2)
-    box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
-    
-
     # - initialize map and header - #    
     header=map_struct['header']
     ny, nx = image.shape
+
+
+    # === Determine box size ===
+    if np.isinf(fix_min_box) or np.isinf(fix_max_box):
+        # Use entire map size directly
+        box_sizes = [(ny, nx)]
+    else:
+        # Standard logic for square box sizes (in pixels)
+        dynamic_min_box = int(np.ceil(fix_min_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
+        dynamic_max_box = int(np.ceil(fix_max_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
+        box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+
 
 
     # - initialize params - #
@@ -219,28 +224,30 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             mask_stats = ~SigmaClip(sigma=3.0)(cutout_masked).mask
             weights = mask_stats.astype(float)
 
+
         for order in orders:
             try:
-                vary = config.get("fit_options", "vary", True)
-                
+                vary = config.get("fit_options", "vary", True)              
                 params = Parameters()
                 local_peak = np.nanmax(cutout_masked[int(y0)-1:int(y0)+1, int(x0)-1:int(x0)+1])
                 
                 # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
                 if fit_separately:
-                    params.add("g_amplitude", value=local_peak, min=0.95*local_peak, max=1.05*local_peak)
+                    params.add("g_amplitude", value=local_peak, min=0.8*local_peak, max=1.3*local_peak)
                 else:
-                    params.add("g_amplitude", value=local_peak, min=0.5*local_peak, max=1.05*local_peak)
+                    params.add("g_amplitude", value=local_peak, min=0.4*local_peak, max=1.5*local_peak)
                     
                 if vary == True:
-                    params.add("g_centerx", value=x0, min=x0 - 1, max=x0 + 1)
-                    params.add("g_centery", value=y0, min=y0 - 1, max=y0 + 1)
+                    params.add("g_centerx", value=x0, min=x0 - 0.5, max=x0 + 0.5)
+                    params.add("g_centery", value=y0, min=y0 - 0.5, max=y0 + 0.5)
                 if vary == False:
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
      
-                params.add("g_sigmax", value=aper_inf, min=aper_inf, max=aper_sup)
-                params.add("g_sigmay", value=aper_sup, min=aper_inf, max=aper_sup)
+
+                params.add("g_sigmax", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
+                params.add("g_sigmay", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
+                
                 params.add("g_theta", value=0.0, min=-np.pi/2, max=np.pi/2)
 
 
@@ -253,6 +260,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                             pname = f"c{dx}_{dy}"
                             val = median_bg if (dx == 0 and dy == 0) else 1e-5
                             params.add(pname, value=val, vary=(dx + dy <= order))
+
 
                 def model_fn(p, x, y):
                     A = p["g_amplitude"]
@@ -301,7 +309,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
 
                 fit_cfg = config.get("fit_options", {})
-                minimize_keys = [ "max_nfev", "xtol", "ftol", "gtol", "calc_covar"]
+                minimize_keys = ["max_nfev", "xtol", "ftol", "gtol", "calc_covar", "loss", "f_scale"]
                 minimize_kwargs = {}
                 
                 for key in minimize_keys:
@@ -311,8 +319,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                             minimize_kwargs[key] = bool(val)
                         elif key == "max_nfev":
                             minimize_kwargs[key] = int(val)
+                        elif key in ["loss"]:  # must be string
+                            minimize_kwargs[key] = str(val)
                         else:
-                            minimize_kwargs[key] = float(val) 
+                            minimize_kwargs[key] = float(val)
+                         
                             
            
                 # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources from external sources within each box) --- # 
@@ -356,6 +367,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     nmse = np.nan
                     redchi = np.nan
                     bic = np.nan
+                    my_min = np.nan
                     logger_file_only.error(f"[FAILURE] Fit failed (box={cutout.shape[1], cutout.shape[0]}, order={order})")
         
         
@@ -497,7 +509,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             plt.savefig(outname, dpi=300, bbox_inches="tight")
             plt.close()      
 
-        
         
         return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, bg_mean, best_bg_model, best_header, best_nmse, best_redchi, best_bic
     else:

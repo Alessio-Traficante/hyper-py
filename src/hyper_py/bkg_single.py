@@ -1,12 +1,15 @@
 import numpy as np
-from astropy.stats import SigmaClip
+from astropy.stats import sigma_clipped_stats, SigmaClip
 from astropy.modeling import models, fitting
 
 from astropy.wcs import WCS
 
+
 from sklearn.linear_model import HuberRegressor, TheilSenRegressor
 from sklearn.exceptions import ConvergenceWarning
 import warnings
+
+from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
 
 
 def masked_background_single_sources(
@@ -99,11 +102,16 @@ def masked_background_single_sources(
 
         cutout = image[ymin:ymax, xmin:xmax].copy()
         
-        
         if cutout.size == 0 or np.isnan(cutout).all():
             logger.warning("[WARNING] Empty or invalid cutout. Skipping.")
             continue
-      
+
+        # - first regularize mean background - #
+        valid_cutout = ~np.isnan(cutout)        
+        mean_valid_cutout, median_valid_cutout, std_valid_cutout = sigma_clipped_stats(cutout[valid_cutout], sigma=3.0, maxiters=5)
+        cutout = cutout - median_valid_cutout
+                
+
         yy, xx = np.indices(cutout.shape)
         x0 = xcen - xmin
         y0 = ycen - ymin
@@ -176,8 +184,8 @@ def masked_background_single_sources(
             yy_full, xx_full = np.indices(cut_local.shape)
             model_vals = g_fit(xx_full, yy_full)
         
-            # Mask pixels above 1-FWHM threshold (≈ 0.0625 × peak)
-            threshold = g_fit.amplitude.value * 0.0625 # np.exp(-0.5)
+            # Mask pixels above 1-FWHM threshold for external sopurces (≈ 0.1353 × peak)
+            threshold = g_fit.amplitude.value * 0.1353 
             mask_bg[model_vals > threshold] = False
         
         
@@ -185,6 +193,23 @@ def masked_background_single_sources(
         # --- Apply external sources mask → set masked pixels to np.nan --- #
         cutout_masked = np.copy(cutout)
         cutout_masked[~mask_bg] = np.nan
+        
+        
+        
+        # # ---- interpolate NaNs at the edges of the maps --- #
+        # Define kernel for smoothing around missing values
+        sigma = 2.0
+        kernel = Gaussian2DKernel(x_stddev=sigma)
+        
+        # Interpolate NaNs
+        interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
+
+        cutout_masked = interpolated_map
+        mask_bg = np.ones_like(cutout_masked, dtype=bool)
+        if np.any(~np.isfinite(interpolated_map)):
+            logger_file_only.warning("Warning: Some NaNs remain after interpolation!")
+        
+        
 
 
         # --- Mask all main sources using simple 2D Gaussian fitting for background estimation purposes --- #
@@ -229,14 +254,14 @@ def masked_background_single_sources(
             yy_full, xx_full = np.indices(cut_local.shape)
             model_vals = g_fit(xx_full, yy_full)
         
-            # Mask pixels above 1-FWHM threshold (≈ 0.0625 × peak)
-            threshold = g_fit.amplitude.value * 0.0625 # np.exp(-0.5)
+            # Mask pixels above 2-FWHM threshold for main sources (≈ 0.1353 × peak)
+            threshold = g_fit.amplitude.value * 0.1353 
             mask_bg_all[model_vals > threshold] = False
 
         # --- Apply main sources mask → set masked pixels to np.nan --- #
         cutout_masked_all = np.copy(cutout_masked)
-        cutout_masked_all[~mask_bg_all] = np.nan
-            
+        cutout_masked_all[~mask_bg_all] = np.nan        
+               
 
         # - Estimate good pixels in cutout_masked_all - #
         y_bg, x_bg = np.where(mask_bg_all)
