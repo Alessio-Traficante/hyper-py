@@ -197,17 +197,36 @@ def masked_background_single_sources(
         
         
         # # ---- interpolate NaNs at the edges of the maps --- #
-        # Define kernel for smoothing around missing values
-        sigma = 2.0
-        kernel = Gaussian2DKernel(x_stddev=sigma)
+        # --- Count NaNs in edge pixels ---
+        edge_thickness = 3  # pixels to define the edge region
+        ny, nx = cutout_masked.shape
         
-        # Interpolate NaNs
-        interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
-
-        cutout_masked = interpolated_map
-        mask_bg = np.ones_like(cutout_masked, dtype=bool)
-        if np.any(~np.isfinite(interpolated_map)):
-            logger_file_only.warning("Warning: Some NaNs remain after interpolation!")
+        edge_mask = np.zeros_like(cutout_masked, dtype=bool)
+        edge_mask[:edge_thickness, :] = True  # top edge
+        edge_mask[-edge_thickness:, :] = True  # bottom edge
+        edge_mask[:, :edge_thickness] = True  # left edge
+        edge_mask[:, -edge_thickness:] = True  # right edge
+        
+        n_edge_total = np.sum(edge_mask)
+        n_edge_nan = np.sum(edge_mask & ~np.isfinite(cutout_masked))
+        nan_fraction = n_edge_nan / n_edge_total
+        
+        # --- Only interpolate if edge NaNs < threshold ---
+        nan_threshold = 0.3  # allow up to 30% NaNs in edge region
+        
+        if nan_fraction < nan_threshold:
+            sigma = 2.0
+            kernel = Gaussian2DKernel(x_stddev=sigma)
+            interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
+            
+            cutout_masked = interpolated_map
+            mask_bg = np.ones_like(cutout_masked, dtype=bool)
+        
+            if np.any(~np.isfinite(interpolated_map)):
+                logger_file_only.warning("⚠️ Some NaNs remain after interpolation!")
+        else:
+            logger_file_only.warning(f"⚠️ Too many NaNs at edges (fraction: {nan_fraction:.2f}) — interpolation skipped.")
+    
         
         
 

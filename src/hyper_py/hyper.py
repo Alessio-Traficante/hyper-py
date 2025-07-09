@@ -154,34 +154,6 @@ def run_hyper(cfg_path):
     
     # === Combine all bg_models into a datacube ===
     if datacube:
-        # # 1. Determine common crop size
-        # min_ny = min(bg.shape[0] for bg in background_slices)
-        # min_nx = min(bg.shape[1] for bg in background_slices)
-    
-        # def central_crop(array, ny, nx):
-        #     y0 = (array.shape[0] - ny) // 2
-        #     x0 = (array.shape[1] - nx) // 2
-        #     return array[y0:y0+ny, x0:x0+nx]
-    
-        # # 2. Centrally crop all backgrounds
-        # cropped_bgs = [central_crop(bg, min_ny, min_nx) for bg in background_slices]
-    
-        # # 3. Stack into cube
-        # bg_cube = np.stack(cropped_bgs, axis=0)
-    
-        # # 4. Adjust WCS header
-        # new_header = cube_header.copy()
-        # cropped_header = slice_cutout_header[0].copy()
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         # 1. Determine common crop size
         all_shapes = [bg.shape for bg in background_slices]
@@ -244,16 +216,8 @@ def run_hyper(cfg_path):
         
         # 8. Adjust WCS header (preserve original logic)
         new_header = cube_header.copy()
-        
-        
-        
-        
-        
-        
-        
-        
- 
-        # 2. Update spatial WCS keywords (X and Y axes) from the cropped header
+         
+        # 9. Update spatial WCS keywords (X and Y axes) from the cropped header
         spatial_keys = [
             'NAXIS1', 'NAXIS2',
             'CRPIX1', 'CRPIX2',
@@ -270,13 +234,13 @@ def run_hyper(cfg_path):
             if key in cropped_header:
                 new_header[key] = cropped_header[key]
         
-        # 3. Update full shape to match the background cube
+        # 10. Update full shape to match the background cube
         new_header['NAXIS'] = 3
         new_header['NAXIS1'] = bg_cube.shape[2]  # X axis
         new_header['NAXIS2'] = bg_cube.shape[1]  # Y axis
         new_header['NAXIS3'] = bg_cube.shape[0]  # Z axis
         
-        # 4. Ensure WCSAXES is at least 3
+        # 11. Ensure WCSAXES is at least 3
         new_header['WCSAXES'] = max(new_header.get('WCSAXES', 3), 3)
         
         # Optional: clean inconsistent axis-specific keys (e.g., if 4D originally)
@@ -292,10 +256,11 @@ def run_hyper(cfg_path):
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
     
     
-        # === Also create a full-size cube with padded background slices if cropped size is smaller then original size === #
-        if fix_min_box == 0:
-            full_ny = cube_header['NAXIS2']
-            full_nx = cube_header['NAXIS1']
+    
+        # === Also create a full-size cube with padded background slices if cropped size is != original size (fix_min_box != 0) === #
+        if fix_min_box != 0:
+            full_ny = new_header['NAXIS2']
+            full_nx = new_header['NAXIS1']
            
             padded_bgs = []
             for cropped in cropped_bgs:
@@ -310,7 +275,7 @@ def run_hyper(cfg_path):
             bg_cube_full = np.stack(padded_bgs, axis=0)
            
             # Use the original header (just update shape)
-            padded_header = cube_header.copy()
+            padded_header = new_header.copy()
             padded_header['NAXIS'] = 3
             padded_header['NAXIS1'] = full_nx
             padded_header['NAXIS2'] = full_ny
