@@ -58,7 +58,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     # === Determine box size === #
     if fix_min_box == 0:
         # Use entire map size directly
-        box_sizes = [(ny, nx)]
+        box_sizes = list((ny, nx))
     else:
         positions = np.column_stack([xcen, ycen])
         max_dist = np.max(pdist(positions)) if len(positions) > 1 else 0.0

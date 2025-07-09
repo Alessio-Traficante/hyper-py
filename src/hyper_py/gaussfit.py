@@ -82,7 +82,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     # === Determine box size ===
     if fix_min_box == 0:
         # Use entire map size directly
-        box_sizes = [(ny, nx)]
+        box_sizes = list((ny, nx))
     else:
         # Standard logic for square box sizes (in pixels)
         dynamic_min_box = int(np.ceil(fix_min_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
