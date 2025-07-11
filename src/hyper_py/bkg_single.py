@@ -441,6 +441,7 @@ def masked_background_single_sources(
                     best_cutout_masked = cutout_masked
                     best_cutout_masked_full = cutout_masked_all
                     best_bg_model = bg_model_full
+                    best_median_cutout = median_valid_cutout
                     best_header = cutout_header
                     best_mask_bg = mask_bg
                     best_x0 = x0
@@ -471,6 +472,7 @@ def masked_background_single_sources(
         # Subtract background from the original cutout
         best_cutout -= best_bg_model
         best_cutout_masked -= best_bg_model
+        best_bg_model = best_bg_model + best_median_cutout
         
         logger_file_only.info(f"[INFO] Background subtracted using order {best_order} polynomial.")
  

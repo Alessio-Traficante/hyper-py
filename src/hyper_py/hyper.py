@@ -42,6 +42,7 @@ def run_hyper(cfg_path):
     map_names = cfg.get("files", "file_map_name")
     datacube = cfg.get("control", "datacube", False)
     fix_min_box = cfg.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+    convert_mjy=cfg.get("units", "convert_mJy")
 
 
     
@@ -242,6 +243,14 @@ def run_hyper(cfg_path):
         # 11. Ensure WCSAXES is at least 3
         new_header['WCSAXES'] = max(new_header.get('WCSAXES', 3), 3)
         
+        
+        # update units header 
+        if convert_mjy:
+            new_header['BUNIT'] = 'mJy'
+        else:
+            new_header['BUNIT'] = 'Jy'
+
+        
         # Optional: clean inconsistent axis-specific keys (e.g., if 4D originally)
         for ax in [4, 5]:
             for prefix in ['CTYPE', 'CRPIX', 'CRVAL', 'CDELT', 'CUNIT']:
@@ -284,6 +293,13 @@ def run_hyper(cfg_path):
             padded_header['NAXIS1'] = full_nx
             padded_header['NAXIS2'] = full_ny
             padded_header['NAXIS3'] = bg_cube_full.shape[0]
+            
+            # update units header 
+            if convert_mjy:
+                padded_header['BUNIT'] = 'mJy'
+            else:
+                padded_header['BUNIT'] = 'Jy'
+
 
                       
            # Save full-size cube
