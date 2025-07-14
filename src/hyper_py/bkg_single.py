@@ -119,7 +119,7 @@ def masked_background_single_sources(
         # - first regularize mean background - #
         valid_cutout = ~np.isnan(cutout)        
         mean_valid_cutout, median_valid_cutout, std_valid_cutout = sigma_clipped_stats(cutout[valid_cutout], sigma=3.0, maxiters=5)
-        cutout = cutout - median_valid_cutout
+        # cutout = cutout - median_valid_cutout
                 
 
         yy, xx = np.indices(cutout.shape)
@@ -472,7 +472,7 @@ def masked_background_single_sources(
         # Subtract background from the original cutout
         best_cutout -= best_bg_model
         best_cutout_masked -= best_bg_model
-        best_bg_model = best_bg_model + best_median_cutout
+        # best_bg_model = best_bg_model + best_median_cutout
         
         logger_file_only.info(f"[INFO] Background subtracted using order {best_order} polynomial.")
  
