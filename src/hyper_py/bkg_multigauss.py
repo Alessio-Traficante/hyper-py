@@ -76,7 +76,6 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         cutout = cutout - median_valid_cutout
 
 
-
         yy, xx = np.indices(cutout.shape)
         x0 = xcen - xmin
         y0 = ycen - ymin
@@ -404,6 +403,7 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                     best_cutout_masked = cutout_masked
                     best_cutout_masked_full = cutout_masked_all
                     best_bg_model = bg_model_full
+                    best_median_cutout = median_valid_cutout
                     best_header = cutout_header
                     best_mask_bg = mask_bg
                     best_x0 = x0
@@ -432,7 +432,8 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         # Subtract background from the original cutout
         best_cutout -= best_bg_model
         best_cutout_masked -= best_bg_model
-        
+        best_bg_model = best_bg_model + best_median_cutout
+
         logger_file_only.info(f"[INFO] Background subtracted using order {best_order} polynomial.")
  
         return best_cutout_masked, best_cutout_masked_full, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params
