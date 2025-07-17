@@ -167,7 +167,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 sx = all_sources_xcen[i]
                 sy = all_sources_ycen[i]
                 
-                if xmin <= sx <= xmax and ymin <= sy <= ymax:
+                if xmin <= sx <= xmax and ymin <= sy <= ymax and fix_min_box != 0:
                     ex = sx - xmin
                     ey = sy - ymin
                     external_sources.append((ex, ey))  # local cutout coords
@@ -560,4 +560,4 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
     else:
         # Ensure return is always complete
-        return 0, None, None, None, cutout_masked, None, (None, None), None, None, None, None, None, None, None
+        return 0, None, None, None, cutout_masked_save, None, (None, None), None, None, None, None, None, None, None

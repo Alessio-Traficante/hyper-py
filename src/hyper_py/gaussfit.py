@@ -179,7 +179,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 sx = all_sources_xcen[i]
                 sy = all_sources_ycen[i]
                 
-                if xmin <= sx <= xmax and ymin <= sy <= ymax:            
+                if xmin <= sx <= xmax and ymin <= sy <= ymax and fix_min_box != 0:            
                     ex = sx - xmin
                     ey = sy - ymin
                     external_sources.append((ex, ey))  # local cutout coords
