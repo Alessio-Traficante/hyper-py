@@ -712,7 +712,8 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     else:
         valid_real_map_nobg = ~np.isnan(real_map)        
         mean_valid_real_map_nobg, median_valid_real_map_nobg, std_valid_real_map_nobg = sigma_clipped_stats(real_map[valid_real_map_nobg], sigma=3.0, maxiters=5)
-        real_map_nobg = real_map - median_valid_real_map_nobg
+        real_map_nobg = np.full_like(real_map, median_valid_real_map_nobg)
+        real_map_nobg[np.isnan(real_map)] = np.nan        
         bg_model = real_map_nobg
         return map_name, bg_model, header, header
     
