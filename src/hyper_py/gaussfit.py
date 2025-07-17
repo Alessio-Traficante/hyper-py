@@ -519,4 +519,4 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         
         return fit_status, best_result, model_fn, best_order, best_cutout, best_slice, bg_mean, best_bg_model, best_header, best_nmse, best_redchi, best_bic
     else:   
-        return 0, None, None, None, None, (None, None), None, None, None, None, None, None
+        return 0, None, None, None, cutout_masked, (None, None), None, None, None, None, None, None

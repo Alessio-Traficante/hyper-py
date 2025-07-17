@@ -13,6 +13,7 @@ from hyper_py.logger import setup_logger
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+from astropy.wcs import WCS
 from astropy.io import ascii, fits
 from astropy.table import vstack
 
@@ -118,8 +119,7 @@ def run_hyper(cfg_path):
             if datacube:
                 background_slices.append(bg_model)
                 slice_cutout_header.append(cutout_header)
-            
-    
+                
                             
     # --- Collect all output tables --- #
     all_tables = []
@@ -308,9 +308,6 @@ def run_hyper(cfg_path):
   
             
             # === Also create a full-size cube with background slices placed in original WCS positions === #
-            
-        from astropy.wcs import WCS
-
         # Get WCS of the original full cube (2D spatial only!)
         wcs_full = WCS(cube_header, naxis=2)
         

@@ -560,4 +560,4 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
     else:
         # Ensure return is always complete
-        return 0, None, None, None, None, None, (None, None), None, None, None, None, None, None, None
+        return 0, None, None, None, cutout_masked, None, (None, None), None, None, None, None, None, None, None

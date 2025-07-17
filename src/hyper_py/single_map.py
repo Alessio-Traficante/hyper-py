@@ -6,8 +6,7 @@ from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
 from astropy.io import ascii
 from astropy.io import fits
-from astropy.stats import SigmaClip
-
+from astropy.stats import SigmaClip, sigma_clipped_stats
 
 
 
@@ -98,7 +97,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     deblend_val = []
     cluster_val = []
 
-    source_id_save = []        
+    source_id_save = []  
+
+    bg_model = None      
         
         
     # --- see if peaks position and aperture radius are fixed or not --- #
@@ -295,6 +296,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     
     
 
+    
 ######################## ISOLATED sources photometry ########################
     for idx_iso, i in enumerate(isolated):
                         
@@ -705,7 +707,14 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
             f.write(f"point({xw:.8f},{yw:.8f}) # point=cross text={{ID {i}}}\n")
         
         
-    return map_name, bg_model, cutout_header, header
+    if bg_model is not None:    
+        return map_name, bg_model, cutout_header, header
+    else:
+        valid_real_map_nobg = ~np.isnan(real_map)        
+        mean_valid_real_map_nobg, median_valid_real_map_nobg, std_valid_real_map_nobg = sigma_clipped_stats(real_map[valid_real_map_nobg], sigma=3.0, maxiters=5)
+        real_map_nobg = real_map - median_valid_real_map_nobg
+        bg_model = real_map_nobg
+        return map_name, bg_model, header, header
     
 #################################### MAIN CALL ####################################
 if __name__ == "__main__":

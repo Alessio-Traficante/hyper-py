@@ -67,10 +67,10 @@ detection:
   sharplim: [-2.0, 2.0]          # Allowed source sharpness range (min, max for DAOFIND)   
   dist_limit_arcsec: 0           # minimum distance to separate sources. Default: 0 -> beam distance
 
-  use_fixed_source_table: true           # If True, use an external IPAC table for peak + aperture
+  use_fixed_source_table: false           # If True, use an external IPAC table for peak + aperture
   fixed_source_table_path: "52831_sources.txt"  # IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_comm)
 
-  fixed_peaks: true             # Use fixed peaks instead of automatic (True/False)
+  fixed_peaks: false             # Use fixed peaks instead of automatic (True/False)
   xcen_fix: [84.7090236, 84.7114699]          # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
   ycen_fix: [-69.0776622, -69.0773034]        # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
 
@@ -80,7 +80,7 @@ photometry:
   aper_inf: 1.0                    # Minimum size factor for Gaussian FWHM (used as minimum radius)
   aper_sup: 2.0                    # Maximum size factor for Gaussian FWHM (used as maximum radius)
   
-  fixed_radius: true              # Use fixed aperture radii instead of Gaussian fitting (True/False)
+  fixed_radius: false              # Use fixed aperture radii instead of Gaussian fitting (True/False)
   fwhm_1: [0.7]                    # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
   fwhm_2: [0.4]                    # Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true)
   PA_val: [136.901]                # Fixed aperture position angle (deg East of North; only if radius_fix = true)
@@ -111,7 +111,7 @@ fit_options:
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 3                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
+  fix_min_box: 0                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
   fix_max_box:  5                   # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1, 2]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
