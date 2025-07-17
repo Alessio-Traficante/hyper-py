@@ -290,6 +290,10 @@ def run_hyper(cfg_path):
             dy = full_ny #(full_ny - new_header['NAXIS2']) / 2.0
             padded_header['CRPIX1'] += dx
             padded_header['CRPIX2'] += dy
+            
+            padded_header['CRPIX1'] = 209
+            padded_header['CRPIX2'] = 209
+            
             padded_header['NAXIS1'] = full_nx
             padded_header['NAXIS2'] = full_ny
             padded_header['NAXIS3'] = bg_cube_full.shape[0]
