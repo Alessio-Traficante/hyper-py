@@ -266,50 +266,129 @@ def run_hyper(cfg_path):
     
     
         # === Also create a full-size cube with padded background slices if cropped size is != original size (fix_min_box != 0) === #
+        # if fix_min_box != 0:
+            # full_ny = cube_header['NAXIS2']
+            # full_nx = cube_header['NAXIS1']
+           
+            # padded_bgs = []
+            # for cropped in cropped_bgs:
+            #     padded = np.full((full_ny, full_nx), np.nan, dtype=float)
+            #     cy, cx = cropped.shape
+                                
+            #     y0 = (full_ny - cy) // 2
+            #     x0 = (full_nx - cx) // 2
+            #     padded[y0:y0+cy, x0:x0+cx] = cropped
+            #     padded_bgs.append(padded)
+           
+            # # Stack into padded cube
+            # bg_cube_full = np.stack(padded_bgs, axis=0)
+           
+            
+            # # Adjust header: shift CRPIX relative to new_header (cropped)
+            # padded_header = new_header.copy()
+            # dx = (full_nx - new_header['NAXIS1']) / 2.0
+            # dy = (full_ny - new_header['NAXIS2']) / 2.0
+            # padded_header['CRPIX1'] += dx
+            # padded_header['CRPIX2'] += dy
+            
+            # padded_header['NAXIS1'] = full_nx
+            # padded_header['NAXIS2'] = full_ny
+            # padded_header['NAXIS3'] = bg_cube_full.shape[0]
+            
+            # # update units header 
+            # if convert_mjy:
+            #     padded_header['BUNIT'] = 'mJy'
+            # else:
+            #     padded_header['BUNIT'] = 'Jy'
+            
+            # # Save full-size cube
+            #  output_full_cube = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
+            #  fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_full_cube, overwrite=True)
+            #  logger.info(f"📦 Full-size padded background cube saved to: {output_full_cube}")
+  
+            
+            # === Also create a full-size cube with background slices placed in original WCS positions === #
+            
+        from astropy.wcs import WCS
+
+        # Get WCS of the original full cube
+        wcs_full = WCS(cube_header)
+        
+        # Compute xcen_all and ycen_all in pixel coordinates of the full cube
+        xcen_all = []
+        ycen_all = []
+        
+        for hdr in slice_cutout_header:
+            # Get sky coords of center of the cropped cutout
+            ra = hdr['CRVAL1']
+            dec = hdr['CRVAL2']
+        
+            # Convert to pixel coordinates in the full cube
+            x_pix, y_pix = wcs_full.wcs_world2pix(ra, dec, 0)  # origin=0
+            xcen_all.append(x_pix)
+            ycen_all.append(y_pix)
+
+    
         if fix_min_box != 0:
             full_ny = cube_header['NAXIS2']
             full_nx = cube_header['NAXIS1']
-           
+        
             padded_bgs = []
-            for cropped in cropped_bgs:
+            for i, cropped in enumerate(cropped_bgs):
                 padded = np.full((full_ny, full_nx), np.nan, dtype=float)
                 cy, cx = cropped.shape
-                                
-                y0 = (full_ny - cy) // 2
-                x0 = (full_nx - cx) // 2
-                padded[y0:y0+cy, x0:x0+cx] = cropped
+        
+                # Absolute position of the source in the full map
+                xcen_full = xcen_all[i]
+                ycen_full = ycen_all[i]
+        
+                # Compute top-left corner of where to place cropped cutout
+                x0 = int(round(xcen_full - cx // 2))
+                y0 = int(round(ycen_full - cy // 2))
+        
+                # Bounds check
+                x0 = max(0, x0)
+                y0 = max(0, y0)
+                x1 = min(x0 + cx, full_nx)
+                y1 = min(y0 + cy, full_ny)
+        
+                # Matching region in cropped cutout
+                sub = cropped[0:y1 - y0, 0:x1 - x0]
+        
+                # Insert cropped cutout in correct position
+                padded[y0:y1, x0:x1] = sub
                 padded_bgs.append(padded)
-           
-            # Stack into padded cube
+        
+            # Stack into full cube
             bg_cube_full = np.stack(padded_bgs, axis=0)
-           
-            
-            # Adjust header: shift CRPIX relative to new_header (cropped)
-            padded_header = new_header.copy()
-            dx = full_nx #(full_nx - new_header['NAXIS1']) / 2.0
-            dy = full_ny #(full_ny - new_header['NAXIS2']) / 2.0
-            padded_header['CRPIX1'] += dx
-            padded_header['CRPIX2'] += dy
-            
-            padded_header['CRPIX1'] = 209
-            padded_header['CRPIX2'] = 209
-            
+        
+            # Use original cube header (not from cropped version)
+            padded_header = cube_header.copy()
             padded_header['NAXIS1'] = full_nx
             padded_header['NAXIS2'] = full_ny
             padded_header['NAXIS3'] = bg_cube_full.shape[0]
+            padded_header['WCSAXES'] = max(padded_header.get('WCSAXES', 3), 3)
+        
+            # Update units
+            padded_header['BUNIT'] = 'mJy' if convert_mjy else 'Jy'
+        
+            # Clean redundant axis-specific keys if present
+            for ax in [4, 5]:
+                for prefix in ['CTYPE', 'CRPIX', 'CRVAL', 'CDELT', 'CUNIT']:
+                    key = f"{prefix}{ax}"
+                    if key in padded_header:
+                        del padded_header[key]
+        
+            # Save full cube
+            output_cube_full_path = os.path.join(dir_comm, dir_maps, "background_cube_fullWCS.fits")
+            fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_cube_full_path, overwrite=True)
+            logger.info(f"📦 Full-size background cube saved to: {output_cube_full_path}")
             
-            # update units header 
-            if convert_mjy:
-                padded_header['BUNIT'] = 'mJy'
-            else:
-                padded_header['BUNIT'] = 'Jy'
+            
+            
 
 
                       
-           # Save full-size cube
-            output_full_cube = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
-            fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_full_cube, overwrite=True)
-            logger.info(f"📦 Full-size padded background cube saved to: {output_full_cube}")
        
        
 
