@@ -259,7 +259,7 @@ def run_hyper(cfg_path):
                     del new_header[key]
 
     
-        output_cube_path = os.path.join(dir_comm, dir_maps, "combined_background_cube.fits")
+        output_cube_path = os.path.join(dir_comm, dir_maps, "background_cube_cut.fits")
         fits.PrimaryHDU(data=bg_cube, header=new_header).writeto(output_cube_path, overwrite=True)
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
     
@@ -286,8 +286,8 @@ def run_hyper(cfg_path):
             
             # Adjust header: shift CRPIX relative to new_header (cropped)
             padded_header = new_header.copy()
-            dx = (full_nx - new_header['NAXIS1']) / 2.0
-            dy = (full_ny - new_header['NAXIS2']) / 2.0
+            dx = full_nx #(full_nx - new_header['NAXIS1']) / 2.0
+            dy = full_ny #(full_ny - new_header['NAXIS2']) / 2.0
             padded_header['CRPIX1'] += dx
             padded_header['CRPIX2'] += dy
             padded_header['NAXIS1'] = full_nx
