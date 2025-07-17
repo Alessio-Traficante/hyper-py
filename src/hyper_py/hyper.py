@@ -311,23 +311,32 @@ def run_hyper(cfg_path):
             
         from astropy.wcs import WCS
 
-        # Get WCS of the original full cube
-        wcs_full = WCS(cube_header)
+        # Get WCS of the original full cube (2D spatial only!)
+        wcs_full = WCS(cube_header, naxis=2)
         
-        # Compute xcen_all and ycen_all in pixel coordinates of the full cube
         xcen_all = []
         ycen_all = []
         
         for hdr in slice_cutout_header:
-            # Get sky coords of center of the cropped cutout
-            ra = hdr['CRVAL1']
-            dec = hdr['CRVAL2']
+            # Build 2D WCS for the cropped cutout            
+            ny, nx = cropped_bgs[0].shape
+
+            
+            # Compute pixel coordinates of the center of the cutout
+            x_c = nx / 2.0
+            y_c = ny / 2.0
         
-            # Convert to pixel coordinates in the full cube
-            x_pix, y_pix = wcs_full.wcs_world2pix(ra, dec, 0)  # origin=0
+            # Convert center pixel of cutout to world coordinates
+            wcs_cutout = WCS(hdr, naxis=2)
+            skycoord = wcs_cutout.pixel_to_world(x_c, y_c)
+        
+            # Convert world coordinates to pixel in full cube
+            x_pix, y_pix = wcs_full.world_to_pixel(skycoord)
+        
             xcen_all.append(x_pix)
             ycen_all.append(y_pix)
-
+    
+    
     
         if fix_min_box != 0:
             full_ny = cube_header['NAXIS2']
@@ -380,7 +389,7 @@ def run_hyper(cfg_path):
                         del padded_header[key]
         
             # Save full cube
-            output_cube_full_path = os.path.join(dir_comm, dir_maps, "background_cube_fullWCS.fits")
+            output_cube_full_path = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
             fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_cube_full_path, overwrite=True)
             logger.info(f"📦 Full-size background cube saved to: {output_cube_full_path}")
             
