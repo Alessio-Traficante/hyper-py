@@ -14,7 +14,7 @@ authors:
     affiliation: 1
   - name: Alice Nucara
     affiliation: 1
-- name: Milena Benedettini
+  - name: Milena Benedettini
     affiliation: 1
 affiliations:
   - name: INAF-IAPS, Via Fosso del Cavaliere, 100, 00133 Rome (IT)
