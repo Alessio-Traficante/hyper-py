@@ -139,63 +139,64 @@ def masked_background_single_sources(
         
         external_sources = []
 
-        #--- Identify external sources inside box and add to main source ---#
-        for i in range(len(all_sources_xcen)):                 
-             if (all_sources_xcen[i]-xmin != x0) and (all_sources_ycen[i]-ymin != y0):    
-                 sx = all_sources_xcen[i]
-                 sy = all_sources_ycen[i]
+        #--- Identify external sources inside box and add to main source - only if the background is not estimated over the whole map ---#
+        if fix_min_box != 0:
+            for i in range(len(all_sources_xcen)):                 
+                 if (all_sources_xcen[i]-xmin != x0) and (all_sources_ycen[i]-ymin != y0):    
+                     sx = all_sources_xcen[i]
+                     sy = all_sources_ycen[i]
+                    
+                     if xmin <= sx <= xmax and ymin <= sy <= ymax:            
+                         ex = sx - xmin
+                         ey = sy - ymin
+                         all_sources_to_mask.append((ex, ey))
+                         external_sources.append((ex, ey))
+                         
                 
-                 if xmin <= sx <= xmax and ymin <= sy <= ymax:            
-                     ex = sx - xmin
-                     ey = sy - ymin
-                     all_sources_to_mask.append((ex, ey))
-                     external_sources.append((ex, ey))
-                     
+    
+            # --- Mask all external sources using simple 2D Gaussian fitting --- #
+            cut_local = cutout
+            for xc, yc in external_sources:
+                xc_int = int(round(xc))
+                yc_int = int(round(yc))
+                
+                # Define small cutout around each source (e.g. max_fwhm_extent)
+                fit_size = round(max_fwhm_extent/2.)  # half-size
+                xfit_min = max(0, xc_int - fit_size)
+                xfit_max = min(cut_local.shape[1], xc_int + fit_size + 1)
+                yfit_min = max(0, yc_int - fit_size)
+                yfit_max = min(cut_local.shape[0], yc_int + fit_size + 1)
+                
+                data_fit = cut_local[yfit_min:yfit_max, xfit_min:xfit_max]
+                if data_fit.size < max_fwhm_extent*2 or np.all(np.isnan(data_fit)) or np.nanmax(data_fit) <= 0:
+                    continue  # skip this source if empty or invalid
             
-
-        # --- Mask all external sources using simple 2D Gaussian fitting --- #
-        cut_local = cutout
-        for xc, yc in external_sources:
-            xc_int = int(round(xc))
-            yc_int = int(round(yc))
+                yy_sub, xx_sub = np.mgrid[yfit_min:yfit_max, xfit_min:xfit_max]
             
-            # Define small cutout around each source (e.g. max_fwhm_extent)
-            fit_size = round(max_fwhm_extent/2.)  # half-size
-            xfit_min = max(0, xc_int - fit_size)
-            xfit_max = min(cut_local.shape[1], xc_int + fit_size + 1)
-            yfit_min = max(0, yc_int - fit_size)
-            yfit_max = min(cut_local.shape[0], yc_int + fit_size + 1)
+                # Define and fit elliptical Gaussian
+                g_init = models.Gaussian2D(
+                    amplitude=np.nanmax(data_fit),
+                    x_mean=xc,
+                    y_mean=yc,
+                    x_stddev=max_fwhm_extent,
+                    y_stddev=max_fwhm_extent,
+                    theta=0.0,
+                    bounds={'x_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'y_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'theta': (-np.pi/2, np.pi/2)}
+                )
             
-            data_fit = cut_local[yfit_min:yfit_max, xfit_min:xfit_max]
-            if data_fit.size < max_fwhm_extent*2 or np.all(np.isnan(data_fit)) or np.nanmax(data_fit) <= 0:
-                continue  # skip this source if empty or invalid
-        
-            yy_sub, xx_sub = np.mgrid[yfit_min:yfit_max, xfit_min:xfit_max]
-        
-            # Define and fit elliptical Gaussian
-            g_init = models.Gaussian2D(
-                amplitude=np.nanmax(data_fit),
-                x_mean=xc,
-                y_mean=yc,
-                x_stddev=max_fwhm_extent,
-                y_stddev=max_fwhm_extent,
-                theta=0.0,
-                bounds={'x_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'y_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'theta': (-np.pi/2, np.pi/2)}
-            )
-        
-            fit_p = fitting.LevMarLSQFitter()
-            try:
-                g_fit = fit_p(g_init, xx_sub, yy_sub, data_fit)
-            except Exception:
-                continue  # skip if fit fails
-        
-            # Evaluate fitted model over full local cutout
-            yy_full, xx_full = np.indices(cut_local.shape)
-            model_vals = g_fit(xx_full, yy_full)
-        
-            # Mask pixels above 1-FWHM threshold for external sopurces (≈ 0.1353 × peak)
-            threshold = g_fit.amplitude.value * 0.1353 
-            mask_bg[model_vals > threshold] = False
+                fit_p = fitting.LevMarLSQFitter()
+                try:
+                    g_fit = fit_p(g_init, xx_sub, yy_sub, data_fit)
+                except Exception:
+                    continue  # skip if fit fails
+            
+                # Evaluate fitted model over full local cutout
+                yy_full, xx_full = np.indices(cut_local.shape)
+                model_vals = g_fit(xx_full, yy_full)
+            
+                # Mask pixels above 1-FWHM threshold for external sopurces (≈ 0.1353 × peak)
+                threshold = g_fit.amplitude.value * 0.1353 
+                mask_bg[model_vals > threshold] = False
         
         
         ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
