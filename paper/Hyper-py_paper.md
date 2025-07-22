@@ -27,8 +27,8 @@ bibliography: Hyper_py.bib
  
 # Summary
  
-Source extraction and photometry of compact objects are fundamental tasks in observational astronomy. Over the years, various tools have been developed to address the inherent complexity of astronomical data—particularly for accurate background estimation and removal, and for deblending nearby sources to ensure reliable flux measurements across multiple wavelengths (CIT.). These challenges are especially pronounced in star-forming regions, which are best observed in the far-infrared (FIR), sub-millimeter, and millimeter regimes, where the cold, dense envelopes of compact sources emit most strongly.
-To address these needs, several software packages have been designed to handle the structured backgrounds and blended source populations typical of observations with instruments such as Herschel (70–500 μm) and ALMA (1–3 mm). These packages differ significantly in their detection strategies and flux estimation methods (CIT.). Among them, we developed HYPER (HYbrid Photometry and Extraction Routine), originally implemented in IDL, with the goal of providing robust and reproducible photometry of compact sources in FIR/sub-mm/mm maps. HYPER combines: (1) source detection via high-pass filtering; (2) background estimation and removal through local polynomial fitting; and (3) source modeling using 2D elliptical Gaussians. For blended regions, HYPER fits multiple Gaussians simultaneously to deblend overlapping sources, subtracting companions before performing photometry.
+Source extraction and photometry of compact objects are fundamental tasks in observational astronomy. Over the years, various tools have been developed to address the inherent complexity of astronomical data—particularly for accurate background estimation and removal, and for deblending nearby sources to ensure reliable flux measurements across multiple wavelengths (@Molinari11). These challenges are especially pronounced in star-forming regions, which are best observed in the far-infrared (FIR), sub-millimeter, and millimeter regimes, where the cold, dense envelopes of compact sources emit most strongly.
+To address these needs, several software packages have been designed to handle the structured backgrounds and blended source populations typical of observations with instruments such as Herschel (70–500 μm) and ALMA (1–3 mm). These packages differ significantly in their detection strategies and flux estimation methods (CIT.). Among them, we developed HYPER (HYbrid Photometry and Extraction Routine, @Traficante2015), originally implemented in IDL, with the goal of providing robust and reproducible photometry of compact sources in FIR/sub-mm/mm maps. HYPER combines: (1) source detection via high-pass filtering; (2) background estimation and removal through local polynomial fitting; and (3) source modeling using 2D elliptical Gaussians. For blended regions, HYPER fits multiple Gaussians simultaneously to deblend overlapping sources, subtracting companions before performing photometry.
 Aperture photometry in HYPER is then carried out on the background-subtracted, companion-subtracted images, using the footprint defined by each source’s 2D Gaussian model. This ensures a consistent and robust integrated flux measurement, even in crowded or strongly structured environments (CIT.).
 The hybrid nature of HYPER lies in this combined approach: using 2D Gaussian modeling, as done in methods such as CIT., while retaining classical aperture photometry techniques, as in CIT.
 In this work, we present Hyper-py, a fully restructured and extended version of HYPER developed entirely in Python. Hyper-py not only replicates the core logic of the original IDL implementation, but introduces multiple improvements in performance, configurability, and background modeling capabilities—making it a modern and flexible tool for source extraction and photometric analysis across a wide range of datasets. Notably, Hyper-py also introduces the ability to estimate and subtract the background emission across individual slices of 3D datacubes, enabling consistent background modeling along the spectral axis for line or continuum studies in spectrally resolved observations.
@@ -54,15 +54,4 @@ We assessed the performance of the Hyper-py pipeline using a dedicated suite of 
  
 HYPER-py can be downloaded through standard pip installation
 via the command "pip install hyper_py" or through the GitHUB repository ….
-
-# Figures
-
-Figures can be included like this:
-![Caption for example figure.\label{fig:example}](figure.png)
-and referenced from text using \autoref{fig:example}.
-
-
-# Citations
-
-
 
