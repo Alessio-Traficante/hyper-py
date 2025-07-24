@@ -467,7 +467,7 @@ def masked_background_single_sources(
     if best_order is None:
         # If no valid background was found, return unmodified cutout
         logger_file_only.warning("[WARNING] Background fit failed; returning original cutout.")        
-        return cutout_masked, np.zeros_like(cutout), None, np.zeros_like(cutout), np.zeros_like(cutout), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {}
+        return cutout_masked, np.zeros_like(cutout), None, np.zeros_like(cutout), np.zeros_like(cutout), 0, 0, 0, 0, 0, 0, 0, 0, [box], 0, {}
 
     else:
         # Subtract background from the original cutout
