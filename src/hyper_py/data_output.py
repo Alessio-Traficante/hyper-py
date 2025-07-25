@@ -2,7 +2,7 @@ import os
 from astropy.table import Table
 
 
-def write_tables(data_dict, output_dir, config, sigma_thres, base_filename="hyper_output"):
+def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_filename="hyper_output"):
 
     '''
     Write photometry results into formatted ECSV and IPAC tables,
@@ -86,6 +86,11 @@ def write_tables(data_dict, output_dir, config, sigma_thres, base_filename="hype
             
             
     # Create your custom header lines explicitly
+    if config.get('units', 'convert_mJy'): 
+        rms_sentence = f"Estimated r.m.s. to identify sources: {real_rms:.5f} mJy"
+    else:
+        rms_sentence = f"Estimated r.m.s. to identify sources: {real_rms:.5f} Jy"    
+
     custom_header_lines = [
         " ****************** Hyper photometry ******************",
         f"Survey code: {config.get('survey', 'survey_code')}",
@@ -95,6 +100,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, base_filename="hype
         f"Convert from MJy/sr: {config.get('units', 'convert_Jy')}",
         f"Convert from Jy/beam: {config.get('units', 'convert_beam_Jy')}",
         f"Convert to mJy: {config.get('units', 'convert_mJy')}",
+        rms_sentence,
         " ******************************************************"
     ]
 

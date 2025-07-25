@@ -658,7 +658,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     
     # -- Print the output directory and file path --#
     sigma_thres=cfg.get("detection", "sigma_thres")
-    write_tables(data_dict, output_dir_path, cfg, sigma_thres, base_filename=base_name_with_suffix)
+    write_tables(data_dict, output_dir_path, cfg, sigma_thres, real_rms, base_filename=base_name_with_suffix)
     logger_file_only.info(f"✅ eCSV and IPAC tables written to: {output_dir_path}")
 
 
