@@ -57,13 +57,19 @@ def get_beam_info(survey_code, band_value, fits_file=None):
     beam_area_sr = beam_area_sr
     
     
-    # - define the band - #
-    if hdr.get('CTYPE3', 0):
-        band_unit = hdr.get('CTYPE3', 0)
-        if band_unit == 'FREQ':
-            band_value_Hz = hdr.get('CRVAL3', 0)
-            band_ref = band_value_Hz*1.e-9 # Hz -> GHz
-    else:        
-        band_ref = band_value       
+    # --- Search for frequency axis (CTYPEi == 'FREQ') --- #
+    band_ref = None
     
+    for i in range(1, 6):  # Loop over axis 1 to 5 in case of multi-dimensional FITS
+        ctype = hdr.get(f'CTYPE{i}', '')
+        if 'FREQ' in ctype.upper():
+            crval = hdr.get(f'CRVAL{i}', 0.0)
+            band_ref = crval * 1e-9  # Convert from Hz to GHz
+            break
+    
+    # Fallback if frequency axis not found
+    if band_ref is None:
+        band_ref = band_value  # Defined in the config
+      
+        
     return beam_arcsec, beam_area_arcsec2, beam_area_sr, band_ref

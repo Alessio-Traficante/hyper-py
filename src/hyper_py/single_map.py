@@ -139,7 +139,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     wcs = WCS(header)
     pix_dim = map_struct["pix_dim"]
     beam_dim = map_struct["beam_dim"]
-    beam_area = map_struct["beam_area_arcsec2"]
+    beam_area = map_struct["beam_area_arcsec2"]    
     band_ref = int(band_ref)
     
 
@@ -245,32 +245,30 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         # Prepare zeroed output table
         N = len(xcen)
         data_dict = {
-            "MAP_ID": [suffix] * N,
-            "HYPER_ID": list(range(1, N + 1)),
-            "BAND": [band_ref] * N,
-            "FLUX_PEAK": [0.0] * N,
-            "FLUX_PEAK_JY": [0.0] * N,
-            "FLUX": [0.0] * N,
-            "FLUX_ERR": [0.0] * N,
-            "SKY_NO_BACK": [0.0] * N,
-            "SKY": [0.0] * N,
-            "POLYN": [0] * N,
-            "REDCHI": [0.0] * N,
-            "FWHM_1": [0.0] * N,
-            "FWHM_2": [0.0] * N,
-            "PA": [0.0] * N,
-            "STATUS": [0] * N,
-            "GLON": list(glon),
-            "GLAT": list(glat),
-            "RA": list(ra_save),
-            "DEC": list(dec),
-            "DIST_REF": [0.0] * N,
-            "DEBLEND": [0] * N,
-            "CLUSTER": [0] * N,
+            "MAP_ID": [str(suffix)],
+            "HYPER_ID": [0],
+            "BAND": [band_ref],
+            "FLUX_PEAK": [0.0],
+            "FLUX": [0.0],
+            "FLUX_ERR": [0.0],
+            "RESIDUALS": [0.0],
+            "POLYN": [0],
+            "NMSE": [0.0],
+            "CHI2_RED": [0.0],
+            "FWHM_1": [0.0],
+            "FWHM_2": [0.0],
+            "PA": [0.0],
+            "STATUS": [0],
+            "GLON": [0.0],
+            "GLAT": [0.0],
+            "RA": [0.0],
+            "DEC": [0.0],
+            "DEBLEND": [0],
+            "CLUSTER": [0],
         }
 
         sigma_thres = cfg.get("detection", "sigma_thres")
-        write_tables(data_dict, output_dir_path, cfg, sigma_thres, base_filename=base_name_with_suffix)
+        write_tables(data_dict, output_dir_path, cfg, sigma_thres, real_rms, base_filename=base_name_with_suffix)
     
         ######################## Write only the centroid region file ########################
         radecsys = (header.get("RADESYS") or header.get("RADECSYS") or wcs.wcs.radesys or "FK5").strip().upper()
@@ -292,8 +290,9 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
                 f.write(f"point({xw:.8f},{yw:.8f}) # point=cross\n")
     
         logger.info(f"Detection-only mode complete. Saved table and centroid region file for {N} sources.\n")
-        return  # ✅ Done!
+        return map_name, bg_model, header, header # ✅ Done!
     
+  
     
 
     

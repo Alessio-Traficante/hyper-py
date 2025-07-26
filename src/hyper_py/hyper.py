@@ -132,7 +132,7 @@ def run_hyper(cfg_path):
         except Exception as e:
             logger_file_only.error(f"[ERROR] Failed to load table for {suffix}: {e}")
     
-    
+
     # === Merge and write combined tables ===
     final_table = vstack(all_tables)
     
