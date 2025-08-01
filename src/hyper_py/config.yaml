@@ -1,6 +1,6 @@
 #--------------------- File Paths ---------------------#
 paths:
-  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Milena_test/Cubes/"                            # Main directory for input/output data
+  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/"                            # Main directory for input/output data
   input:  
       dir_maps: "Maps" #"Maps"                        # Subdirectory of dir_comm containing input map files
   output:
@@ -11,7 +11,7 @@ paths:
 
 #--------------------- File Names ---------------------#
 files:
-  file_map_name: 'test_Milena.txt'       # Input FITS map(s) for analysis (in dir_maps). 
+  file_map_name: 'test.txt'      # Input FITS map(s) for analysis (in dir_maps). 
                                   # Can be either:
                                   # - a list of filenames: ["map1.fits", "map2.fits"]
                                   # - OR a .txt file with one filename per line placed in the "dir_maps" folder
@@ -27,7 +27,7 @@ control:
   n_cores: 5               # Number of CPU cores to use for multiprocessing - better <= tot maps
   
   detection_only: false                  # Only perform source detection without photometry (True/False) 
-  datacube : true                        # select if the input map is a datacube    
+  datacube : false                        # select if the input map is a datacube    
 
 #--------------------- Units Conversion ---------------------#
 units:
@@ -60,7 +60,7 @@ survey:
   
 #--------------------- Source Detection ---------------------#
 detection:
-  sigma_thres: 5.0               # Detection threshold in units of RMS (sigma)
+  sigma_thres: 4.0               # Detection threshold in units of RMS (sigma)
   use_manual_rms: false          # Use manually provided RMS noise value to identify sources (True/False)
   rms_value: 1.e-6               # Manual RMS noise value (Jy) - only if use_this_rms is True
   roundlim: [-4.0, 4.0]          # Allowed source roundness range (min, max for DAOFIND)
@@ -78,7 +78,7 @@ detection:
 #--------------------- Photometry Settings ---------------------#
 photometry:
   aper_inf: 1.0                    # Minimum size factor for Gaussian FWHM (used as minimum radius)
-  aper_sup: 2.0                    # Maximum size factor for Gaussian FWHM (used as maximum radius)
+  aper_sup: 1.5                    # Maximum size factor for Gaussian FWHM (used as maximum radius)
   
   fixed_radius: false              # Use fixed aperture radii instead of Gaussian fitting (True/False)
   fwhm_1: [0.7]                    # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
@@ -97,7 +97,7 @@ fit_options:
   gtol: 1e-8                   # Tolerance on gradient orthogonality
   calc_covar: false            # Estimate parameter covariance matrix
   weights: "snr"               # Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'map', or 'mask'
-  power_snr: 10                 # SNR**power_snr - this value gives more weight to the bright pixels
+  power_snr: 5                 # SNR**power_snr - this value gives more weight to the bright pixels
   min_method: "nmse"           # Criterion to select best fit: 'nmse', 'redchi', or 'bic'
   verbose: false               # Print full fit report
   use_l2_regularization: true  # Enable L2 regularization on background terms (only in Gaussian+background fitting)
@@ -111,7 +111,7 @@ fit_options:
 background:
   no_background: true                # Enable polynomial background subtraction (True/False)
   polynomial_orders: [0]          # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 0                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
+  fix_min_box: 3                    # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
   fix_max_box:  5                   # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
   fit_gauss_and_bg_separately: true  # Estimate Gaussian components and background separately
   pol_orders_separate: [0, 1, 2]        # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true)
