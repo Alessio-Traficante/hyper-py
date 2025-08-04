@@ -23,8 +23,8 @@ files:
 
 #--------------------- Pipeline Control ---------------------#
 control:
-  parallel_maps: false      # Enable parallel execution over multiple maps (True/False)
-  n_cores: 5               # Number of CPU cores to use for multiprocessing - better <= tot maps
+  parallel_maps: true      # Enable parallel execution over multiple maps (True/False)
+  n_cores: 2               # Number of CPU cores to use for multiprocessing - better <= tot maps
   
   detection_only: false                  # Only perform source detection without photometry (True/False) 
   datacube : false                        # select if the input map is a datacube    
@@ -78,7 +78,7 @@ detection:
 #--------------------- Photometry Settings ---------------------#
 photometry:
   aper_inf: 1.0                    # Minimum size factor for Gaussian FWHM (used as minimum radius)
-  aper_sup: 1.5                    # Maximum size factor for Gaussian FWHM (used as maximum radius)
+  aper_sup: 2.0                    # Maximum size factor for Gaussian FWHM (used as maximum radius)
   
   fixed_radius: false              # Use fixed aperture radii instead of Gaussian fitting (True/False)
   fwhm_1: [0.7]                    # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
@@ -89,7 +89,7 @@ photometry:
 #---------------------- Model fit Settings ----------------------#
 fit_options:
   fit_method: "least_squares"  # Optimization algorithm for Gaussian fitting ('leastsq')
-  loss: cauchy                 # "soft_l1", "huber", "cauchy", "linear"
+  loss: linear                 # "soft_l1", "huber", "cauchy", "linear"
   f_scale: 0.1                 # relevant for soft_l1, huber, cauchy
   max_nfev: 50000              # Maximum number of function evaluations
   xtol: 1e-8                   # Tolerance on parameter change for convergence
