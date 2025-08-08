@@ -1,6 +1,6 @@
 # 💫 HYPER: Hybrid Photometry Photometry and Extraction Routine
 
-**Author:** Alessio Traficante  
+**Authors:** Alessio Traficante; Fabrizio De Angelis; Alice Nucara; Milena Benedettini
 **Original reference:** Traficante et al. (2015), *MNRAS, 451, 3089*  
 
 ---
@@ -16,6 +16,7 @@ The core objective of HYPER is to combine Gaussian fitting and polynomial backgr
 - Perform **aperture photometry** using source-dependent elliptical apertures derived from Gaussian fits
 - Use a **polynomial background model**, estimated and optionally subtracted either jointly or separately from source fitting
 - Handle both **isolated and blended sources**, using multi-Gaussian fitting for groups
+- **Support 3D datacubes**: estimate polynomial backgrounds per spectral slice (with source masking) and optionally subtract them before fitting. 
 - Offer high configurability through a YAML-based configuration file
 - Provide robust visual diagnostics and clean output formats (e.g. IPAC tables, DS9 region files)
 
@@ -34,7 +35,7 @@ The core objective of HYPER is to combine Gaussian fitting and polynomial backgr
 
 ## Parallel Processing
 
-HYPER now supports **parallel execution** over multiple maps. If a list of FITS files is provided, HYPER will automatically:
+HYPER now supports **parallel execution** over multiple maps or datacube slices. If a list of FITS files is provided, HYPER will automatically:
 
 - Launch one independent process per map (up to the number of available CPU cores)
 - Run the full pipeline (detection, fitting, photometry) in parallel across different maps
