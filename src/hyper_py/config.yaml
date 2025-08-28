@@ -1,6 +1,6 @@
 #--------------------- File Paths ---------------------#
 paths:
-  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/"                            # Main directory for input/output data
+  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/"                            # Main directory for input/output data
   input:  
       dir_maps: "Maps" #"Maps"                        # Subdirectory of dir_comm containing input map files
   output:
@@ -31,15 +31,12 @@ control:
 
 #--------------------- Units Conversion ---------------------#
 units:
-  convert_Jy_sr: false        # Convert input maps from MJy/sr to Jy/pixel (True/False)
-  convert_beam_Jy: false      # Convert input maps from Jy/beam to Jy/pixel (True/False)
-  convert_mJy: true           # Convert fluxes to milliJansky (mJy) in the final output (True/False). Default is Jy
+  convert_mJy: true           # Convert fluxes to mJy in the final output (True/False). Default is Jy
 
 
 #--------------------- Survey Settings ---------------------#
 survey:
-  band_value: 1199                  # GHz -> reference band under analysis i(needed if not written in the header as CTYPE3)   
-  survey_code: 15                   # Numeric identifier for the survey or observation (see table below)
+  survey_code: 15                   # Numeric identifier for the survey parameters such as beam size (table below)
 
   # Survey code reference:
   # -----------------------------------------------

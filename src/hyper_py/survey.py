@@ -20,7 +20,7 @@ BEAM_INFO = {
 
 arcsec2_to_sr = 2.35045e-11
 
-def get_beam_info(survey_code, band_value, fits_file=None):
+def get_beam_info(survey_code, fits_file=None):
     beam_arcsec = []
     beam_area_arcsec2 = []
     beam_area_sr = []
@@ -66,10 +66,6 @@ def get_beam_info(survey_code, band_value, fits_file=None):
             crval = hdr.get(f'CRVAL{i}', 0.0)
             band_ref = crval * 1e-9  # Convert from Hz to GHz
             break
-    
-    # Fallback if frequency axis not found
-    if band_ref is None:
-        band_ref = band_value  # Defined in the config
-      
-        
-    return beam_arcsec, beam_area_arcsec2, beam_area_sr, band_ref
+           
+            
+    return beam_arcsec, beam_area_arcsec2, beam_area_sr

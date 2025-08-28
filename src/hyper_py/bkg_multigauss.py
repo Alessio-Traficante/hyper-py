@@ -5,9 +5,14 @@ from astropy.io import fits
 import os
 from astropy.stats import sigma_clipped_stats, SigmaClip
 from astropy.modeling import models, fitting
-from sklearn.linear_model import HuberRegressor, TheilSenRegressor
-
+from astropy.utils.exceptions import AstropyUserWarning
 from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
+
+from sklearn.linear_model import HuberRegressor, TheilSenRegressor
+from scipy.ndimage import label, find_objects
+import warnings
+
+
         
 
 from astropy.wcs import WCS
@@ -157,10 +162,44 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                 yy_full, xx_full = np.indices(cut_local.shape)
                 model_vals = g_fit(xx_full, yy_full)
             
-                # Mask pixels above 2-FWHM threshold for external sources (≈ 0.1353 × peak)
-                threshold = g_fit.amplitude.value * 0.1353 
-                mask_bg[model_vals > threshold] = False
-            
+                # # Mask pixels above 2-FWHM threshold for external sources (≈ 0.1353 × peak) - or below it if too many NaNs
+                threshold_factor = 0.1353
+                max_fraction = 0.3
+                max_extent_pix = max_fwhm_extent *2  # in pixels
+                
+                # Loop to find acceptable threshold
+                while True:
+                    threshold = g_fit.amplitude.value * threshold_factor
+                    mask_above = model_vals > threshold
+                    frac_above_thresh = np.sum(mask_above) / model_vals.size
+                
+                    if frac_above_thresh <= max_fraction:
+                        # Check the maximum spatial extent of the mask
+                        labeled, _ = label(mask_above)
+                        slices = find_objects(labeled)
+                
+                        max_extent = 0
+                        for slc in slices:
+                            if slc is None:
+                                continue
+                            dy = slc[0].stop - slc[0].start
+                            dx = slc[1].stop - slc[1].start
+                            extent = np.sqrt(dx**2 + dy**2)
+                            max_extent = max(max_extent, extent)
+                
+                        if max_extent <= max_extent_pix:
+                            break  # both conditions passed
+                        else:
+                            # increase threshold to shrink extent
+                            threshold_factor *= 2
+                    else:
+                        # too many pixels above threshold
+                        threshold_factor *= 2
+                
+                # Apply the final mask
+                mask_bg[model_vals > threshold] = False           
+                
+        
         
         ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
         # --- Apply external sources mask → set masked pixels to np.nan --- #
@@ -188,14 +227,28 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         
         if nan_fraction < nan_threshold:
             sigma = 2.0
-            kernel = Gaussian2DKernel(x_stddev=sigma)
-            interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
-            
-            cutout_masked = interpolated_map
-            mask_bg = np.ones_like(cutout_masked, dtype=bool)
+            max_sigma = 10.0
+            success = False
         
-            if np.any(~np.isfinite(interpolated_map)):
-                logger_file_only.warning("⚠️ Some NaNs remain after interpolation!")
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", AstropyUserWarning)
+        
+                while sigma <= max_sigma:
+                    kernel = Gaussian2DKernel(x_stddev=sigma)
+                    interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
+        
+                    if np.all(np.isfinite(interpolated_map)):
+                        success = True
+                        break
+                    else:
+                        sigma += 1.0  # Increase kernel size and retry
+        
+            if success:
+                cutout_masked = interpolated_map
+                mask_bg = np.ones_like(cutout_masked, dtype=bool)
+            else:
+                logger_file_only.warning("⚠️ NaNs remain after interpolation even with enlarged kernel!")
+
         else:
             logger_file_only.warning(f"⚠️ Too many NaNs at edges (fraction: {nan_fraction:.2f}) — interpolation skipped.")
 
@@ -244,9 +297,45 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
             yy_full, xx_full = np.indices(cut_local.shape)
             model_vals = g_fit(xx_full, yy_full)
         
-            # Mask pixels above 2-FWHM threshold for main sources (≈ 0.1353 × peak)
-            threshold = g_fit.amplitude.value * 0.1353 
+
+            # # Mask pixels above 2-FWHM threshold for external sources (≈ 0.1353 × peak) - or below it if too many NaNs
+            threshold_factor = 0.1353
+            max_fraction = 0.3
+            max_extent_pix = max_fwhm_extent *2  # in pixels
+            
+            # Loop to find acceptable threshold
+            while True:
+                threshold = g_fit.amplitude.value * threshold_factor
+                mask_above = model_vals > threshold
+                frac_above_thresh = np.sum(mask_above) / model_vals.size
+            
+                if frac_above_thresh <= max_fraction:
+                    # Check the maximum spatial extent of the mask
+                    labeled, _ = label(mask_above)
+                    slices = find_objects(labeled)
+            
+                    max_extent = 0
+                    for slc in slices:
+                        if slc is None:
+                            continue
+                        dy = slc[0].stop - slc[0].start
+                        dx = slc[1].stop - slc[1].start
+                        extent = np.sqrt(dx**2 + dy**2)
+                        max_extent = max(max_extent, extent)
+            
+                    if max_extent <= max_extent_pix:
+                        break  # both conditions passed
+                    else:
+                        # increase threshold to shrink extent
+                        threshold_factor *= 2
+                else:
+                    # too many pixels above threshold
+                    threshold_factor *= 2
+            
+            # Apply the final mask
             mask_bg_all[model_vals > threshold] = False
+                        
+                   
 
         # --- Apply main sources mask → set masked pixels to np.nan --- #
         cutout_masked_all = np.copy(cutout_masked)

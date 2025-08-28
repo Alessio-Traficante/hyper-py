@@ -175,7 +175,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     # Define a bounding box around the source, clipped to cutout size
                     masking_radius = max_fwhm_extent/2.   # radius
                     masking_radius_pix=np.round(masking_radius) 
-        
+                            
                     xmin_box = max(0, int(ex - masking_radius_pix))
                     xmax_box = min(nx, int(ex + masking_radius_pix + 1))
                     ymin_box = max(0, int(ey - masking_radius_pix))
@@ -238,9 +238,6 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     else:
                         params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.5*local_peak)
                         
-                    params.add(f"{prefix}x0", value=xc, vary=False) #min=xc-0.05, max=xc+0.05)
-                    params.add(f"{prefix}y0", value=yc, vary=False) #, min=yc-0.05, max=yc+0.05)
- 
                     if vary == True:
                         params.add(f"{prefix}x0", value=xc, min=xc - 1, max=xc + 1)
                         params.add(f"{prefix}y0", value=yc, min=yc - 1, max=yc + 1)

@@ -2,10 +2,8 @@ from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
 
-SR_PER_ARCSEC2 = 2.35045e-11  # Conversion: steradians to arcsec^2
 
-def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, convert_jy_sr=False, 
-                         convert_beam_jy=False, convert_mjy=False):
+def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, convert_mjy=False):
     '''
     Load a FITS map and convert units as needed. 
     Always reduce WCS to 2D (RA, Dec) if higher dimensional axes are present.
@@ -52,19 +50,20 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
 
 
     # --- Unit conversions ---
-    if convert_jy_sr:
+    bunit = header.get('BUNIT')
+    if bunit == 'MJy /sr':
         arcsec_to_rad = np.pi / (180.0 * 3600.0)
         pix_area_sr = (pix_dim * arcsec_to_rad)**2
         image_data *= 1e6 * pix_area_sr  # MJy/sr to Jy/pixel
-
-    if convert_beam_jy:
+        
+    if bunit == 'Jy/beam' or bunit == 'beam-1 Jy':    
         pix_area = pix_dim**2
-        image_data /= (beam_area_arcsec2 / pix_area)
-
+        image_data /= (beam_area_arcsec2 / pix_area) # Jy/beam to Jy/pixel
+    
+        
     if convert_mjy:
         image_data *= 1e3  # Jy → mJy
 
-    band = header.get('WAVELENGH', 'Unknown')
     
 
     return {
@@ -74,5 +73,4 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
         "beam_dim": beam,
         "beam_area_arcsec2": beam_area_arcsec2,
         "beam_area_sr": beam_area_sr,
-        "band": band,
     }
