@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import numpy as np
 from astropy.coordinates import SkyCoord
@@ -22,12 +23,19 @@ from hyper_py.logger import setup_logger
 
 
 def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=None):   
-     
+         
     paths_dict = get_hyper_single_map_paths(cfg, map_name)
-    
+
     # - input/output paths - #
+    datacube = cfg.get("control", "datacube", False)
+
     dir_root = cfg.get("paths", "output")["dir_root"]
-    input_map_path     = paths_dict["input_map_path"]
+
+    if datacube:
+        input_map_path = Path(dir_root, cfg.get("control")["dir_datacube_slices"], map_name)
+    else:
+       input_map_path = paths_dict["input_map_path"]
+
     output_dir_path    = paths_dict["output_dir_path"]
     
     base_name_with_suffix = paths_dict["base_name_with_suffix"]

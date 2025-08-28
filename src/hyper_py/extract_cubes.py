@@ -19,6 +19,9 @@ def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
             if data.ndim != 3:
                 raise ValueError(f"{cube_name} is not a 3D datacube.")
 
+            # Ensure output directory exists
+            os.makedirs(dir_slices_out, exist_ok=True)
+
             for i in range(data.shape[0]):
                 slice_data = data[i, :, :]
                 slice_header = cube_header.copy()

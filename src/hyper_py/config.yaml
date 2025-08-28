@@ -1,9 +1,9 @@
 #--------------------- File Paths ---------------------#
 paths:
   input:
-    dir_maps: ./maps                    # Directory of dir_root containing input map files
+    dir_maps: /Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/Datacubes/Maps                    # Directory of dir_root containing input map files
   output:
-    dir_root: ./output                  # Root directory for output data
+    dir_root: /Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/Datacubes/output                  # Root directory for output data
     dir_table_out:  tables              # Subdirectory of dir_root  for params
     dir_region_out: regions             # Subdirectory of dir_root  for region files (output)
     dir_log_out:    logs                # Subdirectory of dir_root  for log files
@@ -11,7 +11,7 @@ paths:
 
 #--------------------- File Names ---------------------#
 files:
-  file_map_name:    'maps_list.txt'     # Input FITS map(s) for analysis (in dir_maps).
+  file_map_name:    'test.txt'     # Input FITS map(s) for analysis (in dir_maps).
                                         # Can be either:
                                         # - a list of filenames: ["map1.fits", "map2.fits"]
                                         # - OR a .txt file with one filename per line placed in the "dir_maps" folder
@@ -23,9 +23,9 @@ files:
 #--------------------- Pipeline Control ---------------------#
 control:
   parallel_maps: true                   # Enable parallel execution over multiple maps (True/False)
-  n_cores: 2                            # Number of CPU cores to use for multiprocessing - better <= tot maps
+  n_cores: 8                            # Number of CPU cores to use for multiprocessing - better <= tot maps
   detection_only: false                 # Only perform source detection without photometry (True/False)
-  datacube: false                       # select if the input map is a datacube
+  datacube: true                       # select if the input map is a datacube
   dir_datacube_slices: maps             # Subdirectory of dir_root for slices fits files (only if datacube = true)
 
 #--------------------- Units Conversion ---------------------#
