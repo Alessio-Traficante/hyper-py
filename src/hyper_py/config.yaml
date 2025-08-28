@@ -11,7 +11,7 @@ paths:
 
 #--------------------- File Names ---------------------#
 files:
-  file_map_name:    'list_maps.txt'     # Input FITS map(s) for analysis (in dir_maps).
+  file_map_name:    'maps_list.txt'     # Input FITS map(s) for analysis (in dir_maps).
                                         # Can be either:
                                         # - a list of filenames: ["map1.fits", "map2.fits"]
                                         # - OR a .txt file with one filename per line placed in the "dir_maps" folder
@@ -26,7 +26,7 @@ control:
   n_cores: 2                            # Number of CPU cores to use for multiprocessing - better <= tot maps
   detection_only: false                 # Only perform source detection without photometry (True/False)
   datacube: false                       # select if the input map is a datacube
-
+  dir_datacube_slices: maps             # Subdirectory of dir_root for slices fits files (only if datacube = true)
 
 #--------------------- Units Conversion ---------------------#
 units:
