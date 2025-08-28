@@ -7,7 +7,7 @@ from scipy.spatial.distance import pdist
 import matplotlib.pyplot as plt
 
 from hyper_py.visualization import plot_fit_summary
-from bkg_multigauss import multigauss_background
+from .bkg_multigauss import multigauss_background
 
 from photutils.aperture import CircularAperture
 

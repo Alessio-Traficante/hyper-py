@@ -18,8 +18,7 @@ from astropy.io import ascii, fits
 from astropy.table import vstack
 
 import numpy as np
-from extract_cubes import extract_maps_from_cube
-
+from .extract_cubes import extract_maps_from_cube
 
 def run_hyper(cfg_path):
     # === Load config ===
