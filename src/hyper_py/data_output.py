@@ -39,7 +39,6 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
     descriptions = {
         'MAP_ID':    'Map identifier',
         'HYPER_ID':  'Source identifier',
-        'BAND':      'Band identifier (GHz)',
         'FLUX_PEAK': 'Peak flux (' + flux_units_beam + ')',
         'FLUX':      'Integrated flux density (' + flux_units + ')',
         'FLUX_ERR':  'Flux density uncertainty (' + flux_units + ')',
@@ -67,8 +66,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
         'FLUX_PEAK_JY': '.4f', 'RESIDUALS': '.5f',
         'FWHM_1': '.3f', 'FWHM_2': '.3f', 'PA': '.1f',
         'NMSE': '.3f', 'CHI2_RED': '.3f', 'BIC': '.2f', 'POLYN': 'd',
-        'BAND': 'd', 'STATUS': 'd',
-        'DEBLEND': 'd', 'CLUSTER': 'd',
+        'STATUS': 'd', 'DEBLEND': 'd', 'CLUSTER': 'd',
     }
     
 

@@ -45,7 +45,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     
     # - params - #
     survey_code = cfg.get("survey", "survey_code")
-    band_value = cfg.get("survey", "band_value")
     
     # - visualization params - #
     try:
@@ -117,7 +116,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     
     
     # - read header and map - #
-    beam_arcsec, beam_area_arcsec2, beam_area_sr, band_ref = get_beam_info(survey_code, band_value, input_map_path)
+    beam_arcsec, beam_area_arcsec2, beam_area_sr = get_beam_info(survey_code, input_map_path)
 
     map_struct = read_and_prepare_map(
         filepath=input_map_path,
@@ -138,7 +137,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     pix_dim = map_struct["pix_dim"]
     beam_dim = map_struct["beam_dim"]
     beam_area = map_struct["beam_area_arcsec2"]    
-    band_ref = int(band_ref)
     
 
     # --- map rms used to define real sources in the map - accounting for non-zero background --- #
@@ -245,7 +243,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         data_dict = {
             "MAP_ID": [str(suffix)],
             "HYPER_ID": [0],
-            "BAND": [band_ref],
             "FLUX_PEAK": [0.0],
             "FLUX": [0.0],
             "FLUX_ERR": [0.0],
@@ -607,7 +604,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         data_dict = {
             "MAP_ID": [str(suffix)],
             "HYPER_ID": [0],
-            "BAND": [band_ref],
             "FLUX_PEAK": [0.0],
             "FLUX": [0.0],
             "FLUX_ERR": [0.0],
@@ -630,7 +626,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         data_dict = {
             "MAP_ID": [str(suffix)] * len(updated_xcen),
             "HYPER_ID": list(range(1, len(updated_xcen) + 1)),
-            "BAND": [band_ref] * len(updated_xcen),
             "FLUX_PEAK": list(flux_peak),
             "FLUX": list(flux),
             "FLUX_ERR": list(flux_err),

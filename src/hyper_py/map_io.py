@@ -60,20 +60,10 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
         pix_area = pix_dim**2
         image_data /= (beam_area_arcsec2 / pix_area) # Jy/beam to Jy/pixel
     
-    
-    # if convert_jy_sr:
-    #     arcsec_to_rad = np.pi / (180.0 * 3600.0)
-    #     pix_area_sr = (pix_dim * arcsec_to_rad)**2
-    #     image_data *= 1e6 * pix_area_sr  # MJy/sr to Jy/pixel
-
-    # if convert_beam_jy:
-    #     pix_area = pix_dim**2
-    #     image_data /= (beam_area_arcsec2 / pix_area) # Jy/beam to Jy/pixel
-
+        
     if convert_mjy:
         image_data *= 1e3  # Jy → mJy
 
-    band = header.get('WAVELENGH', 'Unknown')
     
 
     return {
@@ -83,5 +73,4 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
         "beam_dim": beam,
         "beam_area_arcsec2": beam_area_arcsec2,
         "beam_area_sr": beam_area_sr,
-        "band": band,
     }

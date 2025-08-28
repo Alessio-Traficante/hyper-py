@@ -1,6 +1,6 @@
 #--------------------- File Paths ---------------------#
 paths:
-  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/Datacubes/"                            # Main directory for input/output data
+  dir_comm: "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/"                            # Main directory for input/output data
   input:  
       dir_maps: "Maps" #"Maps"                        # Subdirectory of dir_comm containing input map files
   output:
@@ -24,10 +24,10 @@ files:
 #--------------------- Pipeline Control ---------------------#
 control:
   parallel_maps: true      # Enable parallel execution over multiple maps (True/False)
-  n_cores: 8               # Number of CPU cores to use for multiprocessing - better <= tot maps
+  n_cores: 2               # Number of CPU cores to use for multiprocessing - better <= tot maps
   
   detection_only: false                  # Only perform source detection without photometry (True/False) 
-  datacube : true                        # select if the input map is a datacube    
+  datacube : false                        # select if the input map is a datacube    
 
 #--------------------- Units Conversion ---------------------#
 units:
@@ -36,8 +36,7 @@ units:
 
 #--------------------- Survey Settings ---------------------#
 survey:
-  band_value: 1199                  # GHz -> reference band under analysis i(needed if not written in the header as CTYPE3)   
-  survey_code: 15                   # Numeric identifier for the survey or observation (see table below)
+  survey_code: 15                   # Numeric identifier for the survey parameters such as beam size (table below)
 
   # Survey code reference:
   # -----------------------------------------------
