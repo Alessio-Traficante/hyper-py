@@ -124,8 +124,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         beam=beam_arcsec,
         beam_area_arcsec2=beam_area_arcsec2,
         beam_area_sr = beam_area_sr,
-        convert_jy_sr=cfg.get("units", "convert_Jy_sr"),
-        convert_beam_jy=cfg.get("units", "convert_beam_Jy"),
         convert_mjy=cfg.get("units", "convert_mJy")
     )
     
