@@ -1,4 +1,4 @@
-def extract_maps_from_cube(cube_names, dir_comm, dir_maps):
+def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
     """
     Extract 2D slices from 3D datacubes and return list of 2D FITS file paths.
     """
@@ -10,7 +10,7 @@ def extract_maps_from_cube(cube_names, dir_comm, dir_maps):
     extracted_maps = []
 
     for cube_name in cube_names:
-        cube_path = os.path.join(dir_comm, dir_maps, cube_name)
+        cube_path = os.path.join(dir_maps_in, cube_name)
         with fits.open(cube_path) as hdul:
             data = hdul[0].data
             cube_header = hdul[0].header
@@ -31,7 +31,7 @@ def extract_maps_from_cube(cube_names, dir_comm, dir_maps):
                         del slice_header[key]
 
                 out_name = f"{os.path.splitext(cube_name)[0]}_slice_{i+1:03d}.fits"
-                out_path = os.path.join(dir_comm, dir_maps, out_name)
+                out_path = os.path.join(dir_slices_out, out_name)
 
                 fits.writeto(out_path, slice_data, slice_header, overwrite=True)
                 extracted_maps.append(out_name)

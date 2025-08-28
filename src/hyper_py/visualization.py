@@ -1,7 +1,7 @@
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_fit_summary(cutout, cutout_masked_full, model, residual, output_dir, label_name="fit", dpi=300,

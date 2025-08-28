@@ -1,15 +1,12 @@
-import numpy as np
-from astropy.stats import sigma_clipped_stats, SigmaClip
-from astropy.modeling import models, fitting
-
-from astropy.wcs import WCS
-
-
-from sklearn.linear_model import HuberRegressor, TheilSenRegressor
-from sklearn.exceptions import ConvergenceWarning
 import warnings
 
-from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
+import numpy as np
+from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
+from astropy.modeling import fitting, models
+from astropy.stats import SigmaClip, sigma_clipped_stats
+from astropy.wcs import WCS
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.linear_model import HuberRegressor, TheilSenRegressor
 
 
 def masked_background_single_sources(

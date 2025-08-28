@@ -1,21 +1,17 @@
-import numpy as np
-from photutils.aperture import CircularAperture
-import matplotlib.pyplot as plt
-from astropy.io import fits
 import os
-from astropy.stats import sigma_clipped_stats, SigmaClip
-from astropy.modeling import models, fitting
-from astropy.utils.exceptions import AstropyUserWarning
-from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
-
-from sklearn.linear_model import HuberRegressor, TheilSenRegressor
-from scipy.ndimage import label, find_objects
 import warnings
 
-
-        
-
+import numpy as np
+import matplotlib.pyplot as plt
+from astropy.io import fits
+from astropy.modeling import fitting, models
+from astropy.stats import SigmaClip, sigma_clipped_stats
+from astropy.utils.exceptions import AstropyUserWarning
+from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from astropy.wcs import WCS
+from photutils.aperture import CircularAperture
+from sklearn.linear_model import HuberRegressor, TheilSenRegressor
+from scipy.ndimage import find_objects, label
 
 
 def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, all_sources_xcen, all_sources_ycen, aper_sup, max_fwhm_extent, 

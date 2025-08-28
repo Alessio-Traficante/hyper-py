@@ -44,4 +44,4 @@ class HyperConfig:
 
 # Example usage:
 # cfg = HyperConfig('config.yaml')
-# dir_comm = cfg.get('paths', 'dir_comm')
+# dir_root = config.get("paths", "output")["dir_root"]

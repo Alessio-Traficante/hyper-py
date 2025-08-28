@@ -176,3 +176,4 @@ cython_debug/
 .DS_Store
 
 /Git_Ignore
+test/test_2dmap.config.yaml

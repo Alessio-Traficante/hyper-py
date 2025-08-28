@@ -1,15 +1,14 @@
 import os
-from hyper_py.paths_io import get_hyper_single_map_paths
 
 import numpy as np
-from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
-from astropy.io import ascii
-from astropy.io import fits
+from astropy.io import ascii, fits
 from astropy.stats import SigmaClip, sigma_clipped_stats
+from astropy.wcs import WCS
 
+from collections.abc import Iterable
 
-
+from hyper_py.paths_io import get_hyper_single_map_paths
 from hyper_py.survey import get_beam_info
 from hyper_py.map_io import read_and_prepare_map
 from hyper_py.detection import detect_sources
@@ -19,18 +18,15 @@ from hyper_py.photometry import aperture_photometry_on_sources
 from hyper_py.gaussfit import fit_isolated_gaussian
 from hyper_py.fitting import fit_group_with_background
 from hyper_py.visualization import plot_fit_summary
-
-from collections.abc import Iterable
-
 from hyper_py.logger import setup_logger
 
 
-
-def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=None):   
+def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=None):   
      
     paths_dict = get_hyper_single_map_paths(cfg, map_name)
     
     # - input/output paths - #
+    dir_root = cfg.get("paths", "output")["dir_root"]
     input_map_path     = paths_dict["input_map_path"]
     output_dir_path    = paths_dict["output_dir_path"]
     
@@ -49,16 +45,14 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     # - visualization params - #
     try:
         visualize_deblended = cfg.get("visualization", "visualize_deblended", False)
-        dir_comm =  cfg.get("paths", "dir_comm")
-        visualize_output_dir_deblended = dir_comm + cfg.get("visualization", "output_dir_deblended", "Images/Deblended")  
+        visualize_output_dir_deblended = dir_root + cfg.get("visualization", "output_dir_deblended", "Images/Deblended")  
     except:
         visualize_deblended = False
         
    # - Fits save params - #     
     try:
         fits_deblended = cfg.get("fits_output", "fits_deblended", False)
-        dir_comm =  cfg.get("paths", "dir_comm")
-        fits_output_dir_deblended = dir_comm + cfg.get("fits_output", "fits_output_dir_deblended", "Fits/Deblended")  
+        fits_output_dir_deblended = dir_root + cfg.get("fits_output", "fits_output_dir_deblended", "Fits/Deblended")  
     except:
         fits_deblended = False
 
@@ -66,7 +60,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     # - Setup log file specifically for this map - #
     log_new_map_file = f"Hyper_log_{suffix}.log"
     log_new_map_dir = cfg.get("paths")["output"]["dir_log_out"]
-    log_path_each_map = os.path.join(dir_comm, log_new_map_dir, log_new_map_file)
+    log_path_each_map = os.path.join(dir_root, log_new_map_dir, log_new_map_file)
     
     # Give this map a unique logger name
     if logger is None:
@@ -92,6 +86,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     flux = []
     flux_err = []
 
+
     fit_statuts_val = []
     deblend_val = []
     cluster_val = []
@@ -111,7 +106,7 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
     fixed_peaks  = cfg.get("detection", "fixed_peaks", False)
     
     if use_fixed_table:
-        table_path = os.path.join(dir_comm, cfg.get("detection", "fixed_source_table_path"))
+        table_path = os.path.join(dir_root, cfg.get("detection", "fixed_source_table_path"))
         fixed_sources = ascii.read(table_path, format="ipac")
     
     
@@ -346,7 +341,6 @@ def main(map_name=None, cfg=None, dir_comm=None, logger=None, logger_file_only=N
         
         # --- Final cleaned map for aperture photometry ---
         source_only_map = cutout - model_bg_only 
-        
                 
         # --- Photometry: use centroid within cutout ---
         phot_single = aperture_photometry_on_sources(

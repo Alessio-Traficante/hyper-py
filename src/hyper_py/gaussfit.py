@@ -1,16 +1,15 @@
-import numpy as np
-from lmfit import minimize, Parameters
-from astropy.io import fits
-from astropy.wcs import WCS
-from astropy.stats import sigma_clipped_stats, SigmaClip
-from photutils.aperture import CircularAperture
-from hyper_py.visualization import plot_fit_summary
-import matplotlib.pyplot as plt
 import os
 
+import matplotlib.pyplot as plt
+import numpy as np
+from astropy.io import fits
+from astropy.stats import SigmaClip, sigma_clipped_stats
+from astropy.wcs import WCS
+from lmfit import minimize, Parameters
+from photutils.aperture import CircularAperture
+
+from hyper_py.visualization import plot_fit_summary
 from .bkg_single import masked_background_single_sources
-
-
 
 def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen, source_id, map_struct, suffix, config, logger, logger_file_only):
     """
@@ -41,6 +40,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     
         
     # --- Load config parameters ---
+    dir_root = config.get("paths", "output")["dir_root"]
     beam_pix = map_struct['beam_dim']/map_struct['pix_dim']/2.3548      # beam sigma size in pixels    
     fwhm_beam_pix = map_struct['beam_dim']/map_struct['pix_dim']      # beam FWHM size in pixels    
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
@@ -416,8 +416,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # --- save best fit in fits format --- #
         try:
             fits_fitting = config.get("fits_output", "fits_fitting", False)
-            dir_comm =  config.get("paths", "dir_comm")
-            fits_output_dir_fitting = dir_comm + config.get("fits_output", "fits_output_dir_fitting", "Fits/Fitting")  
+            fits_output_dir_fitting = dir_root + config.get("fits_output", "fits_output_dir_fitting", "Fits/Fitting")  
         except:
             fits_fitting = False
 
@@ -452,8 +451,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             visualize = False
 
         try:
-            dir_comm =  config.get("paths", "dir_comm")
-            output_dir_vis = dir_comm + config.get("visualization", "output_dir_fitting")
+            output_dir_vis = dir_root + config.get("visualization", "output_dir_fitting")
         except:
             output_dir_vis = "Images/Fitting"
 
@@ -475,8 +473,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # --- Optionally save separated background model as FITS --- #
         try:
             fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
-            dir_comm = config.get("paths", "dir_comm")
-            fits_output_dir = dir_comm + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")
+            fits_output_dir = dir_root + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")
         except Exception:
             fits_bg_separate = False
 
@@ -497,7 +494,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # --- Optionally save separated background 3D visualization as png format --- #
         try:
             visualize_bg = config.get("visualization", "visualize_bg_separate", False)
-            output_dir = dir_comm + config.get("visualization", "output_dir_bg_separate")
+            output_dir = dir_root + config.get("visualization", "output_dir_bg_separate")
         except Exception:
             visualize_bg = False
 

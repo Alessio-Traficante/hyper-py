@@ -1,0 +1,1 @@
+map_500_Gaussians_1.fits

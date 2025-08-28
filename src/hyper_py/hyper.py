@@ -1,24 +1,21 @@
 import os
 import sys
 from pathlib import Path
-# from parallel_utils import process_single_map
-
 import multiprocessing
-multiprocessing.set_start_method("spawn", force=True)
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+import numpy as np
+from astropy.io import ascii, fits
+from astropy.table import vstack
+from astropy.wcs import WCS
 
 from hyper_py.single_map import main as single_map
 from hyper_py.config import HyperConfig
-
 from hyper_py.logger import setup_logger
-
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
-from astropy.wcs import WCS
-from astropy.io import ascii, fits
-from astropy.table import vstack
-
-import numpy as np
 from .extract_cubes import extract_maps_from_cube
+
+# Set multiprocessing start method
+multiprocessing.set_start_method("spawn", force=True)
 
 def run_hyper(cfg_path):
     # === Load config ===
@@ -34,21 +31,20 @@ def run_hyper(cfg_path):
     # --- Initialize paths --- #
     # - common - #
     paths = cfg.get("paths")
-    dir_comm = paths["dir_comm"]
+    dir_root = paths["output"]["dir_root"]
     
     # # - input - #
     dir_maps = paths["input"]["dir_maps"]
+    dir_slices_out = Path(dir_root, cfg.get("control")["dir_datacube_slices"])
     base_table_name = cfg.get("files", "file_table_base")
     map_names = cfg.get("files", "file_map_name")
     datacube = cfg.get("control", "datacube", False)
     fix_min_box = cfg.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
     convert_mjy=cfg.get("units", "convert_mJy")
-
-
     
     # If it's a path to a .txt file, read it #
     if isinstance(map_names, str) and map_names.endswith('.txt'):
-        map_list_path = os.path.join(dir_comm, dir_maps, map_names)
+        map_list_path = os.path.join(dir_maps, map_names)
         with open(map_list_path, 'r') as f:
             map_names = [line.strip() for line in f if line.strip()]
     # If it's a single string but not a .txt, wrap it in a list
@@ -56,27 +52,23 @@ def run_hyper(cfg_path):
         map_names = [map_names]
         
     if datacube:
-        map_names, cube_header = extract_maps_from_cube(map_names, dir_comm, dir_maps)
+        map_names, cube_header = extract_maps_from_cube(map_names, dir_root, dir_maps)
         background_slices = []
         slice_cutout_header = []
     
-        
     # - output - #
     output_dir = paths["output"]["dir_table_out"]
-    
     
     # --- Set up logging for warnings --- #
     dir_log = paths["output"]["dir_log_out"]
     file_log = cfg.get("files", "file_log_name")
-    log_path = os.path.join(dir_comm, dir_log, file_log)
+    log_path = os.path.join(dir_root, dir_log, file_log)
     
     # Ensure the log directory exists
-    log_path_dir = os.path.join(dir_comm, dir_log)
+    log_path_dir = os.path.join(dir_root, dir_log)
     os.makedirs(log_path_dir, exist_ok=True)
 
-    
     logger, logger_file_only = setup_logger(log_path, logger_name="HyperLogger", overwrite=True)
-    
     
     logger.info("******************* 🔥 Hyper starts !!! *******************")
     
@@ -85,7 +77,6 @@ def run_hyper(cfg_path):
     use_parallel = control_cfg.get("parallel_maps", False)
     n_cores = control_cfg.get("n_cores", os.cpu_count())
 
-    
     # --- Main parallel or serial execution ---
     logger.info(f"🔄 Starting map analysis using {'multiprocessing' if use_parallel else 'serial'} mode")
     
@@ -95,7 +86,7 @@ def run_hyper(cfg_path):
         logger.info(f"📡 Running HYPER on {len(map_names)} maps using {n_cores} cores...")
         with ProcessPoolExecutor(max_workers=n_cores) as executor:
             futures = {
-                executor.submit(single_map, name, cfg, dir_comm): name
+                executor.submit(single_map, name, cfg, dir_root): name
                 for name in map_names
             }
             for future in as_completed(futures):
@@ -113,7 +104,7 @@ def run_hyper(cfg_path):
     else:
         for map_name in map_names:
             logger.info(f"📡 Running HYPER on: {map_name}")
-            suffix, bg_model, cutout_header, initial_header = single_map(map_name, cfg, dir_comm, logger, logger_file_only)
+            suffix, bg_model, cutout_header, initial_header = single_map(map_name, cfg, dir_root, logger, logger_file_only)
             results.append(suffix)
             if datacube:
                 background_slices.append(bg_model)
@@ -125,7 +116,7 @@ def run_hyper(cfg_path):
     for suffix in results:
         try:
             suffix_clean = Path(suffix).stem  # remove ".fits"
-            output_table_path = os.path.join(dir_comm, output_dir, f"{base_table_name}_{suffix_clean}.txt")
+            output_table_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{suffix_clean}.txt")
             table = ascii.read(output_table_path, format="ipac")
             all_tables.append(table)
         except Exception as e:
@@ -142,15 +133,13 @@ def run_hyper(cfg_path):
         final_table.meta['comments'] = []
     
     # Output file paths
-    ipac_path = os.path.join(dir_comm, output_dir, f"{base_table_name}_ALL.txt")
-    csv_path = os.path.join(dir_comm, output_dir, f"{base_table_name}_ALL.csv")
+    ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.txt")
+    csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.csv")
     
     # Write outputs
     final_table.write(ipac_path, format='ipac', overwrite=True)
     final_table.write(csv_path, format='csv', overwrite=True)
     logger_file_only.info(f"\n✅ Final merged table saved to:\n- {ipac_path}\n- {csv_path}")
-    
-    
     
     # === Combine all bg_models into a datacube ===
     if datacube:
@@ -258,7 +247,7 @@ def run_hyper(cfg_path):
                     del new_header[key]
 
     
-        output_cube_path = os.path.join(dir_comm, dir_maps, "background_cube_cut.fits")
+        output_cube_path = os.path.join(dir_root, dir_maps, "background_cube_cut.fits")
         fits.PrimaryHDU(data=bg_cube, header=new_header).writeto(output_cube_path, overwrite=True)
         logger.info(f"📦 Background cube saved to: {output_cube_path}")
     
@@ -301,7 +290,7 @@ def run_hyper(cfg_path):
             #     padded_header['BUNIT'] = 'Jy'
             
             # # Save full-size cube
-            #  output_full_cube = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
+            #  output_full_cube = os.path.join(dir_root, dir_maps, "background_cube_fullsize.fits")
             #  fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_full_cube, overwrite=True)
             #  logger.info(f"📦 Full-size padded background cube saved to: {output_full_cube}")
   
@@ -331,8 +320,6 @@ def run_hyper(cfg_path):
         
             xcen_all.append(x_pix)
             ycen_all.append(y_pix)
-    
-    
     
         if fix_min_box != 0:
             full_ny = cube_header['NAXIS2']
@@ -385,20 +372,9 @@ def run_hyper(cfg_path):
                         del padded_header[key]
         
             # Save full cube
-            output_cube_full_path = os.path.join(dir_comm, dir_maps, "background_cube_fullsize.fits")
+            output_cube_full_path = os.path.join(dir_root, dir_maps, "background_cube_fullsize.fits")
             fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_cube_full_path, overwrite=True)
             logger.info(f"📦 Full-size background cube saved to: {output_cube_full_path}")
-            
-            
-            
 
-
-                      
-       
-       
-
-    
     
     logger.info("****************** ✅ Hyper finished !!! ******************")
-    
-    
