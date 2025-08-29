@@ -57,11 +57,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
     fix_min_box = config.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
     fix_max_box = config.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
-    
-    no_background = config.get("background", "no_background", False)
+
+    fit_gauss_and_bg_together = config.get("background", "fit_gauss_and_bg_together", False)
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
-    orders = config.get("background", "polynomial_orders", [0, 1, 2]) if not no_background else [0]
-    pol_orders_separate = config.get("background", "pol_orders_separate", [1])  # only if fit_separately
+    orders = config.get("background", "polynomial_orders", [0, 1, 2]) if fit_gauss_and_bg_together else [0]
+    pol_orders_separate = config.get("background", "pol_orders_separate", [0])  # only if fit_separately
 
 
     use_l2 = fit_cfg.get("use_l2_regularization", False)
@@ -258,7 +258,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
 
                 # --- Add full 2D polynomial background (including cross terms) ---
-                if not no_background:
+                if fit_gauss_and_bg_together:
                     max_order_all = max(orders)
 
                     for dx in range(max_order_all + 1):
@@ -280,7 +280,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
                     model = A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
 
-                    if not no_background:
+                    if fit_gauss_and_bg_together:
                         max_order_all = max(orders)
 
                         for dx in range(max_order_all + 1):
@@ -301,7 +301,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     if weights is not None:
                         resid *= weights
 
-                    if use_l2 and not no_background:
+                    if use_l2 and fit_gauss_and_bg_together:
                         penalty_values = [
                             float(p[name].value)
                             for name in p if name.startswith("c")

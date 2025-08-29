@@ -176,6 +176,163 @@ Optional: You can add this to `.vscode/launch.json` for convenience:
 ---
 <br/><br/>
 
+
+## ⚙️ Configuration File Reference (`config.yaml`)
+
+The `config.yaml` file controls all aspects of the Hyper-py pipeline. Below is a detailed explanation of every entry, including its purpose, accepted values, default, and type.
+
+### File Paths
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `paths.input.dir_maps`      | Directory containing input map files.                                         | `./maps`        | REQUIRED  |
+| `paths.output.dir_root`     | Root directory for output data.                                               | `./output`      | REQUIRED  |
+| `paths.output.dir_table_out`| Subdirectory of `dir_root` for photometry output tables.                      | `params`        | REQUIRED  |
+| `paths.output.dir_region_out`| Subdirectory of `dir_root` for region files (output).                        | `regions`       | REQUIRED  |
+| `paths.output.dir_log_out`  | Subdirectory of `dir_root` for log files.                                    | `logs`          | REQUIRED  |
+
+### File Names
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `files.file_map_name`      | Input FITS map(s) list for analysis (in `dir_maps`).                        | `maps_list.txt` | REQUIRED  |
+| `files.file_table_base`    | Base filename for photometry output tables (in `dir_table_out`).            | `params`        | REQUIRED  |
+| `files.file_region_base`   | Base filename for output ellipse region files (in `dir_region_out`).        | `region_files`  | REQUIRED  |
+| `files.file_log_name`      | Name of the global log file (in `dir_log_out`).                             | `hyper_py.log`  | REQUIRED  |
+
+### Pipeline Control
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `control.parallel_maps`    | Enable parallel execution over multiple maps (`True`/`False`).                | `True`          | REQUIRED  |
+| `control.n_cores`          | Number of CPU cores to use for multiprocessing.                              | `2`             | REQUIRED  |
+| `control.detection_only`   | Only perform source detection without photometry (`True`/`False`).            | `False`         | REQUIRED  |
+| `control.datacube`         | Select if the input map is a datacube (`True`/`False`).                       | `False`         | REQUIRED  |
+| `control.dir_datacube_slices`| Subdirectory of `dir_root` for datacube slice FITS files.                   | `maps`          | OPTIONAL  |
+
+### Units Conversion
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `units.convert_mJy`         | Convert fluxes to mJy in the final output (`True`/`False`).                  | `False` (Jy)    | REQUIRED  |
+
+### Survey Settings
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `survey.survey_code`         | Numeric identifier for survey parameters (e.g., beam size).                 | `15 (params from map header)`            | REQUIRED  |
+
+### Source Detection
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `detection.sigma_thres`      | Detection threshold in units of RMS (sigma).                                 | `4.0`           | REQUIRED  |
+| `detection.use_manual_rms`   | Use manually provided RMS noise value (`True`/`False`).                      | `False`         | OPTIONAL  |
+| `detection.rms_value`        | Manual RMS noise value (Jy), used if `use_manual_rms` is `True`.             | `1.e-6`         | OPTIONAL  |
+| `detection.roundlim`         | Allowed source roundness range (min, max for DAOFIND).                       | `[-4.0, 4.0]`   | ADVANCED  |
+| `detection.sharplim`         | Allowed source sharpness range (min, max for DAOFIND).                       | `[-2.0, 2.0]`   | ADVANCED  |
+| `detection.use_fixed_source_table`| Use external IPAC table for peak/aperture (`True`/`False`).              | `False`         | OPTIONAL  |
+| `detection.fixed_source_table_path` | Path to an external IPAC table with source information (in `dir_root`). The table must have **6 columns**:  
+  - **ID**: Source identifier  
+  - **xcen**: X coordinate (in map units, e.g. degrees or pixels)  
+  - **ycen**: Y coordinate (in map units, e.g. degrees or pixels)  
+  - **fwhm_1**: Major axis FWHM (arcsec)  
+  - **fwhm_2**: Minor axis FWHM (arcsec)  
+  - **PA**: Position angle (degrees, East of North)  
+  The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only `fwhm_1`, `fwhm_2`, and `PA` if `photometry.fixed_radius = true`, or both sets of parameters if both options are enabled. | `source_table.txt` | OPTIONAL |
+| `detection.fixed_peaks`      | Use fixed peaks instead of automatic (`True`/`False`).                       | `False`         | OPTIONAL  |
+| `detection.xcen_fix`         | Fixed peak X coordinates (deg; used if `fixed_peaks` is `True`).              | `[1.0, 1.0]`    | OPTIONAL  |
+| `detection.ycen_fix`         | Fixed peak Y coordinates (deg; used if `fixed_peaks` is `True`).              | `[1.0, 1.0]`    | OPTIONAL  |
+
+### Photometry Settings
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `photometry.aper_inf`        | Minimum size factor for Gaussian FWHM (used as minimum radius for aperture photometry). This value multiplies the average beam FWHM to set the minimum allowed aperture size.              | `1.0`           | OPTIONAL  |
+| `photometry.aper_sup` | Maximum size factor for Gaussian FWHM (used as maximum radius for aperture photometry). This value multiplies the average beam FWHM to set the maximum allowed aperture size for photometry. | `2.0` | OPTIONAL |
+| `photometry.fixed_radius`    | Use fixed aperture radii (`True`/`False`).                                   | `False`         | OPTIONAL  |
+| `photometry.fwhm_1`          | Fixed FWHM aperture radius major axis (arcsec; if `fixed_radius` is `True`). | `[0.0]`         | OPTIONAL  |
+| `photometry.fwhm_2`          | Fixed FWHM aperture radius minor axis (arcsec; if `fixed_radius` is `True`). | `[0.0]`         | OPTIONAL  |
+| `photometry.PA_val`          | Fixed aperture position angle (deg; if `fixed_radius` is `True`).            | `[0.0]`         | OPTIONAL  |
+
+### Model Fit Settings
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `fit_options.fit_method`     | Optimization algorithm for Gaussian fitting.                              | `"least_squares"`| ADVANCED  |
+| `fit_options.loss`           | Specifies the loss function used during Gaussian fitting optimization.  
+  - `"linear"`: Standard least-squares loss (minimizes squared residuals; most common for well-behaved data).  
+  - `"soft_l1"`: Soft L1 loss, less sensitive to outliers than linear; combines properties of L1 and L2 norms.  
+  - `"huber"`: Huber loss, robust to outliers; behaves like linear for small residuals and like L1 for large residuals.  
+  - `"cauchy"`: Cauchy loss, strongly suppresses the influence of outliers.  
+  Choose a robust loss (e.g., `"huber"` or `"cauchy"`) if your data contains significant outliers or non-Gaussian noise. | `"linear"` | ADVANCED |
+| `fit_options.f_scale`        | Relevant for `soft_l1`, `huber`, `cauchy` loss functions.                 | `0.1`           | ADVANCED  |
+| `fit_options.max_nfev`       | Maximum number of function evaluations.                                   | `50000`         | ADVANCED  |
+| `fit_options.xtol`           | Tolerance on parameter change for convergence.                            | `1e-8`          | ADVANCED  |
+| `fit_options.ftol`           | Tolerance on cost function change for convergence.                        | `1e-8`          | ADVANCED  |
+| `fit_options.gtol`           | Tolerance on gradient orthogonality.                                      | `1e-8`          | ADVANCED  |
+| `fit_options.weights` | Specifies the weighting scheme used during Gaussian fitting.  
+  - `"null"`: No weighting; all pixels are treated equally.  
+  - `"inverse_rms"`: Weights are set as the inverse of the RMS noise, giving less weight to noisier pixels.  
+  - `"snr"`: Weights are proportional to the signal-to-noise ratio (SNR) of each pixel.  
+  - `"power_snr"`: Weights are proportional to the SNR raised to a user-defined power (`fit_options.power_snr`).  
+  - `"map"`: Weights are set equal to the user-provided input map.  
+  - `"mask"`: Weights are set to zero for masked pixels and one elsewhere, effectively ignoring masked regions.  
+  Choose the scheme that best matches your data quality and analysis goals. | `"snr"` | OPTIONAL |
+| `fit_options.power_snr`      | SNR exponent for weighting (if `weights` is `"power_snr"`).               | `5`             | OPTIONAL  |
+| `fit_options.calc_covar`     | Estimate parameter covariance matrix (`True`/`False`).                    | `False`         | ADVANCED  |
+| `fit_options.min_method` | Criterion used to select the best fit among multiple solutions:  
+  - `"nmse"`: Normalized Mean Squared Error; selects the fit with the lowest mean squared residuals normalized by the data variance.  
+  - `"redchi"`: Reduced Chi-Squared; selects the fit with the lowest reduced chi-squared statistic, accounting for the number of degrees of freedom.  
+  - `"bic"`: Bayesian Information Criterion; selects the fit with the lowest BIC value, which penalizes model complexity to avoid overfitting.  
+  Choose the method that best matches your scientific goals and data characteristics. | `"nmse"` | ADVANCED |
+| `fit_options.verbose`        | Print full fit report (`True`/`False`).                                   | `False`         | ADVANCED  |
+| `fit_options.use_l2_regularization`| Enable L2 regularization on background terms (`True`/`False`).        | `True`          | ADVANCED  |
+| `fit_options.lambda_l2`      | Regularization strength.                                                  | `1e-4`          | ADVANCED  |
+| `fit_options.vary`           | Allow source peak to vary during Gaussian fit (`True`/`False`).           | `False`         | ADVANCED  |
+| `fit_options.bg_fitters`     | Background fitting methods to try (`least_squares`, `huber`, `theilsen`). | `['least_squares']`| ADVANCED  |
+| `fit_options.huber_epsilons` | List of epsilon values for HuberRegressor.                                | `[1.1, 1.35, 1.7, 2.0]`| ADVANCED  |
+
+### Background Estimation
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `background.fit_gauss_and_bg_separately`| Estimate Gaussian and background separately (`True`/`False`).            | `True`          | OPTIONAL  |
+| `background.pol_orders_separate`     | Polynomial orders for separated background subtraction.                    | `[0, 1, 2]`     | OPTIONAL  |
+| `background.fix_min_box` | Minimum box size for variable-size background fitting, expressed as a multiple of the source FWHM (half-size increment). **If set to `0`, the background is estimated over the entire map.** | `3` | OPTIONAL |
+| `background.fix_max_box`             | Maximum box size (multiple of FWHMs) for background fitting.              | `5`             | OPTIONAL  |
+| `background.fit_gauss_and_bg_together` | If `True`, the code fits Gaussian source components and the polynomial background **simultaneously** in a single optimization step. If `False`, background subtraction and Gaussian fitting are performed separately. Use `True` for joint modeling when the background and sources are strongly coupled. | `False` | REQUIRED |
+| `background.polynomial_orders`       | Polynomial background orders for main fitting.                            | `[0]`           | OPTIONAL  |
+
+### Fits Output Options
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `fits_output.fits_fitting`           | Save best fit model group FITS files (`True`/`False`).                  | `False`         | OPTIONAL  |
+| `fits_output.fits_deblended`         | Save deblended per-source FITS files (`True`/`False`).                  | `False`         | OPTIONAL  |
+| `fits_output.fits_bg_separate`       | Save best fit background separated model group FITS files (`True`/`False`).| `False`      | OPTIONAL  |
+| `fits_output.fits_output_dir_fitting`| Subdirectory of `dir_root` for fitting FITS files.                      | `fits/fitting`  | OPTIONAL  |
+| `fits_output.fits_output_dir_deblended`| Subdirectory of `dir_root` for deblended FITS files.                   | `fits/deblended`| OPTIONAL  |
+| `fits_output.fits_output_dir_bg_separate`| Subdirectory of `dir_root` for background FITS files.                 | `fits/bg_separate`| OPTIONAL  |
+
+### Visualization Options
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
+| `visualization.visualize_fitting`      | Visualize final Gaussian+background fit (`True`/`False`).                | `False`         | OPTIONAL  |
+| `visualization.visualize_deblended`    | Visualize per-source blended maps (`True`/`False`).                      | `False`         | OPTIONAL  |
+| `visualization.visualize_bg_separate`  | Visualize background model from masked fit (`True`/`False`).              | `False`         | OPTIONAL  |
+| `visualization.output_dir_fitting`     | Subdirectory of `dir_root` for fitting plots.                             | `plots/fitting` | OPTIONAL  |
+| `visualization.output_dir_deblended`   | Subdirectory of `dir_root` for deblended plots.                           | `plots/deblended`| OPTIONAL  |
+| `visualization.output_dir_bg_separate` | Subdirectory of `dir_root` for background plots.                          | `plots/bg_separate`| OPTIONAL  |
+
+---
+
+**Tip:**  
+All entries can be customized in your `config.yaml`. If an entry is omitted, the default value will be used.
+
+
+
 ## 📦 Code Modules
 
 | File                  | Description |

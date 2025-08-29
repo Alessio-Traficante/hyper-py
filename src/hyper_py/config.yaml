@@ -1,41 +1,40 @@
 #--------------------- File Paths ---------------------#
 paths:
   input:
-    dir_maps: ./maps                    # [REQUIRED] Directory of dir_root containing input map files
+    dir_maps: ./maps                    # [REQUIRED] Directory containing input map files. Default: ./maps
   output:
-    dir_root: ./output                  # [REQUIRED] Root directory for output data
-    dir_table_out:  params              # [OPTIONAL] Subdirectory of dir_root  for params
-    dir_region_out: regions             # [OPTIONAL] Subdirectory of dir_root  for region files (output)
-    dir_log_out:    logs                # [OPTIONAL] Subdirectory of dir_root  for log files
+    dir_root: ./output                  # [REQUIRED] Root directory for output data. Default: ./output
+    dir_table_out:  params              # [REQUIRED] Subdirectory of dir_root  for params. Default: params
+    dir_region_out: regions             # [REQUIRED] Subdirectory of dir_root  for region files (output). Default: regions
+    dir_log_out:    logs                # [REQUIRED] Subdirectory of dir_root  for log files. Default: logs
 
 
 #--------------------- File Names ---------------------#
 files:
-  file_map_name:    'maps_list.txt'     # Input FITS map(s) for analysis (in dir_maps).
-                                        # Can be either:
-                                        # - a list of filenames: ["map1.fits", "map2.fits"]
-                                        # - OR a .txt file with one filename per line placed in the "dir_maps" folder
-  file_table_base:  "hyper_py_params"   # Base filename for photometry output tables  (in dir_table_out)
-  file_region_base: "region_files"      # Base filename for output ellipse region files (in dir_region_out)
-  file_log_name:    hyper_py.log        # Name of the global log file (in dir_log_out)
+  file_map_name:    'maps_list.txt'     # [REQUIRED] Input FITS map(s) for analysis (in dir_maps). Default: 'maps_list.txt'
+  file_table_base:  "params"            # [REQUIRED] Base filename for photometry output tables  (in dir_table_out). Default: "params"
+  file_region_base: "region_files"      # [REQUIRED] Base filename for output ellipse region files (in dir_region_out). Default: "region_files"
+  file_log_name:    "hyper_py.log"      # [REQUIRED] Name of the global log file (in dir_log_out). Default: "hyper_py.log"
 
 
 #--------------------- Pipeline Control ---------------------#
 control:
-  parallel_maps: true                   # Enable parallel execution over multiple maps (True/False)
-  n_cores: 2                            # Number of CPU cores to use for multiprocessing - better <= tot maps
-  detection_only: false                 # Only perform source detection without photometry (True/False)
-  datacube: false                       # select if the input map is a datacube
-  dir_datacube_slices: maps             # Subdirectory of dir_root for slices fits files (only if datacube = true)
+  parallel_maps: true                   # [REQUIRED] Enable parallel execution over multiple maps (True/False). Default: True
+  n_cores: 2                            # [REQUIRED] Number of CPU cores to use for multiprocessing - better <= tot maps. Default: 2
+  detection_only: false                 # [REQUIRED] Only perform source detection without photometry (True/False). Default: False
+  datacube: false                       # [REQUIRED] Select if the input map is a datacube. Default: False
+  
+  dir_datacube_slices: maps             # [OPTIONAL] Subdirectory of dir_root for slices fits files (only if datacube = true). Default: maps
+
 
 #--------------------- Units Conversion ---------------------#
 units:
-  convert_mJy: true                     # Convert fluxes to mJy in the final output (True/False). Default is Jy
+  convert_mJy: true                     # [REQUIRED] Convert fluxes to mJy in the final output (True/False). Default: False (Jy)
 
 
 #--------------------- Survey Settings ---------------------#
 survey:
-  survey_code: 15                       # Numeric identifier for the survey parameters such as beam size (table below)
+  survey_code: 15                       # [REQUIRED] Numeric identifier for the survey parameters such as beam size. Default: 15
 
   # Survey code reference:
   # -----------------------------------------------
@@ -56,77 +55,82 @@ survey:
 
 #--------------------- Source Detection ---------------------#
 detection:
-  sigma_thres: 4.0                              # [ADVANCED] Detection threshold in units of RMS (sigma)
-  use_manual_rms: false                         # Use manually provided RMS noise value to identify sources (True/False)
-  rms_value: 1.e-6                              # Manual RMS noise value (Jy) - only if use_this_rms is True
-  roundlim: [-4.0, 4.0]                         # Allowed source roundness range (min, max for DAOFIND)
-  sharplim: [-2.0, 2.0]                         # Allowed source sharpness range (min, max for DAOFIND)
-  dist_limit_arcsec: 0                          # minimum distance to separate sources. Default: 0 -> beam distance
-
-  use_fixed_source_table: false                 # If True, use an external IPAC table for peak + aperture
-  fixed_source_table_path: "source_table.txt"   # IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_root)
-
-  fixed_peaks: false                            # Use fixed peaks instead of automatic (True/False)
-  xcen_fix: [1.0, 1.0]                          # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
-  ycen_fix: [1.0, 1.0]                          # Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true)
+  sigma_thres: 4.0                              # [REQUIRED] Detection threshold in units of RMS (sigma). Default: 4.0
+  
+  use_manual_rms: false                         # [OPTIONAL] Use manually provided RMS noise value to identify sources (True/False). Default: False
+  rms_value: 1.e-6                              # [OPTIONAL] Manual RMS noise value (Jy) (only if use_manual_rms = true). Default: 1.e-6
+  
+  roundlim: [-4.0, 4.0]                         # [ADVANCED] Allowed source roundness range (min, max for DAOFIND). Default: [-4.0, 4.0]
+  sharplim: [-2.0, 2.0]                         # [ADVANCED] Allowed source sharpness range (min, max for DAOFIND). Default: [-2.0, 2.0]
+  
+  use_fixed_source_table: false                 # [OPTIONAL] If True, use an external IPAC table for peak + aperture. Default: False
+  fixed_source_table_path: "source_table.txt"   # [OPTIONAL] IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_root). Default: "source_table.txt"
+  fixed_peaks: false                            # [OPTIONAL] Use fixed peaks instead of automatic (True/False). Default: False
+  xcen_fix: [1.0, 1.0]                          # [OPTIONAL] Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true). Default: [1.0, 1.0]
+  ycen_fix: [1.0, 1.0]                          # [OPTIONAL] Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true). Default: [1.0, 1.0]
 
 
 #--------------------- Photometry Settings ---------------------#
 photometry:
-  aper_inf: 1.0                          # Minimum size factor for Gaussian FWHM (used as minimum radius)
-  aper_sup: 2.0                          # Maximum size factor for Gaussian FWHM (used as maximum radius)
-  fixed_radius: false                    # Use fixed aperture radii instead of Gaussian fitting (True/False)
-  fwhm_1: [0.0]                          # Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true)
-  fwhm_2: [0.0]                          # Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true)
-  PA_val: [0.0]                          # Fixed aperture position angle (deg East of North; only if radius_fix = true)
+  aper_inf: 1.0                          # [REQUIRED] Minimum size factor for Gaussian FWHM (used as minimum radius). Default: 1.0
+  aper_sup: 2.0                          # [REQUIRED] Maximum size factor for Gaussian FWHM (used as maximum radius). Default: 2.0
+  
+  fixed_radius: false                    # [OPTIONAL] Use fixed aperture radii instead of Gaussian fitting (True/False). Default: False
+  fwhm_1: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true). Default: [0.0]
+  fwhm_2: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true). Default: [0.0]
+  PA_val: [0.0]                          # [OPTIONAL] Fixed aperture position angle (deg East of North; only if radius_fix = true). Default: [0.0]
 
 
 #---------------------- Model fit Settings ----------------------#
 fit_options:
-  fit_method: "least_squares"            # Optimization algorithm for Gaussian fitting ('least_squares')
-  loss: linear                           # "soft_l1", "huber", "cauchy", "linear"
-  f_scale: 0.1                           # relevant for soft_l1, huber, cauchy
-  max_nfev: 50000                        # Maximum number of function evaluations
-  xtol: 1e-8                             # Tolerance on parameter change for convergence
-  ftol: 1e-8                             # Tolerance on cost function change for convergence
-  gtol: 1e-8                             # Tolerance on gradient orthogonality
-  calc_covar: false                      # Estimate parameter covariance matrix
-  weights: "snr"                         # Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'map', or 'mask'
-  power_snr: 5                           # SNR**power_snr - this value gives more weight to the bright pixels
-  min_method: "nmse"                     # Criterion to select best fit: 'nmse', 'redchi', or 'bic'
-  verbose: false                         # Print full fit report
-  use_l2_regularization: true            # Enable L2 regularization on background terms (only in Gaussian+background fitting)
-  lambda_l2: 1e-4                        # Regularization strength
-  vary: false                            # Allow source peak to vary during Gaussian fit
-  bg_fitters: ['least_squares']          # Background fitting methods to try: 'least_squares', 'huber', 'theilsen'
-  huber_epsilons: [1.1, 1.35, 1.7, 2.0]  # List of epsilon values for HuberRegressor (used only if 'huber' is in bg_fitters)
+  fit_method: "least_squares"            # [REQUIRED] Optimization algorithm for Gaussian fitting ('least_squares'). Default: "least_squares"
+  
+  loss: linear                           # [ADVANCED] "soft_l1", "huber", "cauchy", "linear". Default: "linear"
+  f_scale: 0.1                           # [ADVANCED] Relevant for soft_l1, huber, cauchy. Default: 0.1
+  max_nfev: 50000                        # [ADVANCED] Maximum number of function evaluations. Default: 50000
+  xtol: 1e-8                             # [ADVANCED] Tolerance on parameter change for convergence. Default: 1e-8
+  ftol: 1e-8                             # [ADVANCED] Tolerance on cost function change for convergence. Default: 1e-8
+  gtol: 1e-8                             # [ADVANCED] Tolerance on gradient orthogonality. Default: 1e-8
+  
+  weights: "snr"                         # [REQUIRED] Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'map', or 'mask'. Default: "snr"
+  power_snr: 5                           # [OPTIONAL] SNR**power_snr - this value gives more weight to the bright pixels (only if weights = "power_snr"). Default: 5
+  
+  calc_covar: false                      # [ADVANCED] Estimate parameter covariance matrix. Default: False
+  min_method: "nmse"                     # [ADVANCED] Criterion to select best fit: 'nmse', 'redchi', or 'bic'. Default: "nmse"
+  verbose: false                         # [ADVANCED] Print full fit report. Default: False
+  use_l2_regularization: true            # [ADVANCED] Enable L2 regularization on background terms (only in Gaussian+background fitting). Default: True
+  lambda_l2: 1e-4                        # [ADVANCED] Regularization strength. Default: 1e-4
+  vary: false                            # [ADVANCED] Allow source peak to vary during Gaussian fit. Default: False
+  bg_fitters: ['least_squares']          # [ADVANCED] Background fitting methods to try: 'least_squares', 'huber', 'theilsen'. Default: ['least_squares']
+  huber_epsilons: [1.1, 1.35, 1.7, 2.0]  # [ADVANCED] List of epsilon values for HuberRegressor (used only if 'huber' is in bg_fitters). Default: [1.1, 1.35, 1.7, 2.0]
 
 
 #--------------------- Background Estimation ---------------------#
-background:
-  no_background: true                    # Enable polynomial background subtraction (True/False)
-  polynomial_orders: [0]                 # Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.)
-  fix_min_box: 3                         # Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
-  fix_max_box: 5                         # Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment)
-  fit_gauss_and_bg_separately: true      # Estimate Gaussian components and background separately
-  pol_orders_separate: [0, 1, 2]         # for initial separated background subtraction /only if fit_gauss_and_bg_separately = true, orders: 0,1,2,3, etc.)
+background:  
+  fit_gauss_and_bg_separately: true      # [REQUIRED] Estimate Gaussian components and background separately. Default: True
+  pol_orders_separate: [0, 1, 2]         # [OPTIONAL] For initial separated background subtraction /only if fit_gauss_and_bg_separately = true, orders: 0,1,2,3, etc. Default: [0, 1, 2]
+  fix_min_box: 3                         # [OPTIONAL] Minimum box size as multiple of FWHMs for variable-size background fitting (half-size increment). If = 0 estimate background on the whole map
+  fix_max_box: 5                         # [OPTIONAL] Maximum box size as multiple of FWHMs for variable-size background fitting (half-size increment). Default: 5
+
+  fit_gauss_and_bg_together: false       # [REQUIRED] Enable polynomial background subtraction and Gaussian fit simultaneously (True/False). Default: False
+  polynomial_orders: [0]                 # [OPTIONAL] Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.). Default: [0]
 
 
 #--------------------- Fits output Options ---------------------#
 fits_output:                                    # Save Fits files for best fits
-  fits_fitting: false                           # best fit model group fits files
-  fits_deblended: false                         # deblended per-source fits files
-  fits_bg_separate: false                       # best fit background separated model group fits files (only if fit_gauss_and_bg_separately = true)
-  fits_output_dir_fitting: fits/fitting         # Subdirectory of dir_root
-  fits_output_dir_deblended: fits/deblended     # Subdirectory of dir_root
-  fits_output_dir_bg_separate: fits/bg_separate # Subdirectory of dir_root
+  fits_fitting: false                           # [OPTIONAL] Best fit model group fits files. Default: False
+  fits_deblended: false                         # [OPTIONAL] Deblended per-source fits files. Default: False
+  fits_bg_separate: false                       # [OPTIONAL] Best fit background separated model group fits files (only if fit_gauss_and_bg_separately = true). Default: False
+  fits_output_dir_fitting: fits/fitting         # [OPTIONAL] Subdirectory of dir_root. Default: fits/fitting
+  fits_output_dir_deblended: fits/deblended     # [OPTIONAL] Subdirectory of dir_root. Default: fits/deblended
+  fits_output_dir_bg_separate: fits/bg_separate # [OPTIONAL] Subdirectory of dir_root. Default: fits/bg_separate
 
 
 #--------------------- Visualization Options ---------------------#
-visualization:                                 # Plot and save PNGs for the best Gaussian+background fit
-  visualize_fitting: false                     # Visualize final Gaussian+background fit
-  visualize_deblended: false                   # for per-source blended maps
-  visualize_bg_separate: false                 # Visualize background model from masked fit (only if fit_gauss_and_bg_separately = true)
-  output_dir_fitting: plots/fitting            # Subdirectory of dir_root
-  output_dir_deblended: plots/deblended        # Subdirectory of dir_root
-  output_dir_bg_separate: plots/bg_separate    # Subdirectory of dir_root 
+visualization:                                 # Plot and save PNGs for the best Gaussian+background fit. Default: False
+  visualize_fitting: false                     # [OPTIONAL] Visualize final Gaussian+background fit. Default: False
+  visualize_deblended: false                   # [OPTIONAL] For per-source blended maps. Default: False
+  visualize_bg_separate: false                 # [OPTIONAL] Visualize background model from masked fit (only if fit_gauss_and_bg_separately = true). Default: False
+  output_dir_fitting: plots/fitting            # [OPTIONAL] Subdirectory of dir_root. Default: plots/fitting
+  output_dir_deblended: plots/deblended        # [OPTIONAL] Subdirectory of dir_root. Default: plots/deblended
+  output_dir_bg_separate: plots/bg_separate    # [OPTIONAL] Subdirectory of dir_root. Default: plots/bg_separate
