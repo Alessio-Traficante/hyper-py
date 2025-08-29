@@ -41,7 +41,3 @@ class HyperConfig:
         cfg.config = config_dict
         cfg.validate()
         return cfg         
-
-# Example usage:
-# cfg = HyperConfig('config.yaml')
-# dir_root = config.get("paths", "output")["dir_root"]

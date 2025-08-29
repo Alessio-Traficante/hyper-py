@@ -55,7 +55,7 @@ def rewrite_paths_and_flags(cfg: Dict[str, Any], test_dir: Path, list_file: Path
 
     folder_logs = "logs"
     folder_plots = "plots"
-    folder_tables = "tables"
+    folder_tables = "params"
     folder_regions = "regions"
     folder_fits = "fits"
     folder_fitting = "fitting"
