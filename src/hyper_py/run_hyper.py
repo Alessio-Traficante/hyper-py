@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore", message=".*Wrapping comment lines > 78 charact
 warnings.filterwarnings("ignore", message=".*more axes \(4\) than the image it is associated with \(2\).*")
 warnings.filterwarnings("ignore", message=".*Set MJD-OBS to.*")
 
-from hyper_py.hyper import run_hyper
+from hyper_py.hyper import start_hyper
 
 def update_dir_root(default_config, config_path, new_dir_root):
     """Create a new config.yaml in the specified directory with updated dir_root."""
@@ -39,7 +39,7 @@ def main():
         print("⚠️  Please edit the configuration file and set the correct parameters and paths before running again.")
         sys.exit(0)
 
-    run_hyper(config_path)
+    start_hyper(config_path)
 
 if __name__ == "__main__":
     main()

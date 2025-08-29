@@ -18,7 +18,7 @@ from .extract_cubes import extract_maps_from_cube
 # Set multiprocessing start method
 multiprocessing.set_start_method("spawn", force=True)
 
-def run_hyper(cfg_path):
+def start_hyper(cfg_path):
     # === Load config ===
     os.chdir(os.path.dirname(__file__))
 

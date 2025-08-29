@@ -6,11 +6,11 @@
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/hyper_py/start_hyper.py",
+            "program": "${workspaceFolder}/src/hyper_py/run_hyper.py",
             // "program": "${workspaceFolder}/test/test_hyper.py", 
             "console": "integratedTerminal",
             "args": ["${workspaceFolder}/src/hyper_py/config.yaml"],
-             "env": {
+            "env": {
                 "MPLBACKEND": "TkAgg"
             }
         }

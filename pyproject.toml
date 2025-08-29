@@ -24,7 +24,7 @@ dependencies = [
 Homepage = "https://github.com/alessio-traficante/hyper-py"
 
 [project.scripts]
-hyper-py = "hyper_py.start_hyper:main"
+hyper-py = "hyper_py.run_hyper:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

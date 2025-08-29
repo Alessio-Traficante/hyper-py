@@ -127,7 +127,7 @@ def main() -> None:
         sys.path.insert(0, str(src_dir))
     try:
         import hyper_py
-        from hyper_py import run_hyper
+        from hyper_py import start_hyper
     except Exception as ex:
         raise ImportError("Cannot import 'hyper_py'.") from ex
 
@@ -146,7 +146,7 @@ def main() -> None:
     print(f"[hyper-py] List: {list_2d}")
     for m in maps_2d:
         print(f"  - {m}")
-    run_hyper(str(cfg_2d_path))
+    start_hyper(str(cfg_2d_path))
 
     list_cube = maps_dir / "test_datacube.txt"
     maps_cube = read_list_file(list_cube)
@@ -158,7 +158,7 @@ def main() -> None:
     print(f"[hyper-py] List: {list_cube}")
     for m in maps_cube:
         print(f"  - {m}")
-    run_hyper(str(cfg_cube_path))
+    start_hyper(str(cfg_cube_path))
 
     out_dir = test_dir / "output"
     produced = [p for p in out_dir.rglob("*") if p.is_file()]
