@@ -442,7 +442,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         # --- save best fit in fits format --- #
         try:
             fits_fitting = config.get("fits_output", "fits_fitting", False)
-            fits_output_dir_fitting = dir_root + config.get("fits_output", "fits_output_dir_fitting", "Fits/Fitting")  
+            fits_output_dir_fitting = os.path.join(dir_root, config.get("fits_output", "fits_output_dir_fitting", "fits/fitting"))  
         except:
             fits_fitting = False
 
@@ -476,7 +476,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             visualize = False
 
         try:
-            output_dir_vis = dir_root + config.get("visualization", "output_dir_fitting")
+            output_dir_vis = os.path.join(dir_root, config.get("visualization", "output_dir_fitting", "images/fitting"))
         except:
             output_dir_vis = "Images/Fitting"
             
@@ -500,7 +500,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         # --- Optionally save separated background model as FITS --- #
         try:
             fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
-            fits_output_dir_bg_separate = dir_root + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")  
+            fits_output_dir_bg_separate = os.path.join(dir_root, config.get("fits_output", "fits_output_dir_bg_separate", "fits/bg_separate"))
         except:
             fits_bg_separate = False
 
@@ -530,8 +530,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
         if visualize_bg:
             logger_file_only.info("[INFO] Plotting 3D background model from masked map subtraction...")  
-            
-            output_dir_vis = dir_root + config.get("visualization", "output_dir_bg_separate")
+
+            output_dir_vis = os.path.join(dir_root, config.get("visualization", "output_dir_bg_separate", "plots/bg_separate"))
             os.makedirs(output_dir_vis, exist_ok=True)
                     
             fig = plt.figure(figsize=(6, 5))

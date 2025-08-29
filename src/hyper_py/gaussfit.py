@@ -416,7 +416,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # --- save best fit in fits format --- #
         try:
             fits_fitting = config.get("fits_output", "fits_fitting", False)
-            fits_output_dir_fitting = dir_root + config.get("fits_output", "fits_output_dir_fitting", "Fits/Fitting")  
+            fits_output_dir_fitting = os.path.join(dir_root, config.get("fits_output", "fits_output_dir_fitting", "fits/fitting"))
         except:
             fits_fitting = False
 
@@ -451,7 +451,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             visualize = False
 
         try:
-            output_dir_vis = dir_root + config.get("visualization", "output_dir_fitting")
+            output_dir_vis = os.path.join(dir_root, config.get("visualization", "output_dir_fitting", "plots/fitting"))
         except:
             output_dir_vis = "Images/Fitting"
 
@@ -473,7 +473,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # --- Optionally save separated background model as FITS --- #
         try:
             fits_bg_separate = config.get("fits_output", "fits_bg_separate", False)
-            fits_output_dir = dir_root + config.get("fits_output", "fits_output_dir_bg_separate", "Fits/Bg_separate")
+            fits_output_dir = os.path.join(dir_root, config.get("fits_output", "fits_output_dir_bg_separate", "fits/bg_separate"))
         except Exception:
             fits_bg_separate = False
 
@@ -494,7 +494,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         # --- Optionally save separated background 3D visualization as png format --- #
         try:
             visualize_bg = config.get("visualization", "visualize_bg_separate", False)
-            output_dir = dir_root + config.get("visualization", "output_dir_bg_separate")
+            output_dir = os.path.join(dir_root, config.get("visualization", "output_dir_bg_separate", "plots/bg_separate"))
         except Exception:
             visualize_bg = False
 

@@ -1,17 +1,17 @@
 #--------------------- File Paths ---------------------#
 paths:
   input:
-    dir_maps: /Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/Datacubes/Maps                    # Directory of dir_root containing input map files
+    dir_maps: /Users/alessio/Dropbox/Work/Python/Hyper/test/maps                    # Directory of dir_root containing input map files
   output:
-    dir_root: /Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py_26_08_2025/Datacubes/output                  # Root directory for output data
-    dir_table_out:  tables              # Subdirectory of dir_root  for params
+    dir_root: /Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_Hyper_py/output_test                  # Root directory for output data
+    dir_table_out:  params              # Subdirectory of dir_root  for params
     dir_region_out: regions             # Subdirectory of dir_root  for region files (output)
     dir_log_out:    logs                # Subdirectory of dir_root  for log files
 
 
 #--------------------- File Names ---------------------#
 files:
-  file_map_name:    'test.txt'     # Input FITS map(s) for analysis (in dir_maps).
+  file_map_name:    'test_datacube.txt'     # Input FITS map(s) for analysis (in dir_maps).
                                         # Can be either:
                                         # - a list of filenames: ["map1.fits", "map2.fits"]
                                         # - OR a .txt file with one filename per line placed in the "dir_maps" folder
@@ -23,7 +23,7 @@ files:
 #--------------------- Pipeline Control ---------------------#
 control:
   parallel_maps: true                   # Enable parallel execution over multiple maps (True/False)
-  n_cores: 8                            # Number of CPU cores to use for multiprocessing - better <= tot maps
+  n_cores: 2                            # Number of CPU cores to use for multiprocessing - better <= tot maps
   detection_only: false                 # Only perform source detection without photometry (True/False)
   datacube: true                       # select if the input map is a datacube
   dir_datacube_slices: maps             # Subdirectory of dir_root for slices fits files (only if datacube = true)
@@ -83,7 +83,7 @@ photometry:
 
 #---------------------- Model fit Settings ----------------------#
 fit_options:
-  fit_method: "least_squares"            # Optimization algorithm for Gaussian fitting ('leastsq')
+  fit_method: "least_squares"            # Optimization algorithm for Gaussian fitting ('least_squares')
   loss: linear                           # "soft_l1", "huber", "cauchy", "linear"
   f_scale: 0.1                           # relevant for soft_l1, huber, cauchy
   max_nfev: 50000                        # Maximum number of function evaluations
@@ -125,8 +125,8 @@ fits_output:                                    # Save Fits files for best fits
 #--------------------- Visualization Options ---------------------#
 visualization:                                 # Plot and save PNGs for the best Gaussian+background fit
   visualize_fitting: false                     # Visualize final Gaussian+background fit
-  visualize_deblended: false                   # for per-source blended maps
-  visualize_bg_separate: false                 # Visualize 3D background model from masked fit (only if fit_gauss_and_bg_separately = true)
+  visualize_deblended: true                   # for per-source blended maps
+  visualize_bg_separate: False                 # Visualize background model from masked fit (only if fit_gauss_and_bg_separately = true)
   output_dir_fitting: plots/fitting            # Subdirectory of dir_root
   output_dir_deblended: plots/deblended        # Subdirectory of dir_root
   output_dir_bg_separate: plots/bg_separate    # Subdirectory of dir_root 

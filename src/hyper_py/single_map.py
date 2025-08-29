@@ -53,14 +53,14 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     # - visualization params - #
     try:
         visualize_deblended = cfg.get("visualization", "visualize_deblended", False)
-        visualize_output_dir_deblended = dir_root + cfg.get("visualization", "output_dir_deblended", "Images/Deblended")  
+        visualize_output_dir_deblended = os.path.join(dir_root, cfg.get("visualization", "output_dir_deblended", "images/deblended"))  
     except:
         visualize_deblended = False
         
    # - Fits save params - #     
     try:
         fits_deblended = cfg.get("fits_output", "fits_deblended", False)
-        fits_output_dir_deblended = dir_root + cfg.get("fits_output", "fits_output_dir_deblended", "Fits/Deblended")  
+        fits_output_dir_deblended = os.path.join(dir_root, cfg.get("fits_output", "fits_output_dir_deblended", "fits/deblended"))
     except:
         fits_deblended = False
 
@@ -539,7 +539,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
                     model=model_without_j,               # model of only source j
                     residual=source_only_map,         # what you're analyzing
                     output_dir=visualize_output_dir_deblended,    # or configurable
-                    label_name=f"HYPER_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source",  # unique label per source
+                    label_name=f"HYPER_MAP_{suffix}_ID_{tot_fitted_isolated + count_blended_sources +1 +j}_single_source",  # unique label per source
                     box_size=box_size,
                     poly_order=bg_order,
                     nmse=final_nmse

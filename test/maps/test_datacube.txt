@@ -1,1 +1,1 @@
-map_500_Gaussians_2.fits
+test_datacube.fits
