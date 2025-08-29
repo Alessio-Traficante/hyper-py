@@ -59,13 +59,10 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
     if bunit == 'Jy/beam' or bunit == 'beam-1 Jy':    
         pix_area = pix_dim**2
         image_data /= (beam_area_arcsec2 / pix_area) # Jy/beam to Jy/pixel
-    
         
     if convert_mjy:
         image_data *= 1e3  # Jy → mJy
-
-    
-
+ 
     return {
         "map": image_data,
         "header": header,
