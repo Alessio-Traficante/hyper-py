@@ -30,10 +30,10 @@ pix_area_deg2 = cdelt**2
 beam_area_pix = beam_area_sr / pix_area_deg2
 
 # Paths
-dir_in_ref = "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/Params/"
-dir_in_py  = "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/Params/"
-dir_in_idl = "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/Hyper_IDL/photometry/"
-dir_out    = "/Users/alessio/Dropbox/Work/Python/Hyper/Git_Ignore/Test_images/Test_maps_13_06_25/Comparison_Gaussians/All/"
+dir_in_ref = "/Users/alessio/Dropbox/Work/Python/Hyper/IDL_comparison/"
+dir_in_py  = "/Users/alessio/Dropbox/Work/Python/Hyper/IDL_comparison/"
+dir_in_idl = "/Users/alessio/Dropbox/Work/Python/Hyper/IDL_comparison/"
+dir_out    = "/Users/alessio/Dropbox/Work/Python/Hyper/IDL_comparison/output/"
 
 background = 'polynomial'
 table_combined_stats = dir_out + 'combined_source_counts_comparison.txt'

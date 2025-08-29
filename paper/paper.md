@@ -57,9 +57,9 @@ We assessed the performance of the *Hyper-Py* pipeline using a dedicated suite o
 
 | Catalog | Source Type | Total | Matched | False | False Percentage |
 |--------:|:------------|------:|--------:|------:|------------------:|
-|       1 | *Hyper-py*    |   500 |     488 |     4 |          0.8%   |
+|       1 | *Hyper-py*    |   500 |     490 |     4 |          0.8%   |
 |       1 | **HYPER (IDL)**   |   500 |     493 |    73 |         12.9%   |
-|       2 | *Hyper-py*    |   500 |     479 |     4 |          0.8%   |
+|       2 | *Hyper-py*    |   500 |     487 |     4 |          0.8%   |
 |       2 | **HYPER (IDL)**   |   500 |     487 |    46 |          8.6%   |
 
 In addition, Figure 1 and Figure 2 show the differences between the peak fluxes and the integrated fluxes of the sources with respect to the reference values of the simulated input sources as estimated by *Hyper-Py* and HYPER, respectively.

@@ -1,0 +1,8 @@
+|Catalog|Source_Type|Total|Matched|False|False_Percentage|
+|   long|       char| long|   long| long|           float|
+|       |           |     |       |     |                |
+|   null|       null| null|   null| null|            null|
+       1    Hyper-py   500     490     4        0.8097166 
+       1   Hyper-IDL   500     493    73        12.897527 
+       2    Hyper-py   500     487     4       0.81466395 
+       2   Hyper-IDL   500     487    46         8.630394 
