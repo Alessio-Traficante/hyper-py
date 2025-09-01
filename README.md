@@ -166,9 +166,8 @@ Optional: You can add this to `.vscode/launch.json` for convenience:
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/src/hyper_py/cli.py",
-      "args": [],
       "console": "integratedTerminal",
-      //"args": ["path/to/config.yaml"] // If you want to specify a different config file
+      "args": ["path/to/config.yaml"], // Specify a different config file
     }
   ]
 }
