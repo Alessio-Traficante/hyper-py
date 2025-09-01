@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hyper-py"
+name = "hyper-py-photometry"
 version = "0.1.0"
 description = "HYPER: Hybrid Photometry Photometry and Extraction Routine"
 authors = [{ name = "Alessio Traficante", email = "alessio.traficante@inaf.it" }]
@@ -25,7 +25,9 @@ dependencies = [
 Homepage = "https://github.com/alessio-traficante/hyper-py"
 
 [project.scripts]
+hyper = "hyper_py.run_hyper:main"
 hyper-py = "hyper_py.run_hyper:main"
+hyper_py = "hyper_py.run_hyper:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
