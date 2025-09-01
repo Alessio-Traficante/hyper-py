@@ -10,15 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout (with tags)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Build sdist + wheel
+      - name: Derive version from tag
+        run: echo "PKG_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Build sdist + wheel (version from tag)
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ env.PKG_VERSION }}
         run: |
           python -m pip install --upgrade pip build twine
           python -m build
@@ -37,7 +44,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')  # publish only on tags
     steps:
       - name: Download dist artifacts
         uses: actions/download-artifact@v4
@@ -47,6 +54,8 @@ jobs:
 
       - name: Publish to PyPI via OIDC
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
 
   release_assets:
     needs: build
@@ -68,4 +77,4 @@ jobs:
           files: dist/*
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

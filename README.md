@@ -97,20 +97,10 @@ import sys
 sys.path.insert(0, "/absolute/path/to/hyper_py/src")
 ```
 ### Option 2: Install via `pip` (for direct usage)
-I) Install using PyPI:
+Install via PyPI:
 ```bash
 pip install hyper-py-photometry
 ```
-OR
-II) Install manually:
-1. Build or download the .whl package (e.g., dist/hyper_py_photometry-X.X.X-py3-none-any.whl).
-2. Install the wheel file using `pip`:
-   
-```bash
-pip install hyper_py_photometry-X.X.X-py3-none-any.whl
-```
-Use the current file version in dist folder.
-
 
 
 ## 🎯 Usage

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel", "build"]
+requires = ["setuptools>=68", "wheel", "build", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "hyper-py-photometry"
-version = "0.1.0"
+dynamic = ["version"]
 description = "HYPER: Hybrid Photometry Photometry and Extraction Routine"
 authors = [{ name = "Alessio Traficante", email = "alessio.traficante@inaf.it" }]
 readme = "README.md"
@@ -34,3 +34,11 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools_scm]
+# Accept tags like "v0.1.2" or "0.1.2"
+tag_regex = "^(?:v)?(?P<version>\\d+\\.\\d+\\.\\d+(?:[a-zA-Z0-9\\.\\-+]*)?)$"
+# Avoid local version (+gHASH) in wheels built from tagged commits
+local_scheme = "no-local-version"
+# Fail on non-tagged commits (keeps releases strictly from tags)
+version_scheme = "no-guess-dev"
