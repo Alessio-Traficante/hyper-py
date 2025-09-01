@@ -1,86 +1,51 @@
-name: Build & Release (on tag)
+name: Release to PyPI (on tag)
 
 on:
   push:
     tags:
-      - "v*"        # e.g. v0.1.0
-      - "*.*.*"     # e.g. 0.1.0
+      - "v*"
 
 jobs:
   build:
-    name: Build wheel and sdist
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install build tools
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build twine
-
-      - name: Build sdist and wheel
-        run: python -m build
-
-      - name: Check metadata (twine)
-        run: python -m twine check dist/*
-
-      - name: Upload dist artifacts
-        uses: actions/upload-artifact@v4
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/*
 
-  release:
-    name: Create GitHub Release
+  publish:
     needs: build
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
+      - name: Publish to PyPI via OIDC
+        uses: pypa/gh-action-pypi-publish@release/v1
 
-      - name: Create Release and upload assets
+  release_assets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: GitHub Release (attach artifacts)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: dist/*
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-pypi:
-    name: Publish to PyPI (optional)
-    needs: build
-    runs-on: ubuntu-latest
-    if: ${{ secrets.PYPI_API_TOKEN != '' }}
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages_dir: dist
-          verbose: true
-        env:
-          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
