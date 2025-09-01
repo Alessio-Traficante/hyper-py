@@ -177,3 +177,4 @@ cython_debug/
 
 /Git_Ignore
 test/test_2dmap.config.yaml
+test/output/

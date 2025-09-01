@@ -46,10 +46,10 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
     use_l2 = fit_cfg.get("use_l2_regularization", False)
     lambda_l2 = fit_cfg.get("lambda_l2", 1e-3)
 
-    no_background = config.get("background", "no_background", False)
+    fit_gauss_and_bg_together = config.get("background", "fit_gauss_and_bg_together", False)
     fix_min_box = config.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
     fix_max_box = config.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
-    orders = config.get("background", "polynomial_orders", [0, 1, 2]) if not no_background else [0]
+    orders = config.get("background", "polynomial_orders", [0, 1, 2]) if fit_gauss_and_bg_together else [0]
     fit_separately = config.get("background", "fit_gauss_and_bg_separately", False)
     pol_orders_separate = config.get("background", "pol_orders_separate", [0])
 
@@ -259,7 +259,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                                         
  
                 # --- Add full 2D polynomial background (including cross terms) ---
-                if not no_background:
+                if fit_gauss_and_bg_together:
                     max_order_all = max(orders)
 
                     for dx in range(max_order_all + 1):
@@ -284,7 +284,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
                         model += A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
 
-                    if not no_background:
+                    if fit_gauss_and_bg_together:
                         max_order_all = max(orders)
 
                         for dx in range(max_order_all + 1):
@@ -308,7 +308,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     # Ensure residual is a clean float64 array
                     resid = np.asarray(resid, dtype=np.float64).ravel()
                     
-                    if use_l2 and not no_background:
+                    if use_l2 and fit_gauss_and_bg_together:
                         penalty_values = [
                             float(params[p].value)
                             for p in params if p.startswith("c")
@@ -431,8 +431,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
             gauss_vals += A * np.exp(- (a*(xx - x0)**2 + 2*b*(xx - x0)*(yy - y0) + c*(yy - y0)**2))
 
-        bg_component = bg_vals - gauss_vals if not no_background else np.zeros_like(bg_vals)
-        bg_mean = np.mean(bg_component) if not no_background else 0.0
+        bg_component = bg_vals - gauss_vals if fit_gauss_and_bg_together else np.zeros_like(bg_vals)
+        bg_mean = np.mean(bg_component) if fit_gauss_and_bg_together else 0.0
 
 
         model_eval = model_fn(best_result.params, xx, yy)
