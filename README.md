@@ -61,6 +61,10 @@ Before using `Hyper-py`, make sure you have all the necessary Python dependencie
 	•	photutils
 	•	matplotlib
 	•	lmfit
+  •	pyyaml
+  •	numpy
+  •	scipy
+  •	scikit-learn>=1.4,<1.6
 	
 This will install the necessary packages using `pip`:
 
@@ -77,7 +81,6 @@ You can install and use `Hyper-py` in two different ways, depending on your need
 If you want to modify, extend, or integrate `Hyper-py` in your own projects:
 
 1. Clone the repository or download the source code.
-
 ```bash
 git clone https://github.com/Alessio-Traficante/hyper-py.git
 ```
@@ -94,11 +97,17 @@ import sys
 sys.path.insert(0, "/absolute/path/to/hyper_py/src")
 ```
 ### Option 2: Install via `pip` (for direct usage)
-1. Build or download the .whl package (e.g., dist/hyper_py-X.X.X-py3-none-any.whl).
+I) Install using PyPI:
+```bash
+pip install hyper-py-photometry
+```
+OR
+II) Install manually:
+1. Build or download the .whl package (e.g., dist/hyper_py_photometry-X.X.X-py3-none-any.whl).
 2. Install the wheel file using `pip`:
    
 ```bash
-pip install hyper_py-X.X.X-py3-none-any.whl
+pip install hyper_py_photometry-X.X.X-py3-none-any.whl
 ```
 Use the current file version in dist folder.
 
@@ -112,7 +121,7 @@ You can use `Hyper-py` either by importing and running it directly from Python, 
 
 ### 1. From Python
 
-Import and run the `cli` function, passing the path to your YAML configuration file.
+Import and run the `start_hyper` function, passing the path to your YAML configuration file.
 
 ```python
 from hyper_py import run_hyper
@@ -137,6 +146,14 @@ Once the .whl package is installed (e.g., via pip install hyper_py-X.X.X-py3-non
 ```bash
 hyper_py path/to/config.yaml
 ```
+OR
+```bash
+hyper-py path/to/config.yaml
+```
+OR
+```bash
+hyper path/to/config.yaml
+```
 
 ## Using the Source Code in Visual Studio Code
 To run or debug the source code using Visual Studio Code:
@@ -149,10 +166,10 @@ To run or debug the source code using Visual Studio Code:
 ### 2. Run and debug the code
 
 To debug:
-- Open src/hyper_py/hyper.py or cli.py.
+- Open src/hyper_py/hyper.py or run_hyper.py.
 - Set breakpoints as needed.
 - Press F5 or click the "Run and Debug" button in the sidebar.
-- In the launch configuration, set the entry script to src/hyper_py/cli.py.
+- In the launch configuration, set the entry script to src/hyper_py/run_hyper.py.
 
 Optional: You can add this to `.vscode/launch.json` for convenience:
 
@@ -165,7 +182,7 @@ Optional: You can add this to `.vscode/launch.json` for convenience:
       "name": "Python Debugger:Run Hyper",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/src/hyper_py/cli.py",
+      "program": "${workspaceFolder}/src/hyper_py/run_hyper.py",
       "console": "integratedTerminal",
       "args": ["path/to/config.yaml"], // Specify a different config file
     }
@@ -336,7 +353,7 @@ All entries can be customized in your `config.yaml`. If an entry is omitted, the
 
 | File                  | Description |
 |-------------------------------|-------------|
-| `cli.py`                      | Main launcher for multi-map analysis (parallel or serial)  
+| `run_hyper.py`                | Main launcher for multi-map analysis (parallel or serial)  
 | `hyper.py`                    | Core logic for initializing the code run  
 | `single_map.py`               | Core logic for running detection + photometry on one map  
 | `config.py`                   | YAML parser with access interface  
