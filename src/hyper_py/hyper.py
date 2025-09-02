@@ -22,7 +22,7 @@ def start_hyper(cfg_path):
     # === Load config ===
     os.chdir(os.path.dirname(__file__))
 
-    config_path = cfg_path if not None else "config.yaml"
+    config_path = cfg_path if not None else "hyper_config.yaml"
     
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config file not found: {config_path}")

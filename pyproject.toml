@@ -18,7 +18,8 @@ dependencies = [
     "scipy",
     "lmfit",
     "matplotlib",
-    "scikit-learn>=1.4,<1.6"
+    "scikit-learn>=1.4,<1.6",
+    "ruamel.yaml>=0.18"
 ]
 
 [project.urls]
@@ -31,6 +32,9 @@ hyper_py = "hyper_py.run_hyper:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+hyper_py = ["assets/default_config.yaml"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

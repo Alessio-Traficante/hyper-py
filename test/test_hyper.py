@@ -16,6 +16,10 @@ def find_package_config(pkg_dir: Path) -> Path:
         p = pkg_dir / name
         if p.exists():
             return p
+    for name in ("config.yaml","config.yml","default_config.yaml","config_default.yaml","config_base.yaml"):
+        p = pkg_dir / "assets" / name 
+        if p.exists():
+            return p
     alts: List[Path] = list(pkg_dir.glob("*.yaml")) + list(pkg_dir.glob("*.yml"))
     if alts:
         return alts[0]
