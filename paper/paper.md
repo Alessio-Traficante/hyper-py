@@ -65,7 +65,7 @@ We assessed the performance of the *Hyper-Py* pipeline using a dedicated suite o
 
 In addition, Figure 1 and Figure 2 show the differences between the peak fluxes and the integrated fluxes of the sources with respect to the reference values of the simulated input sources as estimated by *Hyper-Py* and HYPER, respectively.
 
-*Hyper-Py** is freely available for download via its [GitHub repository](https://github.com/Alessio-Traficante/hyper-py), and can also be installed using pip, as described in the accompanying README file.
+*Hyper-Py* is freely available for download via its [GitHub repository](https://github.com/Alessio-Traficante/hyper-py), and can also be installed using pip, as described in the accompanying README file.
 
 ![histogram of the differences between the peak fluxes of the sources as recovered by *Hyper-Py* and HYPER, respectively, with respect to the reference values of the simulated input sources](Figures/Flux_Diff_Histogram_Peak.png)
 
