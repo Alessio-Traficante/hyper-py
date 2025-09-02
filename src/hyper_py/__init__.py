@@ -11,7 +11,7 @@ from importlib.metadata import version, PackageNotFoundError
 from .hyper import start_hyper
 
 try:
-    __version__ = version("hyper-py")
+    __version__ = version("hyper-py-photometry")
 except PackageNotFoundError:
     __version__ = "0.0.0-dev"
 
