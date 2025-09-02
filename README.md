@@ -42,7 +42,7 @@ Hyper-py now supports **parallel execution** over multiple maps or datacube slic
 - Maintain **individual log files** for each map
 - Merge the final outputs (tables and diagnostics) into a single, combined summary
 
-To enable parallelism, set the following parameters in your `config.yaml` file under the `control` section:
+To enable parallelism, set the following parameters in your `hyper_config.yaml` file under the `control` section:
 
 ```yaml
 control:
@@ -53,30 +53,16 @@ control:
 If `parallel_maps` is set to `false`, the pipeline will run in serial mode.
 
 
-
-## 🚀 Prerequisites
-
-Before using `Hyper-py`, make sure you have all the necessary Python dependencies installed. The following core libraries are required:
-	•	astropy
-	•	photutils
-	•	matplotlib
-	•	lmfit
-  •	pyyaml
-  •	numpy
-  •	scipy
-  •	scikit-learn>=1.4,<1.6
-	
-This will install the necessary packages using `pip`:
-
-```bash
-astropy photutils matplotlib lmfit
-```
-
-
 ## 🛠️ Installation
 You can install and use `Hyper-py` in two different ways, depending on your needs:
 
-### Option 1: Use the Source Code (for development or integration)
+### Option 1: Install via `pip` (for direct usage)
+Install via PyPI:
+```bash
+pip install hyper-py-photometry
+```
+
+### Option 2: Use the Source Code (for development or integration)
 
 If you want to modify, extend, or integrate `Hyper-py` in your own projects:
 
@@ -96,27 +82,71 @@ export PYTHONPATH=$(pwd)/src
 import sys
 sys.path.insert(0, "/absolute/path/to/hyper_py/src")
 ```
-### Option 2: Install via `pip` (for direct usage)
-Install via PyPI:
+
+
+## ✅ Requirements
+
+Before using `Hyper-py`, make sure you have all the necessary Python dependencies installed. 
+
+If you have installed `Hyper-py` via pip, all the requirements are automatically installed.
+Otherwise, you can use the `requirements.txt` file, this will install the necessary packages using `pip`::
 ```bash
-pip install hyper-py-photometry
+pip install -r requirements.txt
 ```
 
 
-## 🎯 Usage
+## 📄 Configuration File
+
+
+`Hyper-py` requires a configuration file named **`hyper_config.yaml`** in order to run.  
+
+>The first time you run `Hyper-py` a new hyper_config.yaml will be created automatically in the CWD, then you must setup all paths and paramenters.<br>
+>If you already have a configuration file ready or you have moved the new configuration file to a different folder, provide the path as argument.
+
+If no path is provided, the application will look for it in this order:  
+1. Path passed as CLI argument  
+2. `hyper_config.yaml` in the current working directory (CWD)  
+3. User configuration directory  
+    - Linux/macOS: `~/.config/hyper-py/hyper_config.yaml`  
+    - Windows: `%APPDATA%\HyperPy\hyper_config.yaml`  
+4. If not found, a new `hyper_config.yaml` will be created automatically in the CWD, copied from the package template (`assets/default_config.yaml`).  
+
+> [!IMPORTANT]  
+> <span style="font-weight:bold;">Before running the pipeline, you <span style="color:red; font-weight:bold;">must</span> edit **`hyper_config.yaml`** and set the correct parameters and paths.</span> 
+
+
+### Configuration file lookup order
+
+| Priority | Location                                   | Description                                                                 |
+|----------|--------------------------------------------|-----------------------------------------------------------------------------|
+| 1        | CLI argument                               | Path explicitly provided by the user, e.g. `hyper-py /path/to/hyper_config.yaml`. |
+| 2        | Current Working Directory (CWD)            | Looks for `./hyper_config.yaml` in the folder where the command is executed. |
+| 3        | User configuration directory               | - **Linux/macOS:** `~/.config/hyper-py/hyper_config.yaml`<br> - **Windows:** `%APPDATA%\HyperPy\hyper_config.yaml` |
+| 4        | Auto-generated in CWD if none is found     | A new `hyper_config.yaml` is created, copied from the package template (`assets/default_config.yaml`). |
+
+### 💡 Tips & Tricks
+
+- **Use different configs**  
+  You can maintain multiple configuration files (e.g., `hyper_config.dev.yaml` and `hyper_config.prod.yaml`) and choose which one to run. 
+  <br>Eg. If you have installed via pip:
+  ```bash
+  hyper-py ./hyper_config.dev.yaml
+  hyper-py ./hyper_config.prod.yaml
+  ```
+
+
+## 🚀 Usage
 
 You can use `Hyper-py` either by importing and running it directly from Python, or via command line.
-> [!IMPORTANT]  
->  `Hyper-py` needs a configuration file in order to run. If no configuration file path is provided, the default file located in the `src/` folder will be used.
 
 ### 1. From Python
 
-Import and run the `start_hyper` function, passing the path to your YAML configuration file.
+Import and run the `run_hyper` function, passing the path to your YAML configuration file.
 
 ```python
 from hyper_py import run_hyper
 
-run_hyper("path/to/config.yaml")
+run_hyper("path/to/hyper_config.yaml")
 ```
 This is the recommended approach if you want to integrate `Hyper-py` into a larger Python application or workflow.
 
@@ -126,7 +156,7 @@ I) Using the source code:
 
 You can execute the tool from the terminal:
 ```bash
-python -m hyper_py path/to/config.yaml
+python -m hyper_py path/to/hyper_config.yaml
 ```
 This runs the main process using the configuration file specified.
 
@@ -134,18 +164,18 @@ II) If installed via pip:
 
 Once the .whl package is installed (e.g., via pip install hyper_py-X.X.X-py3-none-any.whl), you can run it directly:
 ```bash
-hyper_py path/to/config.yaml
+hyper_py path/to/hyper_config.yaml
 ```
 OR
 ```bash
-hyper-py path/to/config.yaml
+hyper-py path/to/hyper_config.yaml
 ```
 OR
 ```bash
-hyper path/to/config.yaml
+hyper path/to/hyper_config.yaml
 ```
 
-## Using the Source Code in Visual Studio Code
+## 💻 Using the Source Code in Visual Studio Code
 To run or debug the source code using Visual Studio Code:
 ### 1. Open the project
 - Open the project folder in VS Code.
@@ -174,7 +204,7 @@ Optional: You can add this to `.vscode/launch.json` for convenience:
       "request": "launch",
       "program": "${workspaceFolder}/src/hyper_py/run_hyper.py",
       "console": "integratedTerminal",
-      "args": ["path/to/config.yaml"], // Specify a different config file
+      "args": ["path/to/hyper_config.yaml"],
     }
   ]
 }
@@ -183,9 +213,9 @@ Optional: You can add this to `.vscode/launch.json` for convenience:
 <br/><br/>
 
 
-## ⚙️ Configuration File Reference (`config.yaml`)
+## ⚙️ Configuration File Reference (`hyper_config.yaml`)
 
-The `config.yaml` file controls all aspects of the Hyper-py pipeline. Below is a detailed explanation of every entry, including its purpose, accepted values, default, and type.
+The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Below is a detailed explanation of every entry, including its purpose, accepted values, default, and type.
 
 ### File Paths
 
@@ -335,7 +365,7 @@ The `config.yaml` file controls all aspects of the Hyper-py pipeline. Below is a
 ---
 
 **Tip:**  
-All entries can be customized in your `config.yaml`. If an entry is omitted, the default value will be used.
+All entries can be customized in your `hyper_config.yaml`. If an entry is omitted, the default value will be used.
 
 
 
