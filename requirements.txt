@@ -7,3 +7,4 @@ scipy
 lmfit
 matplotlib
 scikit-learn>=1.4,<1.6
+ruamel.yaml>=0.18
