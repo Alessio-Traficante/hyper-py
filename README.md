@@ -52,7 +52,17 @@ control:
 
 If `parallel_maps` is set to `false`, the pipeline will run in serial mode.
 
+### 💡 Tips & Tricks
 
+- **Create a virtual environment**  
+  For convenience, you could set up a Python virtual environment before working with the code.  
+  <br>Eg.  
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate   # Linux / macOS
+  .venv\Scripts\activate      # Windows
+  ```
+P.S.: Remember to activate it every time you work with the code! :)
 ## 🛠️ Installation
 You can install and use `Hyper-py` in two different ways, depending on your needs:
 
@@ -160,9 +170,7 @@ python -m hyper_py path/to/hyper_config.yaml
 ```
 This runs the main process using the configuration file specified.
 
-II) If installed via pip:
-
-Once the .whl package is installed (e.g., via pip install hyper_py-X.X.X-py3-none-any.whl), you can run it directly:
+II) If installed via pip you can run it directly:
 ```bash
 hyper_py path/to/hyper_config.yaml
 ```
@@ -181,7 +189,7 @@ To run or debug the source code using Visual Studio Code:
 - Open the project folder in VS Code.
 - Make sure the Python extension is installed.
 - Press Ctrl+Shift+P (or Cmd+Shift+P on macOS) and run Python: Select Interpreter.
-- Choose the Hyper Conda environment (or another where the dependencies are installed).
+- Choose the environment (or another where the dependencies are installed).
 
 ### 2. Run and debug the code
 

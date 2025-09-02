@@ -1,10 +1,10 @@
 name: JOSS PDF
 
 on:
-  push:
-    paths:
-      - paper/**
-      - .github/workflows/Hyper-py_paper.yml
+  # push:
+  #   paths:
+  #     - paper/**
+  #     - .github/workflows/Hyper-py_paper.yml
   workflow_dispatch:  # allow manual trigger
 
 jobs:
