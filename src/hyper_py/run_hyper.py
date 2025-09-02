@@ -13,8 +13,12 @@ warnings.filterwarnings("ignore", message=".*more axes \\(4\\) than the image it
 warnings.filterwarnings("ignore", message=".*Set MJD-OBS to.*")
 
 # Import the main entry point of the package
-from hyper_py.hyper import start_hyper
-
+try:
+    from hyper_py.hyper import start_hyper
+except ModuleNotFoundError:
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from hyper_py.hyper import start_hyper
+    
 # importlib.resources for packaged data (fallback to importlib_resources on older Python)
 try:
     from importlib.resources import files as ir_files
