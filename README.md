@@ -1,6 +1,7 @@
 # 💫 `Hyper-py`: Hybrid Photometry Photometry and Extraction Routine in Python
 
 **Authors:** Alessio Traficante; Fabrizio De Angelis; Alice Nucara; Milena Benedettini
+
 **Original reference:** Traficante et al. (2015), *MNRAS, 451, 3089*  
 
 ---
@@ -54,7 +55,7 @@ If `parallel_maps` is set to `false`, the pipeline will run in serial mode.
 
 ### 💡 Tips & Tricks
 
-- **Create a virtual environment**  
+- **Create a virtual environment before installation**  
   For convenience, you could set up a Python virtual environment before working with the code.  
   <br>Eg.  
   ```bash
@@ -110,12 +111,12 @@ pip install -r requirements.txt
 
 `Hyper-py` requires a configuration file named **`hyper_config.yaml`** in order to run.  
 
->The first time you run `Hyper-py` a new hyper_config.yaml will be created automatically in the CWD, then you must setup all paths and paramenters.<br>
+>The first time you run `Hyper-py` a new hyper_config.yaml will be created automatically in the Current Working Directory (CWD), then you must setup all paths and parameters.<br>
 >If you already have a configuration file ready or you have moved the new configuration file to a different folder, provide the path as argument.
 
 If no path is provided, the application will look for it in this order:  
-1. Path passed as CLI argument  
-2. `hyper_config.yaml` in the current working directory (CWD)  
+1. Path passed as Command Line Interface (CLI) argument  
+2. `hyper_config.yaml` in the CWD  
 3. User configuration directory  
     - Linux/macOS: `~/.config/hyper-py/hyper_config.yaml`  
     - Windows: `%APPDATA%\HyperPy\hyper_config.yaml`  
@@ -189,7 +190,7 @@ To run or debug the source code using Visual Studio Code:
 - Open the project folder in VS Code.
 - Make sure the Python extension is installed.
 - Press Ctrl+Shift+P (or Cmd+Shift+P on macOS) and run Python: Select Interpreter.
-- Choose the environment (or another where the dependencies are installed).
+- If you have set up an environment, choose the one  where the dependencies are installed.
 
 ### 2. Run and debug the code
 
@@ -231,8 +232,8 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `paths.input.dir_maps`      | Directory containing input map files.                                         | `./maps`        | REQUIRED  |
 | `paths.output.dir_root`     | Root directory for output data.                                               | `./output`      | REQUIRED  |
-| `paths.output.dir_table_out`| Subdirectory of `dir_root` for photometry output tables.                      | `params`        | REQUIRED  |
-| `paths.output.dir_region_out`| Subdirectory of `dir_root` for region files (output).                        | `regions`       | REQUIRED  |
+| `paths.output.dir_table_out`| Subdirectory of `dir_root` for photometry tables.                      | `params`        | REQUIRED  |
+| `paths.output.dir_region_out`| Subdirectory of `dir_root` for region files.                        | `regions`       | REQUIRED  |
 | `paths.output.dir_log_out`  | Subdirectory of `dir_root` for log files.                                    | `logs`          | REQUIRED  |
 
 ### File Names
@@ -240,8 +241,8 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 | Entry                | Description                                                                 | Default         | Type      |
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `files.file_map_name`      | Input FITS map(s) list for analysis (in `dir_maps`).                        | `maps_list.txt` | REQUIRED  |
-| `files.file_table_base`    | Base filename for photometry output tables (in `dir_table_out`).            | `params`        | REQUIRED  |
-| `files.file_region_base`   | Base filename for output ellipse region files (in `dir_region_out`).        | `region_files`  | REQUIRED  |
+| `files.file_table_base`    | Base filename for photometry tables (in `dir_table_out`).            | `params`        | REQUIRED  |
+| `files.file_region_base`   | Base filename for ellipse region files (in `dir_region_out`).        | `region_files`  | REQUIRED  |
 | `files.file_log_name`      | Name of the global log file (in `dir_log_out`).                             | `hyper_py.log`  | REQUIRED  |
 
 ### Pipeline Control
@@ -276,17 +277,21 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 | `detection.roundlim`         | Allowed source roundness range (min, max for DAOFIND).                       | `[-4.0, 4.0]`   | ADVANCED  |
 | `detection.sharplim`         | Allowed source sharpness range (min, max for DAOFIND).                       | `[-2.0, 2.0]`   | ADVANCED  |
 | `detection.use_fixed_source_table`| Use external IPAC table for peak/aperture (`True`/`False`).              | `False`         | OPTIONAL  |
-| `detection.fixed_source_table_path` | Path to an external IPAC table with source information (in `dir_root`). The table must have **6 columns**:  
+| `detection.fixed_source_table_path` | Path to an external IPAC table with source information (in `dir_root`). The table must have **6 columns**| `source_table.txt`            | OPTIONAL | 
+| `detection.fixed_peaks`      | Use fixed peaks instead of automatic (`True`/`False`).                        | `False`         | OPTIONAL  |
+| `detection.xcen_fix`         | Fixed peak X coordinates (deg; used if `fixed_peaks` is `True`).              | `[1.0, 1.0]`    | OPTIONAL  |
+| `detection.ycen_fix`         | Fixed peak Y coordinates (deg; used if `fixed_peaks` is `True`).              | `[1.0, 1.0]`    | OPTIONAL  |
+ 
+ Columns description for the external IPAC table with source information (only if detection.use_fixed_source_table is `True`):
+ 
   - **ID**: Source identifier  
   - **xcen**: X coordinate (in map units, e.g. degrees or pixels)  
   - **ycen**: Y coordinate (in map units, e.g. degrees or pixels)  
-  - **fwhm_1**: Major axis FWHM (arcsec)  
-  - **fwhm_2**: Minor axis FWHM (arcsec)  
+  - **fwhm_1**: Major axis FWHM (arcsec, used as minimum radius for aperture photometry)  
+  - **fwhm_2**: Minor axis FWHM (arcsec, used as minimum radius for aperture photometry)  
   - **PA**: Position angle (degrees, East of North)  
-  The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only `fwhm_1`, `fwhm_2`, and `PA` if `photometry.fixed_radius = true`, or both sets of parameters if both options are enabled. | `source_table.txt` | OPTIONAL |
-| `detection.fixed_peaks`      | Use fixed peaks instead of automatic (`True`/`False`).                       | `False`         | OPTIONAL  |
-| `detection.xcen_fix`         | Fixed peak X coordinates (deg; used if `fixed_peaks` is `True`).              | `[1.0, 1.0]`    | OPTIONAL  |
-| `detection.ycen_fix`         | Fixed peak Y coordinates (deg; used if `fixed_peaks` is `True`).              | `[1.0, 1.0]`    | OPTIONAL  |
+  
+The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only `fwhm_1`, `fwhm_2`, and `PA` if `photometry.fixed_radius = true`, or both sets of parameters if both options are enabled. 
 
 ### Photometry Settings
 
@@ -304,32 +309,47 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 | Entry                | Description                                                                 | Default         | Type      |
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `fit_options.fit_method`     | Optimization algorithm for Gaussian fitting.                              | `"least_squares"`| ADVANCED  |
-| `fit_options.loss`           | Specifies the loss function used during Gaussian fitting optimization.  
+| `fit_options.loss`           | Specifies the loss function used during Gaussian fitting optimization.    | `"linear"` | ADVANCED |
+ 
+ Loss function options:
   - `"linear"`: Standard least-squares loss (minimizes squared residuals; most common for well-behaved data).  
   - `"soft_l1"`: Soft L1 loss, less sensitive to outliers than linear; combines properties of L1 and L2 norms.  
   - `"huber"`: Huber loss, robust to outliers; behaves like linear for small residuals and like L1 for large residuals.  
   - `"cauchy"`: Cauchy loss, strongly suppresses the influence of outliers.  
-  Choose a robust loss (e.g., `"huber"` or `"cauchy"`) if your data contains significant outliers or non-Gaussian noise. | `"linear"` | ADVANCED |
+  Choose a robust loss (e.g., `"huber"` or `"cauchy"`) if your data contains significant outliers or non-Gaussian noise.
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `fit_options.f_scale`        | Relevant for `soft_l1`, `huber`, `cauchy` loss functions.                 | `0.1`           | ADVANCED  |
 | `fit_options.max_nfev`       | Maximum number of function evaluations.                                   | `50000`         | ADVANCED  |
 | `fit_options.xtol`           | Tolerance on parameter change for convergence.                            | `1e-8`          | ADVANCED  |
 | `fit_options.ftol`           | Tolerance on cost function change for convergence.                        | `1e-8`          | ADVANCED  |
 | `fit_options.gtol`           | Tolerance on gradient orthogonality.                                      | `1e-8`          | ADVANCED  |
-| `fit_options.weights` | Specifies the weighting scheme used during Gaussian fitting.  
+| `fit_options.weights` | Specifies the weighting scheme used during Gaussian fitting.                     | `"snr"`         | OPTIONAL | 
+  
+  Weighting scheme options:
   - `"null"`: No weighting; all pixels are treated equally.  
   - `"inverse_rms"`: Weights are set as the inverse of the RMS noise, giving less weight to noisier pixels.  
   - `"snr"`: Weights are proportional to the signal-to-noise ratio (SNR) of each pixel.  
   - `"power_snr"`: Weights are proportional to the SNR raised to a user-defined power (`fit_options.power_snr`).  
   - `"map"`: Weights are set equal to the user-provided input map.  
   - `"mask"`: Weights are set to zero for masked pixels and one elsewhere, effectively ignoring masked regions.  
-  Choose the scheme that best matches your data quality and analysis goals. | `"snr"` | OPTIONAL |
+  Choose the scheme that best matches your data quality and analysis goals. 
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `fit_options.power_snr`      | SNR exponent for weighting (if `weights` is `"power_snr"`).               | `5`             | OPTIONAL  |
 | `fit_options.calc_covar`     | Estimate parameter covariance matrix (`True`/`False`).                    | `False`         | ADVANCED  |
-| `fit_options.min_method` | Criterion used to select the best fit among multiple solutions:  
+| `fit_options.min_method` | Criterion used to select the best fit among multiple solutions                | `"nmse"`        | ADVANCED |
+ 
+  Selection criterion to identify the best fit:
   - `"nmse"`: Normalized Mean Squared Error; selects the fit with the lowest mean squared residuals normalized by the data variance.  
   - `"redchi"`: Reduced Chi-Squared; selects the fit with the lowest reduced chi-squared statistic, accounting for the number of degrees of freedom.  
   - `"bic"`: Bayesian Information Criterion; selects the fit with the lowest BIC value, which penalizes model complexity to avoid overfitting.  
-  Choose the method that best matches your scientific goals and data characteristics. | `"nmse"` | ADVANCED |
+  Choose the method that best matches your scientific goals and data characteristics.
+
+| Entry                | Description                                                                 | Default         | Type      |
+|----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `fit_options.verbose`        | Print full fit report (`True`/`False`).                                   | `False`         | ADVANCED  |
 | `fit_options.use_l2_regularization`| Enable L2 regularization on background terms (`True`/`False`).        | `True`          | ADVANCED  |
 | `fit_options.lambda_l2`      | Regularization strength.                                                  | `1e-4`          | ADVANCED  |
@@ -341,7 +361,7 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 
 | Entry                | Description                                                                 | Default         | Type      |
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
-| `background.fit_gauss_and_bg_separately`| Estimate Gaussian and background separately (`True`/`False`).            | `True`          | OPTIONAL  |
+| `background.fit_gauss_and_bg_separately`| Estimate Gaussian and background separately (`True`/`False`).            | `True`          | REQUIRED  |
 | `background.pol_orders_separate`     | Polynomial orders for separated background subtraction.                    | `[0, 1, 2]`     | OPTIONAL  |
 | `background.fix_min_box` | Minimum box size for variable-size background fitting, expressed as a multiple of the source FWHM (half-size increment). **If set to `0`, the background is estimated over the entire map.** | `3` | OPTIONAL |
 | `background.fix_max_box`             | Maximum box size (multiple of FWHMs) for background fitting.              | `5`             | OPTIONAL  |
@@ -352,10 +372,10 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 
 | Entry                | Description                                                                 | Default         | Type      |
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
-| `fits_output.fits_fitting`           | Save best fit model group FITS files (`True`/`False`).                  | `False`         | OPTIONAL  |
+| `fits_output.fits_fitting`           | Save best fit model and original group FITS files (`True`/`False`).                  | `False`         | OPTIONAL  |
 | `fits_output.fits_deblended`         | Save deblended per-source FITS files (`True`/`False`).                  | `False`         | OPTIONAL  |
 | `fits_output.fits_bg_separate`       | Save best fit background separated model group FITS files (`True`/`False`).| `False`      | OPTIONAL  |
-| `fits_output.fits_output_dir_fitting`| Subdirectory of `dir_root` for fitting FITS files.                      | `fits/fitting`  | OPTIONAL  |
+| `fits_output.fits_output_dir_fitting`| Subdirectory of `dir_root` for best model and original FITS files.                      | `fits/fitting`  | OPTIONAL  |
 | `fits_output.fits_output_dir_deblended`| Subdirectory of `dir_root` for deblended FITS files.                   | `fits/deblended`| OPTIONAL  |
 | `fits_output.fits_output_dir_bg_separate`| Subdirectory of `dir_root` for background FITS files.                 | `fits/bg_separate`| OPTIONAL  |
 
@@ -365,8 +385,8 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `visualization.visualize_fitting`      | Visualize final Gaussian+background fit (`True`/`False`).                | `False`         | OPTIONAL  |
 | `visualization.visualize_deblended`    | Visualize per-source blended maps (`True`/`False`).                      | `False`         | OPTIONAL  |
-| `visualization.visualize_bg_separate`  | Visualize background model from masked fit (`True`/`False`).              | `False`         | OPTIONAL  |
-| `visualization.output_dir_fitting`     | Subdirectory of `dir_root` for fitting plots.                             | `plots/fitting` | OPTIONAL  |
+| `visualization.visualize_bg_separate`  | Visualize background separated model (`True`/`False`).              | `False`         | OPTIONAL  |
+| `visualization.output_dir_fitting`     | Subdirectory of `dir_root` for best model and original FITS plots.                             | `plots/fitting` | OPTIONAL  |
 | `visualization.output_dir_deblended`   | Subdirectory of `dir_root` for deblended plots.                           | `plots/deblended`| OPTIONAL  |
 | `visualization.output_dir_bg_separate` | Subdirectory of `dir_root` for background plots.                          | `plots/bg_separate`| OPTIONAL  |
 
@@ -383,7 +403,7 @@ All entries can be customized in your `hyper_config.yaml`. If an entry is omitte
 |-------------------------------|-------------|
 | `run_hyper.py`                | Main launcher for multi-map analysis (parallel or serial)  
 | `hyper.py`                    | Core logic for initializing the code run  
-| `single_map.py`               | Core logic for running detection + photometry on one map  
+| `single_map.py`               | Core logic for running detection + photometry on each map  
 | `config.py`                   | YAML parser with access interface  
 | `logger.py`                   | Custom logger supporting log file + screen separation  
 | `paths_io.py`                 | Handles file path construction for input/output files  
@@ -471,12 +491,12 @@ To ensure compatibility with Hyper-py, each input FITS file (2D map or 3D datacu
   - Common values for `CTYPE1`/`CTYPE2` are `'RA---SIN'`, `'RA---TAN'`, `'DEC--SIN'`, `'DEC--TAN'`, `'GLON--CAR'`, `'GLAT--CAR'`.
   - For cubes, `CTYPE3` can be `'VRAD'` (velocity), `'VELO-LSR'`, or `'FREQ'` (frequency).
 - **Units:**  
-  - `CUNIT1`/`CUNIT2`: `'deg'` (degrees), `'arcsec'` (arcseconds)
-  - `CUNIT3`: `'km s-1'` (velocity), `'Hz'` (frequency)
-  - `BUNIT`: `'Jy'`, `'Jy/beam'`, `'beam-1 Jy'`, `'MJy/sr'` (must match your science case)
+  - `CUNIT1`/`CUNIT2`: `'deg'` (degrees), `'arcsec'` (arcseconds).
+  - `CUNIT3`: `'km s-1'` (velocity), `'Hz'` (frequency).
+  - `BUNIT`: `'Jy'`, `'Jy/beam'`, `'beam-1 Jy'`, `'MJy/sr'` (must match your science case).
 - **Beam Parameters:**  
-  - `BMAJ`, `BMIN`: Beam size in degrees (convert from arcsec if needed: 1 arcsec = 1/3600 deg)
-  - `BPA`: Beam position angle in degrees
+  - `BMAJ`, `BMIN`: Beam size in degrees (convert from arcsec if needed: 1 arcsec = 1/3600 deg).
+  - `BPA`: Beam position angle in degrees.
 - **Other:**  
   - Additional header keywords may be present, but the above are required for Hyper-py to interpret the map/cube correctly.
 
@@ -538,3 +558,25 @@ BPA     =                  0.0
 OBJECT  = 'Datacube for Hyper-py test'
 END
 ```
+
+## 🔬 Test Mode
+
+To quickly test the full functionality of **Hyper_py**, a dedicated **test mode** is available.
+
+You can run the code in test mode by executing the `test_hyper.py` script located in the `test/` folder:
+
+```bash
+python test/test_hyper.py
+```
+
+When launched, the script will:
+	•	Automatically generate a minimal working config.yaml file;
+	•	Analyze two synthetic 2D maps and one synthetic datacube with 4 slices;
+	•	Run the analysis using 2 parallel cores (if available);
+	•	Generate all intermediate and final FITS files and diagnostic plots, including:
+	•	Background models;
+	•	Gaussian + background fits;
+	•	Residual maps;
+	•	Photometric results.
+
+This mode is designed to validate the installation and ensure that all the core functionalities of the pipeline are working properly. It is particularly useful for new users, developers, or during CI testing.
