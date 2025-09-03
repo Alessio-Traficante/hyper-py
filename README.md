@@ -561,7 +561,7 @@ END
 
 ## 🔬 Test Mode
 
-To quickly test the full functionality of **Hyper_py**, a dedicated **test mode** is available.
+In order to quickly test the full functionality of **Hyper_py**, a dedicated **test mode** is available.
 
 You can run the code in test mode by executing the `test_hyper.py` script located in the `test/` folder:
 
