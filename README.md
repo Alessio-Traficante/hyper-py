@@ -131,7 +131,7 @@ If no path is provided, the application will look for it in this order:
 | Priority | Location                                   | Description                                                                 |
 |----------|--------------------------------------------|-----------------------------------------------------------------------------|
 | 1        | CLI argument                               | Path explicitly provided by the user, e.g. `hyper-py /path/to/hyper_config.yaml`. |
-| 2        | Current Working Directory (CWD)            | Looks for `./hyper_config.yaml` in the folder where the command is executed. |
+| 2        | CWD							            | Looks for `./hyper_config.yaml` in the folder where the command is executed. |
 | 3        | User configuration directory               | - **Linux/macOS:** `~/.config/hyper-py/hyper_config.yaml`<br> - **Windows:** `%APPDATA%\HyperPy\hyper_config.yaml` |
 | 4        | Auto-generated in CWD if none is found     | A new `hyper_config.yaml` is created, copied from the package template (`assets/default_config.yaml`). |
 
@@ -570,13 +570,13 @@ python test/test_hyper.py
 ```
 
 When launched, the script will:
-	•	Automatically generate a minimal working config.yaml file;
-	•	Analyze two synthetic 2D maps and one synthetic datacube with 4 slices;
-	•	Run the analysis using 2 parallel cores (if available);
-	•	Generate all intermediate and final FITS files and diagnostic plots, including:
-	•	Background models;
-	•	Gaussian + background fits;
-	•	Residual maps;
-	•	Photometric results.
+  - Automatically generate a minimal working config.yaml file;
+  - Analyze two synthetic 2D maps and one synthetic datacube with 4 slices;
+  - Run the analysis using 2 parallel cores (if available);
+  - Generate all intermediate and final FITS files and diagnostic plots, including:
+  - Background models;
+  - Gaussian + background fits;
+  - Residual maps;
+  - Photometric results.
 
 This mode is designed to validate the installation and ensure that all the core functionalities of the pipeline are working properly. It is particularly useful for new users, developers, or during CI testing.
