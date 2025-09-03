@@ -574,9 +574,9 @@ When launched, the script will:
   - Analyze two synthetic 2D maps and one synthetic datacube with 4 slices;
   - Run the analysis using 2 parallel cores (if available);
   - Generate all intermediate and final FITS files and diagnostic plots, including:
-  - Background models;
-  - Gaussian + background fits;
-  - Residual maps;
-  - Photometric results.
+  -   - Background models;
+  -   - Gaussian + background fits;
+  -   - Residual maps;
+  -   - Photometric results.
 
 This mode is designed to validate the installation and ensure that all the core functionalities of the pipeline are working properly. It is particularly useful for new users, developers, or during CI testing.
