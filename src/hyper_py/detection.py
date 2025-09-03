@@ -3,8 +3,6 @@ from astropy.stats import sigma_clipped_stats
 from photutils.detection import DAOStarFinder
 from scipy.ndimage import convolve
 from astropy.table import Table
-from astropy.wcs import WCS
-
 
 
 def select_channel_map(map_struct):
