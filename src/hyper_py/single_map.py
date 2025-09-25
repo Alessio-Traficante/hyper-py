@@ -148,9 +148,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         real_rms = cfg.get("detection", "rms_value", False)
     else:         
         sigma_clip = SigmaClip(sigma=3.0, maxiters=10)
-        map_zero_mean_detect = real_map - np.nanmean(real_map)
         clipped = sigma_clip(map_zero_mean_detect)    
         real_rms = np.sqrt(np.nanmean(clipped**2))
+    
+    map_zero_mean_detect = real_map - np.nanmean(real_map)
         
         
     # --- run sources identification  --- #
