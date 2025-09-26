@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Hyper JOSS paper PDF
-        uses: openjournals/openjournals-draft-action@master
+        uses: openjournals/openjournals-pdf-action@master
         with:
           journal: joss
           paper-path: paper/paper.md  # adjust only if your .md file is not renamed
