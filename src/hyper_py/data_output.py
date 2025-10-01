@@ -23,7 +23,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
         flux_units_beam = 'mJy/beam'
     else:
         flux_units_beam = 'Jy/beam'
-        flux_units = 'Jy/beam'
+        flux_units = 'Jy'
         
     units = {
         'MAP_ID': '', 'HYPER_ID': '', 'BAND': 'GHz',
