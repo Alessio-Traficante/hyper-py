@@ -50,7 +50,9 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
 
 
     # --- Unit conversions ---
-    bunit = header.get('BUNIT')
+    header_for_units = hdul[0].header
+    bunit = header_for_units.cards['BUNIT'].value
+
     if bunit == 'MJy /sr':
         arcsec_to_rad = np.pi / (180.0 * 3600.0)
         pix_area_sr = (pix_dim * arcsec_to_rad)**2
