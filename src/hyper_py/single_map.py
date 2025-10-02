@@ -95,7 +95,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     flux_err = []
 
 
-    fit_statuts_val = []
+    fit_status_val = []
     deblend_val = []
     cluster_val = []
 
@@ -235,12 +235,24 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         # Convert to sky coordinates
         x_pixels = np.array(xcen, dtype=np.float64)
         y_pixels = np.array(ycen, dtype=np.float64)
-        ra, dec = wcs.wcs_pix2world(x_pixels, y_pixels, 0)
-        ra_save = np.where(ra < 0., ra + 360., ra)
-        
-        skycoords = SkyCoord(ra=ra, dec=dec, unit='deg', frame='icrs')
-        glon = skycoords.galactic.l.deg
-        glat = skycoords.galactic.b.deg
+
+        ctype1 = header.get('CTYPE1', '').upper()
+        ctype2 = header.get('CTYPE2', '').upper()
+
+        if 'GLON' in ctype1 and 'GLAT' in ctype2:
+            # Input coordinates are Galactic
+            glon, glat = wcs.wcs_pix2world(x_pixels, y_pixels, 0)
+            skycoords = SkyCoord(l=glon, b=glat, unit='deg', frame='galactic')
+            ra = skycoords.fk5.ra.deg
+            dec = skycoords.fk5.dec.deg
+            ra_save = np.where(ra < 0., ra + 360., ra)
+        else:
+            # Assume input coordinates are Equatorial (FK5/ICRS)
+            ra, dec = wcs.wcs_pix2world(x_pixels, y_pixels, 0)
+            ra_save = np.where(ra < 0., ra + 360., ra)
+            skycoords = SkyCoord(ra=ra, dec=dec, unit='deg', frame='fk5')
+            glon = skycoords.galactic.l.deg
+            glat = skycoords.galactic.b.deg
     
         # Prepare zeroed output table
         N = len(xcen)
@@ -387,7 +399,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         redchi_val.append(final_redchi)
         bic_val.append(final_bic)
         
-        fit_statuts_val.append(fit_status)
+        fit_status_val.append(fit_status)
         deblend_val.append(0)       # not deblended
         cluster_val.append(1)       # only one source
         
@@ -569,7 +581,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             redchi_val.append(final_redchi)
             bic_val.append(final_bic)
             
-            fit_statuts_val.append(fit_status)
+            fit_status_val.append(fit_status)
             deblend_val.append(1)                   # multi-Gaussian fit
             cluster_val.append(len(group_indices))  # number of sources in the group
             
@@ -587,18 +599,31 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             
     # Assuming you have your WCS object (usually from your FITS header)
     header = map_struct["header"]
-    # Convert pixel coordinates to sky coordinates (RA, Dec)
     x_pixels = np.array(updated_xcen, dtype=np.float64)
     y_pixels = np.array(updated_ycen, dtype=np.float64)
     
     # Initialize WCS from header
     wcs = WCS(header)
-    ra, dec = wcs.wcs_pix2world(x_pixels, y_pixels, 0)
-    ra_save = np.where(ra < 0., ra + 360., ra)
-        
-    skycoords = SkyCoord(ra=ra, dec=dec, unit='deg', frame='icrs')
-    glon = skycoords.galactic.l.deg
-    glat = skycoords.galactic.b.deg
+
+    # Detect coordinate type from header
+    ctype1 = header.get('CTYPE1', '').upper()
+    ctype2 = header.get('CTYPE2', '').upper()
+
+    if 'GLON' in ctype1 and 'GLAT' in ctype2:
+        # Input coordinates are Galactic
+        glon, glat = wcs.wcs_pix2world(x_pixels, y_pixels, 0)
+        # Convert to FK5 (RA/Dec)
+        skycoords = SkyCoord(l=glon, b=glat, unit='deg', frame='galactic')
+        ra = skycoords.fk5.ra.deg
+        dec = skycoords.fk5.dec.deg
+        ra_save = np.where(ra < 0., ra + 360., ra)
+    else:
+        # Assume input coordinates are Equatorial (FK5/ICRS)
+        ra, dec = wcs.wcs_pix2world(x_pixels, y_pixels, 0)
+        ra_save = np.where(ra < 0., ra + 360., ra)
+        skycoords = SkyCoord(ra=ra, dec=dec, unit='deg', frame='fk5')
+        glon = skycoords.galactic.l.deg
+        glat = skycoords.galactic.b.deg
 
 
 ######################## Write Table after photometry ########################
@@ -640,7 +665,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             "FWHM_1": list(radius_val_1),
             "FWHM_2": list(radius_val_2),
             "PA": list(PA_val),
-            "STATUS": list(fit_statuts_val),
+            "STATUS": list(fit_status_val),
             "GLON": list(glon),
             "GLAT": list(glat),
             "RA": list(ra_save),
