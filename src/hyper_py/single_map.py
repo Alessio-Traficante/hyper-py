@@ -143,6 +143,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     
 
     # --- map rms used to define real sources in the map - accounting for non-zero background --- #
+    map_zero_mean_detect = real_map - np.nanmean(real_map)
+    
     use_maual_rms = cfg.get("detection", "use_manual_rms", False)
     if use_maual_rms == True:
         real_rms = cfg.get("detection", "rms_value", False)
@@ -151,7 +153,6 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         clipped = sigma_clip(map_zero_mean_detect)    
         real_rms = np.sqrt(np.nanmean(clipped**2))
     
-    map_zero_mean_detect = real_map - np.nanmean(real_map)
         
         
     # --- run sources identification  --- #
