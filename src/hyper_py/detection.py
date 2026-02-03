@@ -50,7 +50,8 @@ def estimate_rms(image, sigma_clip=3.0):
     return sigma
 
 
-def detect_peaks(filtered_image, threshold, fwhm_pix, roundlim=(-1.0, 1.0), sharplim=(-1.0, 2.0)):
+def detect_peaks(filtered_image, threshold, fwhm_pix, roundlim=(-1.0, 1.0), sharplim=(-1.0, 2.0)):  
+    
     finder = DAOStarFinder(
         threshold=threshold,
         fwhm=fwhm_pix,
