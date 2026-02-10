@@ -1,4 +1,4 @@
-def create_background_cubes(background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger):
+def create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger):
     
     import os
     import numpy as np
@@ -106,7 +106,7 @@ def create_background_cubes(background_slices, slice_cutout_header, cube_header,
             if key in new_header:
                 del new_header[key]
 
-    output_cube_path = os.path.join(dir_slices_out, "background_cube_cut.fits")
+    output_cube_path = os.path.join(dir_slices_out, os.path.basename(map_name) + "_background_cube_cut.fits")
     fits.PrimaryHDU(data=bg_cube, header=new_header).writeto(output_cube_path, overwrite=True)
     logger.info(f"📦 Background cube saved to: {output_cube_path}")
 
@@ -155,6 +155,7 @@ def create_background_cubes(background_slices, slice_cutout_header, cube_header,
                 key = f"{prefix}{ax}"
                 if key in padded_header:
                     del padded_header[key]
-        output_cube_full_path = os.path.join(dir_slices_out, "background_cube_fullsize.fits")
+        output_cube_full_path = os.path.join(dir_slices_out, os.path.basename(map_name) + "_background_cube_fullsize.fits")
+
         fits.PrimaryHDU(data=bg_cube_full, header=padded_header).writeto(output_cube_full_path, overwrite=True)
         logger.info(f"📦 Full-size background cube saved to: {output_cube_full_path}")

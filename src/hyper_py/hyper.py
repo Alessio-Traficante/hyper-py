@@ -144,7 +144,7 @@ def start_hyper(cfg_path):
     
     # === Combine all bg_models into a datacube ===
     if datacube:
-        create_background_cubes(background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger)
+        create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger)
 
     
     logger.info("****************** ✅ Hyper finished !!! ******************")

@@ -33,7 +33,7 @@ def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
                     if key.startswith('CRVAL3') or key.startswith('CDELT3') or key.startswith('CTYPE3'):
                         del slice_header[key]
 
-                out_name = f"{os.path.splitext(cube_name)[0]}_slice_{i+1:03d}.fits"
+                out_name = f"{os.path.splitext(os.path.basename(cube_name))[0]}_slice_{i+1:03d}.fits"
                 out_path = os.path.join(dir_slices_out, out_name)
 
                 fits.writeto(out_path, slice_data, slice_header, overwrite=True)
