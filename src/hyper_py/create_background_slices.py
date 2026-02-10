@@ -1,6 +1,3 @@
-from email import header
-
-
 def create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger):
     
     import os
