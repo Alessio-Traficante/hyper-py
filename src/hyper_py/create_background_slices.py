@@ -1,3 +1,6 @@
+from email import header
+
+
 def create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger):
     
     import os
@@ -149,7 +152,32 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
         padded_header['NAXIS2'] = full_ny
         padded_header['NAXIS3'] = bg_cube_full.shape[0]
         padded_header['WCSAXES'] = max(padded_header.get('WCSAXES', 3), 3)
-        padded_header['BUNIT'] = 'mJy' if convert_mjy else 'Jy'
+
+
+
+
+
+
+
+        # --- Unit conversions (back to original headeer Units) ---
+        header_for_units = hdul[0].padded_header
+        bunit = header_for_units.cards['BUNIT'].value
+        pix_dim = abs(padded_header.get('CDELT1', header.get('CD1_1', 1))) * 3600.0  # arcsec
+
+        if bunit == 'MJy/sr' or bunit == 'MJy / sr':
+            arcsec_to_rad = np.pi / (180.0 * 3600.0)
+            pix_area_sr = (pix_dim * arcsec_to_rad)**2 * 1e6
+            bg_cube_full /= pix_area_sr  # Jy/pixel tp MJy/sr
+        
+        if bunit == 'Jy/beam' or bunit == 'beam-1 Jy':    
+            pix_area = pix_dim**2
+            bg_cube_full *= (beam_area_arcsec2 / pix_area) #  Jy/pixel to Jy/beam
+        
+        if convert_mjy:
+            bg_cube_full /= 1e3  # mJy → Jy  
+
+
+        
         for ax in [4, 5]:
             for prefix in ['CTYPE', 'CRPIX', 'CRVAL', 'CDELT', 'CUNIT']:
                 key = f"{prefix}{ax}"
