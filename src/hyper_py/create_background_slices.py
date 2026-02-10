@@ -118,8 +118,9 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
     xcen_all = []
     ycen_all = []
     
-    for hdr in slice_cutout_header:
-        ny, nx = cropped_bgs[0].shape
+    for myindex range(0, np.shape(slice_cutout_header)[0]):
+        hdr = slice_cutout_header[myindex]
+        ny, nx = background_slices[myindex].shape
         x_c = nx / 2.0
         y_c = ny / 2.0
         wcs_cutout = WCS(hdr, naxis=2)
