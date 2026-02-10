@@ -141,6 +141,8 @@ def main() -> None:
     """Main entry point for CLI execution."""
     cfg_path = _resolve_config_path(sys.argv)
 
+    print("Welcome to HyperPy!")
+
     if not cfg_path.exists():
         # Create new hyper_config.yaml from packaged template
         _copy_template_to(cfg_path)
