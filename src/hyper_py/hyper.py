@@ -134,9 +134,13 @@ def start_hyper(cfg_path):
         final_table.meta['comments'] = []
     
     # Output file paths
-    ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.txt")
-    csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.csv")
-    
+    if datacube:
+        ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{os.path.basename(map_name)}_ALL.txt")
+        csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{os.path.basename(map_name)}_ALL.csv")
+    else:
+        ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.txt")
+        csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.csv")
+
     # Write outputs
     final_table.write(ipac_path, format='ipac', overwrite=True)
     final_table.write(csv_path, format='csv', overwrite=True)
