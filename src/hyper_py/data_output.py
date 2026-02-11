@@ -62,8 +62,8 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
 
     format_dict = {
         'MAP_ID': 's', 'HYPER_ID': 'd', 'RA': '.5f', 'DEC': '.5f', 'GLON': '.5f', 'GLAT': '.5f',
-        'FLUX': '.3f', 'FLUX_ERR': '.3f', 'FLUX_PEAK': '.5f',
-        'FLUX_PEAK_JY': '.4f', 'RESIDUALS': '.5f',
+        'FLUX': '.3e', 'FLUX_ERR': '.3e', 'FLUX_PEAK': '.3e',
+        'FLUX_PEAK_JY': '.3e', 'RESIDUALS': '.3e',
         'FWHM_1': '.3f', 'FWHM_2': '.3f', 'PA': '.1f',
         'NMSE': '.3f', 'CHI2_RED': '.3f', 'BIC': '.2f', 'POLYN': 'd',
         'STATUS': 'd', 'DEBLEND': 'd', 'CLUSTER': 'd',
