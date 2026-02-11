@@ -53,7 +53,7 @@ def start_hyper(cfg_path):
         map_names = [map_names]
         
     if datacube:
-        map_names, cube_header = extract_maps_from_cube(map_names, dir_slices_out, dir_maps)
+        map_names, cube_header, beam_area_arcsec2_datacubes = extract_maps_from_cube(map_names, dir_slices_out, dir_maps)
         background_slices = []
         slice_cutout_header = []
     
@@ -148,7 +148,7 @@ def start_hyper(cfg_path):
     
     # === Combine all bg_models into a datacube ===
     if datacube:
-        create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger)
+        create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, beam_area_arcsec2_datacubes, dir_slices_out, fix_min_box, convert_mjy, logger)
 
     
     logger.info("****************** ✅ Hyper finished !!! ******************")
