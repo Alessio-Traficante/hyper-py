@@ -4,6 +4,7 @@ def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
     """
     from astropy.io import fits
     from astropy.wcs import WCS
+    import numpy as np
     import os
     import numpy as np
 
