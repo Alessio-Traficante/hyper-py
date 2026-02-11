@@ -1,4 +1,5 @@
-def create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, dir_slices_out, fix_min_box, convert_mjy, logger):
+def create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, 
+                            beam_area_arcsec2_datacubes, dir_slices_out, fix_min_box, convert_mjy, logger):
     
     import os
     import numpy as np
@@ -169,7 +170,7 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
         
         if bunit == 'Jy/beam' or bunit == 'beam-1 Jy':    
             pix_area = pix_dim**2
-            bg_cube_full *= (beam_area_arcsec2 / pix_area) #  Jy/pixel to Jy/beam
+            bg_cube_full *= (beam_area_arcsec2_datacubes / pix_area) #  Jy/pixel to Jy/beam
         
         if convert_mjy:
             bg_cube_full /= 1e3  # mJy → Jy  

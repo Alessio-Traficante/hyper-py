@@ -39,4 +39,11 @@ def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
                 fits.writeto(out_path, slice_data, slice_header, overwrite=True)
                 extracted_maps.append(out_name)
 
-    return extracted_maps, cube_header
+        # estimate cube header for background slice creation
+            bmin = cube_header.get('BMIN', 0) * 3600  # degrees → arcsec
+            bmaj = cube_header.get('BMAJ', 0) * 3600
+            beam = np.sqrt(bmin * bmaj)
+            
+            beam_area_arcsec2_datacubes = 1.1331 * bmin * bmaj
+
+    return extracted_maps, cube_header, beam_area_arcsec2_datacubes
