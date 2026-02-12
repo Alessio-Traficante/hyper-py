@@ -104,14 +104,14 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
     if bunit == 'MJy/sr' or bunit == 'MJy / sr':
         arcsec_to_rad = np.pi / (180.0 * 3600.0)
         pix_area_sr = (pix_dim * arcsec_to_rad)**2 * 1e6
-        bg_cube_full /= pix_area_sr  # Jy/pixel tp MJy/sr
+        bg_cube /= pix_area_sr  # Jy/pixel tp MJy/sr
     
     if bunit == 'Jy/beam' or bunit == 'beam-1 Jy':    
         pix_area = pix_dim**2
-        bg_cube_full *= (beam_area_arcsec2_datacubes / pix_area) #  Jy/pixel to Jy/beam
+        bg_cube *= (beam_area_arcsec2_datacubes / pix_area) #  Jy/pixel to Jy/beam
     
     if convert_mjy:
-        bg_cube_full /= 1e3  # mJy → Jy  
+        bg_cube /= 1e3  # mJy → Jy  
 
 
     
