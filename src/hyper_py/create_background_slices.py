@@ -1,10 +1,18 @@
-def create_background_cubes(map_name, background_slices, slice_cutout_header, cube_header, 
+def create_background_cubes(map_name, input_background_slices, input_slice_cutout_header, cube_header, 
                             beam_area_arcsec2_datacubes, dir_slices_out, fix_min_box, convert_mjy, logger):
     
     import os
     import numpy as np
     from astropy.io import fits
     from astropy.wcs import WCS
+
+    # 0. Reorder using the sequential channel numbers the backgrounds and headers 
+    channel_index_slices = [s['CHAN_N']-1 for s in input_slice_cutout_header]
+    reorder = np.argsort(channel_index_slices)
+    background_slices = [input_background_slices[i] for i in reorder]
+    slice_cutout_header = [input_slice_cutout_header[i] for i in reorder]
+    del input_background_slices, input_slice_cutout_header
+    chan_start_cube = slice_cutout_header[0]['CHAN_N']
     
     # 1. Determine common crop size
     all_shapes = [bg.shape for bg in background_slices]
@@ -93,8 +101,11 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
     
     # 11. Ensure WCSAXES is at least 3
     new_header['WCSAXES'] = max(new_header.get('WCSAXES', 3), 3)
-    
 
+    # 12. Add to the cube the starting channel in case extract cubes is modified and do not take all the cube channels
+    new_header['START_CH'] = (chan_start_cube, 'Channel in the original input cube that corresponds to chan 1 in this cube')
+    if chan_start_cube !=1:
+        new_header['CRPIX3'] = cube_header['CRPIX3'] - chan_start_cube +1 # to use CRVAL3 from the original cube 
 
     # --- Unit conversions (back to original header Units) ---
     header_for_units = new_header
@@ -166,7 +177,12 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
         padded_header['NAXIS2'] = full_ny
         padded_header['NAXIS3'] = bg_cube_full.shape[0]
         padded_header['WCSAXES'] = max(padded_header.get('WCSAXES', 3), 3)
-
+        
+        # 12. Add to the cube the starting channel in case extract cubes is modified and do not take all the cube channels
+        padded_header['START_CH'] = (chan_start_cube, 'Channel in the original input cube that corresponds to chan 1 in this cube')
+        if chan_start_cube !=1:
+            new_header['CRPIX3'] = padded_header['CRPIX3'] - chan_start_cube +1 # to use CRVAL3 from the original cube 
+ 
 
         # --- Unit conversions (back to original header Units) ---
         header_for_units = padded_header

@@ -25,12 +25,12 @@ def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
             for i in range(data.shape[0]):
                 slice_data = data[i, :, :]
                 slice_header = cube_header.copy()
-                slice_header['CRPIX3'] = i + 1  # track the slice index
+                slice_header['CHAN_N'] = (i + 1 , 'Original channel index') # track the slice index
                 slice_header['NAXIS'] = 2  # force 2D output
                 for key in list(slice_header.keys()):
                     if key.startswith('NAXIS') and key != 'NAXIS1' and key != 'NAXIS2':
                         del slice_header[key]
-                    if key.startswith('CRVAL3') or key.startswith('CDELT3') or key.startswith('CTYPE3'):
+                    if key.startswith('CRVAL3') or key.startswith('CDELT3') or key.startswith('CTYPE3') or key.startswith('CRPIX3'):
                         del slice_header[key]
 
                 out_name = f"{os.path.splitext(os.path.basename(cube_name))[0]}_slice_{i+1:03d}.fits"

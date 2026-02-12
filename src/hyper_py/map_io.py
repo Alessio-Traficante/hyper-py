@@ -39,7 +39,9 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
     if pix_dim <= 0:
         raise ValueError("Invalid pixel scale in FITS header.")
         
-
+    # --- Store the channel index in the header, which is removed below
+    mychan = header['CHAN_N']
+ 
     # --- Strip header down to 2D WCS only ---
     try:
         wcs_full = WCS(header)
@@ -47,7 +49,9 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
         header = wcs_2d.to_header()
     except Exception as e:
         print(f"[WARNING] Could not clean WCS header: {e}")
-
+    
+    # --- Add again to the header the channel index needed to reorder the background for cubes
+    header['CHAN_N'] = (mychan, 'Original channel index')
 
     # --- Unit conversions ---
     header_for_units = hdul[0].header
