@@ -97,9 +97,9 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
 
 
     # --- Unit conversions (back to original header Units) ---
-    header_for_units = padded_header
+    header_for_units = new_header
     bunit = header_for_units.cards['BUNIT'].value
-    pix_dim = abs(padded_header.get('CDELT1', padded_header.get('CD1_1', 1))) * 3600.0  # arcsec
+    pix_dim = abs(header_for_units.get('CDELT1', header_for_units.get('CD1_1', 1))) * 3600.0  # arcsec
 
     if bunit == 'MJy/sr' or bunit == 'MJy / sr':
         arcsec_to_rad = np.pi / (180.0 * 3600.0)
@@ -171,7 +171,7 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
         # --- Unit conversions (back to original header Units) ---
         header_for_units = padded_header
         bunit = header_for_units.cards['BUNIT'].value
-        pix_dim = abs(padded_header.get('CDELT1', padded_header.get('CD1_1', 1))) * 3600.0  # arcsec
+        pix_dim = abs(header_for_units.get('CDELT1', header_for_units.get('CD1_1', 1))) * 3600.0  # arcsec
 
         if bunit == 'MJy/sr' or bunit == 'MJy / sr':
             arcsec_to_rad = np.pi / (180.0 * 3600.0)
