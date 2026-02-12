@@ -94,11 +94,26 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
     # 11. Ensure WCSAXES is at least 3
     new_header['WCSAXES'] = max(new_header.get('WCSAXES', 3), 3)
     
-    # update units header 
+
+
+    # --- Unit conversions (back to original header Units) ---
+    header_for_units = padded_header
+    bunit = header_for_units.cards['BUNIT'].value
+    pix_dim = abs(padded_header.get('CDELT1', padded_header.get('CD1_1', 1))) * 3600.0  # arcsec
+
+    if bunit == 'MJy/sr' or bunit == 'MJy / sr':
+        arcsec_to_rad = np.pi / (180.0 * 3600.0)
+        pix_area_sr = (pix_dim * arcsec_to_rad)**2 * 1e6
+        bg_cube_full /= pix_area_sr  # Jy/pixel tp MJy/sr
+    
+    if bunit == 'Jy/beam' or bunit == 'beam-1 Jy':    
+        pix_area = pix_dim**2
+        bg_cube_full *= (beam_area_arcsec2_datacubes / pix_area) #  Jy/pixel to Jy/beam
+    
     if convert_mjy:
-        new_header['BUNIT'] = 'mJy'
-    else:
-        new_header['BUNIT'] = 'Jy'
+        bg_cube_full /= 1e3  # mJy → Jy  
+
+
     
     # Optional: clean inconsistent axis-specific keys (e.g., if 4D originally)
     for ax in [4, 5]:
@@ -153,12 +168,7 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
         padded_header['WCSAXES'] = max(padded_header.get('WCSAXES', 3), 3)
 
 
-
-
-
-
-
-        # --- Unit conversions (back to original headeer Units) ---
+        # --- Unit conversions (back to original header Units) ---
         header_for_units = padded_header
         bunit = header_for_units.cards['BUNIT'].value
         pix_dim = abs(padded_header.get('CDELT1', padded_header.get('CD1_1', 1))) * 3600.0  # arcsec
@@ -173,8 +183,8 @@ def create_background_cubes(map_name, background_slices, slice_cutout_header, cu
             bg_cube_full *= (beam_area_arcsec2_datacubes / pix_area) #  Jy/pixel to Jy/beam
         
         if convert_mjy:
-            bg_cube_full /= 1e3  # mJy → Jy  
-
+            bg_cube_full /= 1e3  # mJy → Jy 
+ 
 
         
         for ax in [4, 5]:
