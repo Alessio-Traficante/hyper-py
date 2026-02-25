@@ -43,9 +43,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     ellipses_file      = paths_dict["ellipses_file"]
     suffix = paths_dict["suffix"]
 
-    # - control - #
+    # - control & photometry - #
     detection_only = cfg.get("control", "detection_only", False) 
     fixed_radius = cfg.get("photometry", "fixed_radius", False)
+    fwhm_radius_ratio = cfg.get("photometry", "fwhm_radius_ratio", False)
     
     # - params - #
     survey_code = cfg.get("survey", "survey_code")
@@ -370,8 +371,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             xcen=[fit_result.params["g_centerx"].value],  # relative coordinates inside cutout
             ycen=[fit_result.params["g_centery"].value],
             config=cfg,
-            radius_val_1=[fwhm_x],
-            radius_val_2=[fwhm_y],
+            radius_val_1=[fwhm_x * fwhm_radius_ratio],
+            radius_val_2=[fwhm_y * fwhm_radius_ratio],
             PA_val=[theta]
         )
 
@@ -389,8 +390,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         flux.append(phot_single["flux"][0])
         flux_err.append(phot_single["error"][0])
         
-        radius_val_1.append(fwhm_x * pix_dim)          # save value in arcsec
-        radius_val_2.append(fwhm_y * pix_dim)          # save value in arcsec
+        radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save value in arcsec
+        radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save value in arcsec
         PA_val.append(theta)
         updated_xcen.append(fit_result.params["g_centerx"].value + xslice.start)
         updated_ycen.append(fit_result.params["g_centery"].value + yslice.start)
@@ -511,8 +512,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
                 xcen=[fit_result.params[f"g{j}_x0"].value], 
                 ycen=[fit_result.params[f"g{j}_y0"].value],
                 config=cfg,
-                radius_val_1=[fwhm_x],
-                radius_val_2=[fwhm_y],
+                radius_val_1=[fwhm_x * fwhm_radius_ratio],
+                radius_val_2=[fwhm_y * fwhm_radius_ratio],
                 PA_val=[theta]
             )
             
@@ -570,8 +571,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             flux.append(phot_res["flux"][0])
             flux_err.append(phot_res["error"][0])
 
-            radius_val_1.append(fwhm_x * pix_dim)        # save value in arcsec
-            radius_val_2.append(fwhm_y * pix_dim)        # save value in arcsec
+            radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)        # save value in arcsec
+            radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)        # save value in arcsec
             PA_val.append(theta)
             updated_xcen.append(fit_result.params[f"g{j}_x0"].value + x0_global)
             updated_ycen.append(fit_result.params[f"g{j}_y0"].value + y0_global)

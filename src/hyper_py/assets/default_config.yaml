@@ -74,7 +74,8 @@ detection:
 photometry:
   aper_inf: 1.0                          # [REQUIRED] Minimum size factor for Gaussian FWHM (used as minimum radius). Default: 1.0
   aper_sup: 2.0                          # [REQUIRED] Maximum size factor for Gaussian FWHM (used as maximum radius). Default: 2.0
-  
+  fwhm_radius_ratio: 1.0                 # [OPTIONAL] Ratio between fitted FWHM and source radius. Default: 1.0 (FWHM = radius)
+
   fixed_radius: false                    # [OPTIONAL] Use fixed aperture radii instead of Gaussian fitting (True/False). Default: False
   fwhm_1: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true). Default: [0.0]
   fwhm_2: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true). Default: [0.0]
