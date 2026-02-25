@@ -46,7 +46,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     # - control & photometry - #
     detection_only = cfg.get("control", "detection_only", False) 
     fixed_radius = cfg.get("photometry", "fixed_radius", False)
-    fwhm_radius_ratio = cfg.get("photometry", "fwhm_radius_ratio", False)
+    fwhm_radius_ratio = cfg.get("photometry", "fwhm_radius_ratio", 1.0)
     
     # - params - #
     survey_code = cfg.get("survey", "survey_code")
@@ -81,6 +81,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         )
     
     # initialize vectors and Table     
+    fwhm_1_val = []
+    fwhm_2_val = []
     radius_val_1 = []
     radius_val_2 = []
     PA_val = []
@@ -390,8 +392,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         flux.append(phot_single["flux"][0])
         flux_err.append(phot_single["error"][0])
         
-        radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save value in arcsec
-        radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save value in arcsec
+        fwhm_1_val.append(fwhm_x * pix_dim)          # save FWHM_1 value in arcsec
+        fwhm_2_val.append(fwhm_y * pix_dim)          # save FWHM_1 value in arcsec
+        radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save FWHM_1 value in arcsec
+        radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save FWHM_2 value in arcsec
         PA_val.append(theta)
         updated_xcen.append(fit_result.params["g_centerx"].value + xslice.start)
         updated_ycen.append(fit_result.params["g_centery"].value + yslice.start)
@@ -571,8 +575,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             flux.append(phot_res["flux"][0])
             flux_err.append(phot_res["error"][0])
 
-            radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)        # save value in arcsec
-            radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)        # save value in arcsec
+            fwhm_1_val.append(fwhm_x * pix_dim)          # save FWHM_1 value in arcsec
+            fwhm_2_val.append(fwhm_y * pix_dim)          # save FWHM_2 value in arcsec
+            radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save FWHM_1 value in arcsec
+            radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save FWHM_2 value in arcsec
             PA_val.append(theta)
             updated_xcen.append(fit_result.params[f"g{j}_x0"].value + x0_global)
             updated_ycen.append(fit_result.params[f"g{j}_y0"].value + y0_global)
@@ -664,8 +670,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             "NMSE": list(nmse_val),
             "CHI2_RED": list(redchi_val),
             "BIC": list(bic_val),
-            "FWHM_1": list(radius_val_1),
-            "FWHM_2": list(radius_val_2),
+            "FWHM_1": list(fwhm_1_val),
+            "FWHM_2": list(fwhm_2_val),
             "PA": list(PA_val),
             "STATUS": list(fit_status_val),
             "GLON": list(glon),
