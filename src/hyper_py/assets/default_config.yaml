@@ -116,6 +116,7 @@ background:
   fit_gauss_and_bg_together: false       # [REQUIRED] Enable polynomial background subtraction and Gaussian fit simultaneously (True/False). Default: False
   polynomial_orders: [0]                 # [OPTIONAL] Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.). Default: [0]
 
+  polynomial_orders_no_bkg: [2]          # [OPTIONAL] Polynomial background orders used to model the background map when no sources are identified in the field. Default: [0]
 
 #--------------------- Fits output Options ---------------------#
 fits_output:                                    # Save Fits files for best fits
