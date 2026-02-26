@@ -100,19 +100,12 @@ def masked_bkg_no_sources(
 
     # ------------------ Loop over box sizes ------------------ #
     for box in box_sizes:
-        if fix_min_box != 0:
-            xmin = 0
-            xmax = nx
-            ymin = 0
-            ymax = ny
-            
-            cutout = image[ymin:ymax, xmin:xmax].copy()
-        else:
-            xmin = 0
-            xmax = box_sizes[0]
-            ymin = 0
-            ymax = box_sizes[1]
-            cutout = image
+ 
+        xmin = 0
+        xmax = box_sizes[0]
+        ymin = 0
+        ymax = box_sizes[1]
+        cutout = image
                 
         
         if cutout.size == 0 or np.isnan(cutout).all():
@@ -159,8 +152,6 @@ def masked_bkg_no_sources(
         else:
             logger_file_only.warning(f"⚠️ Too many NaNs at edges (fraction: {nan_fraction:.2f}) — interpolation skipped.")
     
-
-
         # --- Apply main sources mask → set masked pixels to np.nan --- #
         cutout_masked_all = np.copy(cutout)
         cutout_masked_all[~mask_bg] = np.nan        
@@ -225,32 +216,32 @@ def masked_bkg_no_sources(
                 
                                
                 # --- Estimate best_min on common mask size for all runs --- #
-                if fix_min_box != 0:
-                    half_ref_box = ref_box_size // 2 -1
+                # if fix_min_box != 0:
+                #     half_ref_box = ref_box_size // 2 -1
                     
-                    x_start = max(0, int((x0)) - half_ref_box)
-                    x_end   = min(nx, int(x0) + half_ref_box +1)
-                    y_start = max(0, int((y0)) - half_ref_box)
-                    y_end   = min(ny, int(y0) + half_ref_box +1)
+                #     x_start = max(0, int((x0)) - half_ref_box)
+                #     x_end   = min(nx, int(x0) + half_ref_box +1)
+                #     y_start = max(0, int((y0)) - half_ref_box)
+                #     y_end   = min(ny, int(y0) + half_ref_box +1)
                     
-                    # --- Check bounds ---
-                    if (x_start < 0 or y_start < 0):
-                        x_start = 0
-                        y_start = 0
-                        logger_file_only.warning(f"[SKIP] Box size {box} cannot be cropped to match reference.")
-                        continue  # this cutout is too small to extract the reference region               
-                    if (x_end > cutout_masked_all.shape[1]):
-                        x_end = cutout_masked_all.shape[1]
+                #     # --- Check bounds ---
+                #     if (x_start < 0 or y_start < 0):
+                #         x_start = 0
+                #         y_start = 0
+                #         logger_file_only.warning(f"[SKIP] Box size {box} cannot be cropped to match reference.")
+                #         continue  # this cutout is too small to extract the reference region               
+                #     if (x_end > cutout_masked_all.shape[1]):
+                #         x_end = cutout_masked_all.shape[1]
     
-                    if (y_end > cutout_masked_all.shape[0]):
-                        y_end = cutout_masked_all.shape[0]
-                    cutout_eval = cutout_masked_all[y_start:y_end, x_start:x_end]
-                else:
-                    x_start = 0
-                    x_end = box_sizes[0]
-                    y_start = 0
-                    y_end = box_sizes[1]
-                    cutout_eval = cutout_masked_all
+                #     if (y_end > cutout_masked_all.shape[0]):
+                #         y_end = cutout_masked_all.shape[0]
+                #     cutout_eval = cutout_masked_all[y_start:y_end, x_start:x_end]
+                # else:
+                    # x_start = 0
+                    # x_end = box_sizes[0]
+                    # y_start = 0
+                    # y_end = box_sizes[1]
+                cutout_eval = cutout_masked_all
 
 
                 # --- Crop current cutout to match reference size ---
