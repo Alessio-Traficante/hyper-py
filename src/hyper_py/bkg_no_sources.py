@@ -16,7 +16,7 @@ def masked_bkg_no_sources(
     nx, ny, 
     max_fwhm_extent,
     box_sizes,
-    pol_order_bkg_no_sources,
+    pol_orders_bkg_no_sources,
     config,
     logger,
     logger_file_only
@@ -46,7 +46,7 @@ def masked_bkg_no_sources(
         consistency with other routines.
     box_sizes : sequence
         List of box half-widths to try (in pixels).
-    pol_order_bkg_no_sources : int
+    pol_orders_bkg_no_sources : int
         Polynomial order to use for background estimation.
     config : ConfigReader
         Configuration reader with fitting options.
@@ -189,7 +189,7 @@ def masked_bkg_no_sources(
 
 
         # ------------------ Loop over polynomial orders ------------------
-        for order in pol_order_bkg_no_sources:
+        for order in pol_orders_bkg_no_sources:
             # Build design matrix
             terms = []
             param_names = []

@@ -741,9 +741,9 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     if bg_model is not None:    
         return map_name, bg_model, cutout_header, header
     else:
-        pol_order_bkg_no_sources = cfg.get("background", "pol_order_bkg_no_sources", [0])  # only if fit_separately
+        pol_orders_bkg_no_sources = cfg.get("background", "pol_orders_bkg_no_sources", [0])  # only if fit_separately
 
-        if pol_order_bkg_no_sources == 0:
+        if pol_orders_bkg_no_sources == [0]:
             valid_real_map_nobg = ~np.isnan(real_map)        
             mean_valid_real_map_nobg, median_valid_real_map_nobg, std_valid_real_map_nobg = sigma_clipped_stats(real_map[valid_real_map_nobg], sigma=3.0, maxiters=5)
             real_map_nobg = np.full_like(real_map, median_valid_real_map_nobg)
@@ -782,7 +782,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
                 ny,
                 max_fwhm_extent,
                 box_sizes,
-                pol_order_bkg_no_sources,
+                pol_orders_bkg_no_sources,
                 cfg,
                 logger,
                 logger_file_only
