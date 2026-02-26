@@ -750,10 +750,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             real_map_nobg[np.isnan(real_map)] = np.nan        
             bg_model = real_map_nobg
             return map_name, bg_model, header, header
-
         else:
-            ny, nx = real_map.shape
-
             minimize_method = cfg.get("fit_options", "min_method", "redchi")
             beam_pix = map_struct['beam_dim']/pix_dim/2.3548      # beam sigma size in pixels    
             fwhm_beam_pix = beam_pix * 2.3548    # beam FWHM size in pixels    
@@ -764,6 +761,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             fix_max_box = cfg.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
 
             # === Determine box size ===
+            ny, nx = real_map.shape
             if fix_min_box == 0:
                 # Use entire map size directly
                 box_sizes = list((ny, nx))
@@ -772,7 +770,6 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
                 dynamic_min_box = int(np.ceil(fix_min_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
                 dynamic_max_box = int(np.ceil(fix_max_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
                 box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
-
 
             real_map_after_bg, real_map_full_with_bg, cutout_header, bg_model, mask_bg, back_order, poly_params = masked_bkg_no_sources(
                 minimize_method,

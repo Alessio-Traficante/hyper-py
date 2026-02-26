@@ -101,7 +101,6 @@ def masked_bkg_no_sources(
     # ------------------ Loop over box sizes ------------------ #
     for box in box_sizes:
         if fix_min_box != 0:
-            half_box = box // 2 -1
             xmin = 0
             xmax = nx
             ymin = 0
