@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from astropy.stats import sigma_clipped_stats
 from photutils.detection import DAOStarFinder
@@ -13,7 +15,14 @@ def select_channel_map(map_struct):
     return map_struct, FWHM_pix
 
 
-def high_pass_filter(image, kernel_dim=9):
+def high_pass_filter(image, kernel_size_pix, FWHM_pix):
+
+    if kernel_size_pix % 2 == 0:
+        kernel_size_pix -= 1    
+    FWHM_int = math.floor(FWHM_pix)
+
+    kernel_dim = kernel_size_pix**2 if kernel_size_pix != 0 else FWHM_int**2
+
     ny, nx = image.shape
     kdim = min(kernel_dim, ny, nx)
     if kdim % 2 == 0:
@@ -128,7 +137,9 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
 
 
     # --- identify multiple peaks in filtered image and save good peaks with real snr threshold --- #
-    filtered = high_pass_filter(image)
+    kernel_size_pix=config.get("detection", "kernel_size_pix", 0)
+
+    filtered = high_pass_filter(image, kernel_size_pix, FWHM_pix)
     norm_filtered = normalize_filtered_image(filtered)
         
     filtered_rms_detect = estimate_rms(norm_filtered)

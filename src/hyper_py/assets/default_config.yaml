@@ -59,6 +59,8 @@ detection:
   
   use_manual_rms: false                         # [OPTIONAL] Use manually provided RMS noise value to identify sources (True/False). Default: False
   rms_value: 1.e-6                              # [OPTIONAL] Manual RMS noise value (Jy) (only if use_manual_rms = true). Default: 1.e-6
+
+  kernel_size_pix: 5                            # [OPTIONAL] Size of the high-pass filter kernel in pixels (odd integer; if 0, it is set to FWHM_pix).  Default: 0 
   
   roundlim: [-4.0, 4.0]                         # [ADVANCED] Allowed source roundness range (min, max for DAOFIND). Default: [-4.0, 4.0]
   sharplim: [-2.0, 2.0]                         # [ADVANCED] Allowed source sharpness range (min, max for DAOFIND). Default: [-2.0, 2.0]
