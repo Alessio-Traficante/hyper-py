@@ -135,8 +135,9 @@ def start_hyper(cfg_path):
     
     # Output file paths
     if datacube:
-        ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{os.path.basename(map_name)}_ALL.txt")
-        csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{os.path.basename(map_name)}_ALL.csv")
+        new_name = os.path.basename(map_name).split('_slice')[0]
+        ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{new_name}_ALL.txt")
+        csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_{new_name}_ALL.csv")
     else:
         ipac_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.txt")
         csv_path = os.path.join(dir_root, output_dir, f"{base_table_name}_ALL.csv")

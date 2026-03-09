@@ -4,6 +4,7 @@
 
 **Original reference:** Traficante et al. (2015), *MNRAS, 451, 3089*  
 
+**Zenodo reference** https://doi.org/10.5281/zenodo.18469454
 ---
 
 ## Overview

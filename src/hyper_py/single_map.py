@@ -21,6 +21,9 @@ from hyper_py.fitting import fit_group_with_background
 from hyper_py.visualization import plot_fit_summary
 from hyper_py.logger import setup_logger
 
+from .bkg_no_sources import masked_bkg_no_sources
+
+
 
 def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=None):   
          
@@ -32,7 +35,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     dir_root = cfg.get("paths", "output")["dir_root"]
 
     if datacube:
-        input_map_path = Path(dir_root, cfg.get("control")["dir_datacube_slices"], map_name)
+        input_map_path = Path(dir_root, cfg.get("control")["dir_datacube_slices"], map_name)        
     else:
        input_map_path = paths_dict["input_map_path"]
 
@@ -43,9 +46,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     ellipses_file      = paths_dict["ellipses_file"]
     suffix = paths_dict["suffix"]
 
-    # - control - #
+    # - control & photometry - #
     detection_only = cfg.get("control", "detection_only", False) 
     fixed_radius = cfg.get("photometry", "fixed_radius", False)
+    fwhm_radius_ratio = cfg.get("photometry", "fwhm_radius_ratio", 1.0)
     
     # - params - #
     survey_code = cfg.get("survey", "survey_code")
@@ -80,6 +84,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         )
     
     # initialize vectors and Table     
+    fwhm_1_val = []
+    fwhm_2_val = []
     radius_val_1 = []
     radius_val_2 = []
     PA_val = []
@@ -140,7 +146,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     pix_dim = map_struct["pix_dim"]
     beam_dim = map_struct["beam_dim"]
     beam_area = map_struct["beam_area_arcsec2"]    
-    
+
 
     # --- map rms used to define real sources in the map - accounting for non-zero background --- #
     map_zero_mean_detect = real_map - np.nanmean(real_map)
@@ -370,8 +376,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             xcen=[fit_result.params["g_centerx"].value],  # relative coordinates inside cutout
             ycen=[fit_result.params["g_centery"].value],
             config=cfg,
-            radius_val_1=[fwhm_x],
-            radius_val_2=[fwhm_y],
+            radius_val_1=[fwhm_x * fwhm_radius_ratio],
+            radius_val_2=[fwhm_y * fwhm_radius_ratio],
             PA_val=[theta]
         )
 
@@ -389,8 +395,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         flux.append(phot_single["flux"][0])
         flux_err.append(phot_single["error"][0])
         
-        radius_val_1.append(fwhm_x * pix_dim)          # save value in arcsec
-        radius_val_2.append(fwhm_y * pix_dim)          # save value in arcsec
+        fwhm_1_val.append(fwhm_x * pix_dim)          # save FWHM_1 value in arcsec
+        fwhm_2_val.append(fwhm_y * pix_dim)          # save FWHM_1 value in arcsec
+        radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save FWHM_1 value in arcsec
+        radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save FWHM_2 value in arcsec
         PA_val.append(theta)
         updated_xcen.append(fit_result.params["g_centerx"].value + xslice.start)
         updated_ycen.append(fit_result.params["g_centery"].value + yslice.start)
@@ -511,8 +519,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
                 xcen=[fit_result.params[f"g{j}_x0"].value], 
                 ycen=[fit_result.params[f"g{j}_y0"].value],
                 config=cfg,
-                radius_val_1=[fwhm_x],
-                radius_val_2=[fwhm_y],
+                radius_val_1=[fwhm_x * fwhm_radius_ratio],
+                radius_val_2=[fwhm_y * fwhm_radius_ratio],
                 PA_val=[theta]
             )
             
@@ -570,8 +578,10 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             flux.append(phot_res["flux"][0])
             flux_err.append(phot_res["error"][0])
 
-            radius_val_1.append(fwhm_x * pix_dim)        # save value in arcsec
-            radius_val_2.append(fwhm_y * pix_dim)        # save value in arcsec
+            fwhm_1_val.append(fwhm_x * pix_dim)          # save FWHM_1 value in arcsec
+            fwhm_2_val.append(fwhm_y * pix_dim)          # save FWHM_2 value in arcsec
+            radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save FWHM_1 value in arcsec
+            radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save FWHM_2 value in arcsec
             PA_val.append(theta)
             updated_xcen.append(fit_result.params[f"g{j}_x0"].value + x0_global)
             updated_ycen.append(fit_result.params[f"g{j}_y0"].value + y0_global)
@@ -663,8 +673,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             "NMSE": list(nmse_val),
             "CHI2_RED": list(redchi_val),
             "BIC": list(bic_val),
-            "FWHM_1": list(radius_val_1),
-            "FWHM_2": list(radius_val_2),
+            "FWHM_1": list(fwhm_1_val),
+            "FWHM_2": list(fwhm_2_val),
             "PA": list(PA_val),
             "STATUS": list(fit_status_val),
             "GLON": list(glon),
@@ -731,12 +741,55 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     if bg_model is not None:    
         return map_name, bg_model, cutout_header, header
     else:
-        valid_real_map_nobg = ~np.isnan(real_map)        
-        mean_valid_real_map_nobg, median_valid_real_map_nobg, std_valid_real_map_nobg = sigma_clipped_stats(real_map[valid_real_map_nobg], sigma=3.0, maxiters=5)
-        real_map_nobg = np.full_like(real_map, median_valid_real_map_nobg)
-        real_map_nobg[np.isnan(real_map)] = np.nan        
-        bg_model = real_map_nobg
-        return map_name, bg_model, header, header
+        pol_orders_bkg_no_sources = cfg.get("background", "pol_orders_bkg_no_sources", [0])  # only if fit_separately
+
+        if pol_orders_bkg_no_sources == [0]:
+            valid_real_map_nobg = ~np.isnan(real_map)        
+            mean_valid_real_map_nobg, median_valid_real_map_nobg, std_valid_real_map_nobg = sigma_clipped_stats(real_map[valid_real_map_nobg], sigma=3.0, maxiters=5)
+            real_map_nobg = np.full_like(real_map, median_valid_real_map_nobg)
+            real_map_nobg[np.isnan(real_map)] = np.nan        
+            bg_model = real_map_nobg
+            return map_name, bg_model, header, header
+        else:
+            minimize_method = cfg.get("fit_options", "min_method", "redchi")
+            beam_pix = map_struct['beam_dim']/pix_dim/2.3548      # beam sigma size in pixels    
+            fwhm_beam_pix = beam_pix * 2.3548    # beam FWHM size in pixels    
+            aper_sup = cfg.get("photometry", "aper_sup", 2.0) * beam_pix
+            max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
+
+            fix_min_box = cfg.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
+            fix_max_box = cfg.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
+
+            # === Determine box size ===
+            ny, nx = real_map.shape
+            if fix_min_box == 0:
+                # Use entire map size directly
+                box_sizes = list((ny, nx))
+            else:
+                # Standard logic for square box sizes (in pixels)
+                dynamic_min_box = int(np.ceil(fix_min_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
+                dynamic_max_box = int(np.ceil(fix_max_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
+                box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
+
+            real_map_after_bg, real_map_full_with_bg, cutout_header, bg_model, mask_bg, back_order, poly_params = masked_bkg_no_sources(
+                minimize_method,
+                real_map,
+                header,
+                nx,
+                ny,
+                max_fwhm_extent,
+                box_sizes,
+                pol_orders_bkg_no_sources,
+                cfg,
+                logger,
+                logger_file_only
+            )
+
+            return map_name, bg_model, header, header
+
+
+
+
     
 #################################### MAIN CALL ####################################
 if __name__ == "__main__":

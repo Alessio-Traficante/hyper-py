@@ -59,6 +59,8 @@ detection:
   
   use_manual_rms: false                         # [OPTIONAL] Use manually provided RMS noise value to identify sources (True/False). Default: False
   rms_value: 1.e-6                              # [OPTIONAL] Manual RMS noise value (Jy) (only if use_manual_rms = true). Default: 1.e-6
+
+  kernel_size_pix: 5                            # [OPTIONAL] Size of the high-pass filter kernel in pixels (odd integer; if 0, it is set to FWHM_pix).  Default: 0 
   
   roundlim: [-4.0, 4.0]                         # [ADVANCED] Allowed source roundness range (min, max for DAOFIND). Default: [-4.0, 4.0]
   sharplim: [-2.0, 2.0]                         # [ADVANCED] Allowed source sharpness range (min, max for DAOFIND). Default: [-2.0, 2.0]
@@ -74,7 +76,8 @@ detection:
 photometry:
   aper_inf: 1.0                          # [REQUIRED] Minimum size factor for Gaussian FWHM (used as minimum radius). Default: 1.0
   aper_sup: 2.0                          # [REQUIRED] Maximum size factor for Gaussian FWHM (used as maximum radius). Default: 2.0
-  
+  fwhm_radius_ratio: 1.0                 # [OPTIONAL] Ratio between fitted FWHM and source radius. Default: 1.0 (FWHM = radius)
+
   fixed_radius: false                    # [OPTIONAL] Use fixed aperture radii instead of Gaussian fitting (True/False). Default: False
   fwhm_1: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true). Default: [0.0]
   fwhm_2: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius minor axis (arcsec; only if radius_fix = true). Default: [0.0]
@@ -115,6 +118,7 @@ background:
   fit_gauss_and_bg_together: false       # [REQUIRED] Enable polynomial background subtraction and Gaussian fit simultaneously (True/False). Default: False
   polynomial_orders: [0]                 # [OPTIONAL] Polynomial background orders for the main Gaussian + background fitting (0,1,2,3, etc.). Default: [0]
 
+  pol_orders_bkg_no_sources: [0]         # [OPTIONAL] Polynomial background orders used to model the background map when no sources are identified in the field. Default: [0]
 
 #--------------------- Fits output Options ---------------------#
 fits_output:                                    # Save Fits files for best fits
