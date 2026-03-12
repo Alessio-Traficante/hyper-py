@@ -40,6 +40,7 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
         raise ValueError("Invalid pixel scale in FITS header.")
         
     # --- Store the channel index in the header, which is removed below
+    chan_n_key=False
     if 'CHAN_N' in header.keys():
         mychan = header['CHAN_N']
         chan_n_key = True
