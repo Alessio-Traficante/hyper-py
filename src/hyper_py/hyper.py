@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
