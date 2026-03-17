@@ -6,7 +6,6 @@ from astropy.io import fits
 from astropy.stats import SigmaClip, sigma_clipped_stats
 from astropy.wcs import WCS
 from lmfit import minimize, Parameters
-from photutils.aperture import CircularAperture
 
 from hyper_py.visualization import plot_fit_summary
 from .bkg_single import masked_background_single_sources
@@ -88,7 +87,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         dynamic_max_box = int(np.ceil(fix_max_box * fwhm_beam_pix) * 2 + max_fwhm_extent * 2)
         box_sizes = list(range(dynamic_min_box + 1, dynamic_max_box + 2, 2))  # ensure odd
 
-    
 
     # - initialize params - #
     best_result = None
@@ -132,7 +130,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         bg_model = None
         
         
-    
     # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
         
