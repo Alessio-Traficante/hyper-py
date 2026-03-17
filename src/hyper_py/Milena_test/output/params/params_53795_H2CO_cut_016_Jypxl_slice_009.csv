@@ -1,0 +1,35 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: MAP_ID, datatype: string, format: s, description: Map identifier}
+# - {name: HYPER_ID, datatype: int64, format: d, description: Source identifier}
+# - {name: FLUX_PEAK, unit: mJy / beam, datatype: float64, format: .3e, description: Peak flux (mJy/beam)}
+# - {name: FLUX, unit: mJy, datatype: string, format: .3e, description: Integrated flux density (mJy), subtype: 'float64[1]'}
+# - {name: FLUX_ERR, unit: mJy, datatype: float64, format: .3e, description: Flux density uncertainty (mJy)}
+# - {name: RESIDUALS, unit: mJy, datatype: float64, format: .3e, description: Mean background level (mJy)}
+# - {name: POLYN, datatype: int64, format: d, description: Polynomial background order}
+# - {name: NMSE, datatype: float64, format: .3f, description: 'Normalized Mean Squared Error of fit: scale-independent metric of model-data
+#     agreement'}
+# - {name: CHI2_RED, datatype: float64, format: .3f, description: Reduced chi-squared of Gaussian + background fit (valid only if residuals
+#     are Gaussian-distributed with constant variance)}
+# - {name: BIC, datatype: float64, format: .2f, description: 'Bayesian Information Criterion: model selection metric that penalizes overfitting;
+#     lower BIC indicates better trade-off between goodness of fit and model complexity'}
+# - {name: FWHM_1, unit: arcsec, datatype: float64, format: .3f, description: First axis FWHM (arcsec)}
+# - {name: FWHM_2, unit: arcsec, datatype: float64, format: .3f, description: Second axis FWHM (arcsec)}
+# - {name: PA, unit: deg, datatype: float64, format: .1f, description: Position angle (deg East of North)}
+# - {name: STATUS, datatype: int64, format: d, description: 'Fit status flag: 1 = fit succeeded, 0 = fit failed'}
+# - {name: GLON, unit: deg, datatype: float64, format: .5f, description: Galactic longitude (deg)}
+# - {name: GLAT, unit: deg, datatype: float64, format: .5f, description: Galactic latitude (deg)}
+# - {name: RA, unit: deg, datatype: float64, format: .5f, description: 'Right Ascension (deg, J2000)'}
+# - {name: DEC, unit: deg, datatype: float64, format: .5f, description: 'Declination (deg, J2000)'}
+# - {name: DEBLEND, datatype: int64, format: d, description: Deblending flag}
+# - {name: CLUSTER, datatype: int64, format: d, description: Cluster flag}
+# meta: !!omap
+# - comments: [' ****************** Hyper photometry ******************', 'Survey code: 15', 'Detection threshold: 4.0 sigma', 'Convert
+#       from MJy/sr: None', 'Convert from Jy/beam: None', 'Convert to mJy: True', 'Estimated r.m.s. to identify sources: 0.08593 mJy',
+#     ' ******************************************************']
+# schema: astropy-2.0
+MAP_ID HYPER_ID FLUX_PEAK FLUX FLUX_ERR RESIDUALS POLYN NMSE CHI2_RED BIC FWHM_1 FWHM_2 PA STATUS GLON GLAT RA DEC DEBLEND CLUSTER
+53795_H2CO_cut_016_Jypxl_slice_009 1 0.00787483630004989 [49.22641368498151] 1.9367152741721714 0.002985980361700058 2 0.6860465914679457 0.017319339929675 -26827.186903761423 1.4007232210646636 1.4007232210646636 -89.99999999999925 1 11.903698403043535 -0.14101581101243843 273.04741980634566 -18.691574272318473 0 1
+53795_H2CO_cut_016_Jypxl_slice_009 2 0.003605547823806541 [18.37476827493171] 0.994478752566884 0.0 2 0.4328758185512834 0.018073412149898035 -28568.000999192787 1.4007232210646636 1.3880684903641836 1.5102189605844234 1 11.904892985764432 -0.14070707479357591 273.04773998289136 -18.690378299045676 1 2
+53795_H2CO_cut_016_Jypxl_slice_009 3 0.013575820462658214 [50.47437365203251] 2.4940633746814966 0.0 2 0.4328758185512834 0.018073412149898035 -28568.000999192787 0.9526374975754044 1.1468549175657403 -34.46533210248637 1 11.905112271147578 -0.1407714447261346 273.04791081760123 -18.690216924539396 1 2

@@ -1,0 +1,34 @@
+\  ****************** Hyper photometry ******************
+\ Survey code: 15
+\ Detection threshold: 3.0 sigma
+\ Convert from MJy/sr: None
+\ Convert from Jy/beam: None
+\ Convert to mJy: True
+\ Estimated r.m.s. to identify sources: 0.05808 mJy
+\  ******************************************************
+\ MAP_ID = Map identifier
+\ HYPER_ID = Source identifier
+\ FLUX_PEAK = Peak flux (mJy/beam)
+\ FLUX = Integrated flux density (mJy)
+\ FLUX_ERR = Flux density uncertainty (mJy)
+\ RESIDUALS = Mean background level (mJy)
+\ POLYN = Polynomial background order
+\ NMSE = Normalized Mean Squared Error of fit: scale-independent metric of
+\ model-data agreement
+\ CHI2_RED = Reduced chi-squared of Gaussian + background fit (valid only if
+\ residuals are Gaussian-distributed with constant variance)
+\ FWHM_1 = First axis FWHM (arcsec)
+\ FWHM_2 = Second axis FWHM (arcsec)
+\ PA = Position angle (deg East of North)
+\ STATUS = Fit status flag: 1 = fit succeeded, 0 = fit failed
+\ GLON = Galactic longitude (deg)
+\ GLAT = Galactic latitude (deg)
+\ RA = Right Ascension (deg, J2000)
+\ DEC = Declination (deg, J2000)
+\ DEBLEND = Deblending flag
+\ CLUSTER = Cluster flag
+|                            MAP_ID|HYPER_ID| FLUX_PEAK|     FLUX| FLUX_ERR|RESIDUALS|POLYN|  NMSE|CHI2_RED|FWHM_1|FWHM_2|    PA|STATUS|   GLON|   GLAT|     RA|    DEC|DEBLEND|CLUSTER|
+|                              char|    long|    double|   double|   double|   double| long|double|  double|double|double|double|  long| double| double| double| double|   long|   long|
+|                                  |        |mJy / beam|      mJy|      mJy|      mJy|     |      |        |arcsec|arcsec|   deg|      |    deg|    deg|    deg|    deg|       |       |
+|                              null|    null|      null|     null|     null|     null| null|  null|    null|  null|  null|  null|  null|   null|   null|   null|   null|   null|   null|
+ 52831_H2CO_cut_001_Jypxl_slice_002        0  0.000e+00 0.000e+00 0.000e+00 0.000e+00     0  0.000    0.000  0.000  0.000    0.0      0 0.00000 0.00000 0.00000 0.00000       0       0 

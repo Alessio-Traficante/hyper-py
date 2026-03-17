@@ -1,0 +1,9 @@
+# Region file format: DS9 version 4.1
+global color=cyan dashlist=8 3 width=1 font='helvetica 10 normal' select=1 highlite=1 edit=1 move=1 delete=1 include=1 fixed=0
+icrs
+point(273.04799323,-18.69072433) # point=cross
+point(273.04823895,-18.69057462) # point=cross
+point(273.04790369,-18.69037382) # point=cross
+point(273.04819322,-18.69034477) # point=cross
+point(273.04782130,-18.69004056) # point=cross
+point(273.04764753,-18.68993384) # point=cross

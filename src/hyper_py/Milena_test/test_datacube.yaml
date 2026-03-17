@@ -1,0 +1,103 @@
+paths:
+  input:
+    dir_maps: /Users/alessio/Dropbox/Work/Python/Hyper/src/hyper_py/Milena_test/Maps
+  output:
+    dir_root: /Users/alessio/Dropbox/Work/Python/Hyper/src/hyper_py/Milena_test/output
+    dir_table_out: params
+    dir_region_out: regions
+    dir_log_out: logs
+files:
+  file_map_name: /Users/alessio/Dropbox/Work/Python/Hyper/src/hyper_py/Milena_test/Maps/datacube.txt
+  file_table_base: params
+  file_region_base: region_files
+  file_log_name: hyper.log
+control:
+  parallel_maps: true
+  n_cores: 2
+  detection_only: false
+  datacube: true
+  dir_datacube_slices: /Users/alessio/Dropbox/Work/Python/Hyper/src/hyper_py/Milena_test/output/slices
+units:
+  convert_mJy: true
+survey:
+  survey_code: 15
+detection:
+  sigma_thres: 4.0
+  use_manual_rms: false
+  rms_value: 1.0e-06
+  roundlim:
+  - -4.0
+  - 4.0
+  sharplim:
+  - -2.0
+  - 2.0
+  use_fixed_source_table: false
+  fixed_source_table_path: source_table.txt
+  fixed_peaks: false
+  xcen_fix:
+  - 1.0
+  - 1.0
+  ycen_fix:
+  - 1.0
+  - 1.0
+photometry:
+  aper_inf: 1.0
+  aper_sup: 2.0
+  fwhm_radius_ratio: 0.5
+  fixed_radius: false
+  fwhm_1:
+  - 0.0
+  fwhm_2:
+  - 0.0
+  PA_val:
+  - 0.0
+fit_options:
+  fit_method: least_squares
+  loss: linear
+  f_scale: 0.1
+  max_nfev: 50000
+  xtol: 1e-8
+  ftol: 1e-8
+  gtol: 1e-8
+  weights: snr
+  power_snr: 5
+  calc_covar: false
+  min_method: nmse
+  verbose: false
+  use_l2_regularization: true
+  lambda_l2: 1e-4
+  vary: false
+  bg_fitters:
+  - least_squares
+  huber_epsilons:
+  - 1.1
+  - 1.35
+  - 1.7
+  - 2.0
+background:
+  fit_gauss_and_bg_separately: true
+  pol_orders_separate:
+  - 0
+  - 1
+  - 2
+  fix_min_box: 3
+  fix_max_box: 5
+  fit_gauss_and_bg_together: false
+  polynomial_orders:
+  - 0
+  pol_orders_bkg_no_sources: 
+  - 2  
+fits_output:
+  fits_fitting: false
+  fits_deblended: false
+  fits_bg_separate: false
+  fits_output_dir_fitting: fits/fitting
+  fits_output_dir_deblended: fits/deblended
+  fits_output_dir_bg_separate: fits/bg_separate
+visualization:
+  visualize_fitting: false
+  visualize_deblended: false
+  visualize_bg_separate: false
+  output_dir_fitting: plots/fitting
+  output_dir_deblended: plots/deblended
+  output_dir_bg_separate: plots/bg_separate

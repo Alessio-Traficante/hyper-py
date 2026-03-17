@@ -1,0 +1,15 @@
+# Region file format: DS9 version 4.1
+global color=magenta dashlist=8 3 width=1 font='helvetica 10 normal' select=1 highlite=1 edit=1 move=1 delete=1 include=1 fixed=0
+icrs
+ellipse(273.04731703,-18.69171190,0.7004",0.3810",105.515)
+point(273.04731703,-18.69171190) # point=cross text={ID 1}
+ellipse(273.04744908,-18.69146625,0.7004",0.5968",14.916)
+point(273.04744908,-18.69146625) # point=cross text={ID 2}
+ellipse(273.04808368,-18.69064332,0.7004",0.7004",129.253)
+point(273.04808368,-18.69064332) # point=cross text={ID 3}
+ellipse(273.04791347,-18.69023222,0.4829",0.6167",48.765)
+point(273.04791347,-18.69023222) # point=cross text={ID 4}
+ellipse(273.04804575,-18.69001114,0.3502",0.3502",147.229)
+point(273.04804575,-18.69001114) # point=cross text={ID 5}
+ellipse(273.04802773,-18.68971488,0.6453",0.7004",153.096)
+point(273.04802773,-18.68971488) # point=cross text={ID 6}

@@ -1,0 +1,38 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: MAP_ID, datatype: string, format: s, description: Map identifier}
+# - {name: HYPER_ID, datatype: int64, format: d, description: Source identifier}
+# - {name: FLUX_PEAK, unit: mJy / beam, datatype: float64, format: .3e, description: Peak flux (mJy/beam)}
+# - {name: FLUX, unit: mJy, datatype: string, format: .3e, description: Integrated flux density (mJy), subtype: 'float64[1]'}
+# - {name: FLUX_ERR, unit: mJy, datatype: float64, format: .3e, description: Flux density uncertainty (mJy)}
+# - {name: RESIDUALS, unit: mJy, datatype: float64, format: .3e, description: Mean background level (mJy)}
+# - {name: POLYN, datatype: int64, format: d, description: Polynomial background order}
+# - {name: NMSE, datatype: float64, format: .3f, description: 'Normalized Mean Squared Error of fit: scale-independent metric of model-data
+#     agreement'}
+# - {name: CHI2_RED, datatype: float64, format: .3f, description: Reduced chi-squared of Gaussian + background fit (valid only if residuals
+#     are Gaussian-distributed with constant variance)}
+# - {name: BIC, datatype: float64, format: .2f, description: 'Bayesian Information Criterion: model selection metric that penalizes overfitting;
+#     lower BIC indicates better trade-off between goodness of fit and model complexity'}
+# - {name: FWHM_1, unit: arcsec, datatype: float64, format: .3f, description: First axis FWHM (arcsec)}
+# - {name: FWHM_2, unit: arcsec, datatype: float64, format: .3f, description: Second axis FWHM (arcsec)}
+# - {name: PA, unit: deg, datatype: float64, format: .1f, description: Position angle (deg East of North)}
+# - {name: STATUS, datatype: int64, format: d, description: 'Fit status flag: 1 = fit succeeded, 0 = fit failed'}
+# - {name: GLON, unit: deg, datatype: float64, format: .5f, description: Galactic longitude (deg)}
+# - {name: GLAT, unit: deg, datatype: float64, format: .5f, description: Galactic latitude (deg)}
+# - {name: RA, unit: deg, datatype: float64, format: .5f, description: 'Right Ascension (deg, J2000)'}
+# - {name: DEC, unit: deg, datatype: float64, format: .5f, description: 'Declination (deg, J2000)'}
+# - {name: DEBLEND, datatype: int64, format: d, description: Deblending flag}
+# - {name: CLUSTER, datatype: int64, format: d, description: Cluster flag}
+# meta: !!omap
+# - comments: [' ****************** Hyper photometry ******************', 'Survey code: 15', 'Detection threshold: 4.0 sigma', 'Convert
+#       from MJy/sr: None', 'Convert from Jy/beam: None', 'Convert to mJy: True', 'Estimated r.m.s. to identify sources: 0.16318 mJy',
+#     ' ******************************************************']
+# schema: astropy-2.0
+MAP_ID HYPER_ID FLUX_PEAK FLUX FLUX_ERR RESIDUALS POLYN NMSE CHI2_RED BIC FWHM_1 FWHM_2 PA STATUS GLON GLAT RA DEC DEBLEND CLUSTER
+53795_H2CO_cut_016_Jypxl_slice_012 1 0.027263496934566384 [175.6079247431058] 6.533334331983804 0.0 2 0.20693852712903765 0.1383476807620326 -19420.83709430184 1.4007232210646636 1.351444536021346 -65.513536921404 1 11.905083788446667 -0.14081635864010403 273.0479379497151 -18.690263485921168 1 6
+53795_H2CO_cut_016_Jypxl_slice_012 2 0.0024772225916405463 [3.3496104537175073] 0.39050816732566684 0.0 2 0.20693852712903765 0.1383476807620326 -19420.83709430184 0.700361610532332 0.700361610532332 -37.136535558835334 1 11.905058457451814 -0.1406118949487206 273.0477358081022 -18.690187447590166 1 6
+53795_H2CO_cut_016_Jypxl_slice_012 3 0.006838422646453621 [29.56070591739326] 1.4349392848087907 0.0 2 0.20693852712903765 0.1383476807620326 -19420.83709430184 0.853147518080326 1.4007232210646636 15.267033733761286 1 11.90533020151254 -0.14084015750854303 273.04808498518963 -18.690058825097754 1 6
+53795_H2CO_cut_016_Jypxl_slice_012 4 0.014051052588061878 [65.27972752165583] 2.7958398582523083 0.0 2 0.20693852712903765 0.1383476807620326 -19420.83709430184 1.3598312965194455 1.0405563977622383 0.5417717466381844 1 11.905460655999425 -0.14067244664711875 273.04799589747563 -18.689863828777558 1 6
+53795_H2CO_cut_016_Jypxl_slice_012 5 0.012141866171763022 [58.45262518337734] 2.5799584594782967 0.0 2 0.20693852712903765 0.1383476807620326 -19420.83709430184 1.4007232209319596 1.0942523494719643 25.768966850173943 1 11.905435633199843 -0.1404109261273957 273.04774108988755 -18.689760102151592 1 6
+53795_H2CO_cut_016_Jypxl_slice_012 6 0.010669254745767593 [57.15066082716784] 2.687993001719647 0.0 2 0.20693852712903765 0.1383476807620326 -19420.83709430184 1.4007232210625045 1.4007232210642588 8.332245504726835 1 11.905752274649487 -0.14094660039210416 273.0483976415702 -18.689739828758917 1 6

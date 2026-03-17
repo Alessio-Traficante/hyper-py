@@ -1,18 +1,20 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-
-        {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/hyper_py/run_hyper.py",
-            //"program": "${workspaceFolder}/test/test_hyper.py", 
-            "console": "integratedTerminal",
-            //"args": ["${workspaceFolder}/src/hyper_py/config.yaml"],
-            "env": {
-                "MPLBACKEND": "TkAgg"
-            }
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Hyper",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/Users/alessio/Dropbox/Work/Python/Hyper/src/hyper_py/run_hyper.py",
+      "console": "integratedTerminal",
+      "cwd": "/Users/alessio/Dropbox/Work/Python/Hyper",
+      "args": [
+        "/Users/alessio/Dropbox/Work/Python/Hyper/src/hyper_py/Milena_test/test_datacube.yaml"
+      ],
+      "env": {
+        "MPLBACKEND": "TkAgg",
+        "PYTHONPATH": "/Users/alessio/Dropbox/Work/Python/Hyper/src"
+      }
+    }
+  ]
 }

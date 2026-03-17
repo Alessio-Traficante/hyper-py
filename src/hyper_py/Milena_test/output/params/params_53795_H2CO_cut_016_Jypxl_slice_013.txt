@@ -1,0 +1,43 @@
+\  ****************** Hyper photometry ******************
+\ Survey code: 15
+\ Detection threshold: 4.0 sigma
+\ Convert from MJy/sr: None
+\ Convert from Jy/beam: None
+\ Convert to mJy: True
+\ Estimated r.m.s. to identify sources: 0.19501 mJy
+\  ******************************************************
+\ MAP_ID = Map identifier
+\ HYPER_ID = Source identifier
+\ FLUX_PEAK = Peak flux (mJy/beam)
+\ FLUX = Integrated flux density (mJy)
+\ FLUX_ERR = Flux density uncertainty (mJy)
+\ RESIDUALS = Mean background level (mJy)
+\ POLYN = Polynomial background order
+\ NMSE = Normalized Mean Squared Error of fit: scale-independent metric of
+\ model-data agreement
+\ CHI2_RED = Reduced chi-squared of Gaussian + background fit (valid only if
+\ residuals are Gaussian-distributed with constant variance)
+\ BIC = Bayesian Information Criterion: model selection metric that penalizes
+\ overfitting; lower BIC indicates better trade-off between goodness of fit and
+\ model complexity
+\ FWHM_1 = First axis FWHM (arcsec)
+\ FWHM_2 = Second axis FWHM (arcsec)
+\ PA = Position angle (deg East of North)
+\ STATUS = Fit status flag: 1 = fit succeeded, 0 = fit failed
+\ GLON = Galactic longitude (deg)
+\ GLAT = Galactic latitude (deg)
+\ RA = Right Ascension (deg, J2000)
+\ DEC = Declination (deg, J2000)
+\ DEBLEND = Deblending flag
+\ CLUSTER = Cluster flag
+|                            MAP_ID|HYPER_ID| FLUX_PEAK|     FLUX| FLUX_ERR|RESIDUALS|POLYN|  NMSE|CHI2_RED|      BIC|FWHM_1|FWHM_2|    PA|STATUS|    GLON|    GLAT|       RA|      DEC|DEBLEND|CLUSTER|
+|                              char|    long|    double|   double|   double|   double| long|double|  double|   double|double|double|double|  long|  double|  double|   double|   double|   long|   long|
+|                                  |        |mJy / beam|      mJy|      mJy|      mJy|     |      |        |         |arcsec|arcsec|   deg|      |     deg|     deg|      deg|      deg|       |       |
+|                              null|    null|      null|     null|     null|     null| null|  null|    null|     null|  null|  null|  null|  null|    null|    null|     null|     null|   null|   null|
+ 53795_H2CO_cut_016_Jypxl_slice_013        1  1.304e-02 4.966e+01 2.562e+00 0.000e+00     2  0.235    0.082 -30012.08  0.786  1.401  -18.5      1 11.90468 -0.14107 273.04797 -18.69074       1       7 
+ 53795_H2CO_cut_016_Jypxl_slice_013        2  1.122e-02 6.432e+01 2.948e+00 0.000e+00     2  0.235    0.082 -30012.08  1.401  1.172  -52.7      1 11.90499 -0.14119 273.04824 -18.69052       1       7 
+ 53795_H2CO_cut_016_Jypxl_slice_013        3  1.950e-02 1.195e+02 4.707e+00 0.000e+00     2  0.235    0.082 -30012.08  1.401  1.256   25.1      1 11.90499 -0.14082 273.04789 -18.69035       1       7 
+ 53795_H2CO_cut_016_Jypxl_slice_013        4  6.725e-03 1.572e+01 1.133e+00 0.000e+00     2  0.235    0.082 -30012.08  1.401  0.700    2.6      1 11.90506 -0.14061 273.04773 -18.69019       1       7 
+ 53795_H2CO_cut_016_Jypxl_slice_013        5  9.874e-03 5.147e+01 2.248e+00 0.000e+00     2  0.235    0.082 -30012.08  1.055  1.401  -40.2      1 11.90534 -0.14096 273.04820 -18.69011       1       7 
+ 53795_H2CO_cut_016_Jypxl_slice_013        6  1.005e-02 5.230e+01 2.249e+00 0.000e+00     2  0.235    0.082 -30012.08  1.401  1.022  -25.9      1 11.90521 -0.14046 273.04767 -18.68998       1       7 
+ 53795_H2CO_cut_016_Jypxl_slice_013        7  1.473e-02 7.834e+01 3.396e+00 0.000e+00     2  0.235    0.082 -30012.08  1.115  1.401   10.4      1 11.90543 -0.14065 273.04796 -18.68988       1       7 
