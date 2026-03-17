@@ -47,7 +47,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
     max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
 
-    
     convert_mjy=config.get("units", "convert_mJy")
 
     fit_cfg = config.get("fit_options", {})
