@@ -21,7 +21,7 @@ def high_pass_filter(image, kernel_size_pix, FWHM_pix):
         kernel_size_pix -= 1    
     FWHM_int = math.floor(FWHM_pix)
 
-    kernel_dim = kernel_size_pix**2 if kernel_size_pix != 0 else FWHM_int**2
+    kernel_dim = kernel_size_pix if kernel_size_pix != 0 else FWHM_int
 
     ny, nx = image.shape
     kdim = min(kernel_dim, ny, nx)
@@ -137,7 +137,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
 
 
     # --- identify multiple peaks in filtered image and save good peaks with real snr threshold --- #
-    kernel_size_pix=config.get("detection", "kernel_size_pix", 0)
+    kernel_size_pix=config.get("detection", "kernel_size_pix", 3)
 
     filtered = high_pass_filter(image, kernel_size_pix, FWHM_pix)
     norm_filtered = normalize_filtered_image(filtered)
