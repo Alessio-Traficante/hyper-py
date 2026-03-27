@@ -85,9 +85,9 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
             
     # Create your custom header lines explicitly
     if config.get('units', 'convert_mJy'): 
-        rms_sentence = f"Estimated r.m.s. to identify sources: {real_rms:.5f} mJy"
+        rms_sentence = f"Estimated r.m.s. to identify sources: {real_rms:.3e} mJy"
     else:
-        rms_sentence = f"Estimated r.m.s. to identify sources: {real_rms:.5f} Jy"    
+        rms_sentence = f"Estimated r.m.s. to identify sources: {real_rms:.3e} Jy"    
 
     custom_header_lines = [
         " ****************** Hyper photometry ******************",

@@ -137,7 +137,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
 
 
     # --- identify multiple peaks in filtered image and save good peaks with real snr threshold --- #
-    kernel_size_pix=config.get("detection", "kernel_size_pix", 3)
+    kernel_size_pix=config.get("detection", "kernel_size_pix", 0)
 
     filtered = high_pass_filter(image, kernel_size_pix, FWHM_pix)
     norm_filtered = normalize_filtered_image(filtered)
