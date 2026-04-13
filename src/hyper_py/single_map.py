@@ -387,7 +387,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         yc_rel = int(round(fit_result.params["g_centery"].value))
         flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel           
         beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
-        flux_peak_mjy_beam = flux_peak_mjy_pix / beam_area_pix # → mJy/beam
+        flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
         flux_peak.append(flux_peak_mjy_beam) 
 
 
@@ -571,7 +571,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             yc_rel = int(round(fit_result.params[f"g{j}_y0"].value))
             flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel       
             beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
-            flux_peak_mjy_beam = flux_peak_mjy_pix / beam_area_pix # → mJy/beam
+            flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
             flux_peak.append(flux_peak_mjy_beam) 
                                            
             flux.append(phot_res["flux"][0])
