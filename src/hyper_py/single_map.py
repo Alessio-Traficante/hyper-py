@@ -224,6 +224,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         pix_dim=pix_dim,
         beam_dim=beam_dim,
         aper_sup=cfg.get("photometry", "aper_sup"),
+        only_center=cfg.get("detection", "only_center", False)
     )
     
     tot_sources = len(sources)
