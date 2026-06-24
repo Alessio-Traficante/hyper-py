@@ -145,8 +145,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     wcs = WCS(header)
     pix_dim = map_struct["pix_dim"]
     beam_dim = map_struct["beam_dim"]
-    beam_area = map_struct["beam_area_arcsec2"]    
-
+    beam_area = map_struct["beam_area_arcsec2"]  
 
     # --- map rms used to define real sources in the map - accounting for non-zero background --- #
     map_zero_mean_detect = real_map - np.nanmean(real_map)
@@ -158,6 +157,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         sigma_clip = SigmaClip(sigma=3.0, maxiters=10)
         clipped = sigma_clip(map_zero_mean_detect)    
         real_rms = np.sqrt(np.nanmean(clipped**2))
+    
         
         
     # --- run sources identification  --- #
@@ -203,7 +203,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         all_sources_xcen = xcen
         all_sources_ycen = ycen
         
-    
+
     # -- if fixed_radius = True generate a xcen vector of aperture radii -- #
     if fixed_radius:        
         if use_fixed_table:
@@ -216,15 +216,14 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             fwhm_2_list = ensure_list(cfg.get("photometry", "fwhm_2", 2.0), N)
             PA_list     = ensure_list(cfg.get("photometry", "PA_val", 0.0), N)    
     
-        
+
     # --- organize sources in isolated or groups ---#
     start_group, common_group, deblend = group_sources(
         xcen=xcen,
         ycen=ycen,
         pix_dim=pix_dim,
         beam_dim=beam_dim,
-        aper_sup=cfg.get("photometry", "aper_sup"),
-        only_center=cfg.get("detection", "only_center", False)
+        aper_sup=cfg.get("photometry", "aper_sup") * fwhm_radius_ratio,
     )
     
     tot_sources = len(sources)
@@ -235,7 +234,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     logger.info(f"{len(isolated)} sources are isolated")
     logger.info(f"{len(blended)} sources are blended")
 
-    
+
     if detection_only:
         logger.info("[INFO] Detection-only mode enabled. Skipping photometry and fitting.")
     
@@ -388,7 +387,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         yc_rel = int(round(fit_result.params["g_centery"].value))
         flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel           
         beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
-        flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
+        flux_peak_mjy_beam = flux_peak_mjy_pix / beam_area_pix # → mJy/beam
         flux_peak.append(flux_peak_mjy_beam) 
 
 
@@ -572,7 +571,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             yc_rel = int(round(fit_result.params[f"g{j}_y0"].value))
             flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel       
             beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
-            flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
+            flux_peak_mjy_beam = flux_peak_mjy_pix / beam_area_pix # → mJy/beam
             flux_peak.append(flux_peak_mjy_beam) 
                                            
             flux.append(phot_res["flux"][0])

@@ -1,3 +1,4 @@
+from email import header
 import math
 
 import numpy as np
@@ -17,11 +18,11 @@ def select_channel_map(map_struct):
 
 def high_pass_filter(image, kernel_size_pix, FWHM_pix):
 
-    if kernel_size_pix != 0 and kernel_size_pix % 2 == 0:
+    if kernel_size_pix % 2 == 0:
         kernel_size_pix -= 1    
     FWHM_int = math.floor(FWHM_pix)
 
-    kernel_dim = kernel_size_pix if kernel_size_pix != 0 else FWHM_int
+    kernel_dim = kernel_size_pix**2 if kernel_size_pix != 0 else FWHM_int**2
 
     ny, nx = image.shape
     kdim = min(kernel_dim, ny, nx)
@@ -70,42 +71,22 @@ def detect_peaks(filtered_image, threshold, fwhm_pix, roundlim=(-1.0, 1.0), shar
     return finder(filtered_image)
 
 
-def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup, only_center):
-
+def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup):
     if min_dist_pix is None:
         min_dist_pix = fwhm_pix
 
     ny, nx = image_shape
-
-    if only_center:
-
-        margin_center = int(fwhm_pix) * aper_sup * 2.0   #same definition as in groups.py.
-
-        center_x = int(nx / 2.)
-        center_y = int(ny / 2.)
-        print(f"Image center: ({center_x}, {center_y}), margin_center: {margin_center}")    
-        print(f"x {center_x - margin_center}, y {center_y - margin_center}")
-        
-        # Step 1.bis: remove peaks too distant from center
-        valid = (
-            (peaks_table['xcentroid'] > center_x - margin_center) &
-            (peaks_table['xcentroid'] < center_x + margin_center) &
-            (peaks_table['ycentroid'] > center_y - margin_center) &
-            (peaks_table['ycentroid'] < center_y + margin_center)
-        )
-        peaks = peaks_table[valid]
-    else:
-        margin = int(fwhm_pix)*aper_sup  
-
-        # Step 1: remove peaks too close to image border
-        valid = (
-            (peaks_table['xcentroid'] > margin) &
-            (peaks_table['xcentroid'] < nx - margin) &
-            (peaks_table['ycentroid'] > margin) &
-            (peaks_table['ycentroid'] < ny - margin)
-        )
-        peaks = peaks_table[valid]
-
+    margin = int(fwhm_pix)*aper_sup
+    
+    
+    # Step 1: remove peaks too close to image border
+    valid = (
+        (peaks_table['xcentroid'] > margin) &
+        (peaks_table['xcentroid'] < nx - margin) &
+        (peaks_table['ycentroid'] > margin) &
+        (peaks_table['ycentroid'] < ny - margin)
+    )
+    peaks = peaks_table[valid]
 
     # Step 2: remove close neighbors (keep brightest)
     coords = np.vstack([peaks['xcentroid'], peaks['ycentroid']]).T
@@ -125,7 +106,7 @@ def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup, onl
                     keep[j] = False
                 else:
                     keep[i] = False
-
+                    
     return peaks[keep]
 
 
@@ -147,6 +128,7 @@ def filter_by_snr(peaks_table, real_map, rms_real, snr_threshold):
 
 def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_threshold, roundlim, sharplim, config):
     map_struct, FWHM_pix = select_channel_map(map_struct_list)
+
     image = map_struct["map"]
     pix_dim_ref = map_struct["pix_dim"]
     beam_dim_ref = map_struct["beam_dim"]
@@ -161,15 +143,12 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
 
     filtered = high_pass_filter(image, kernel_size_pix, FWHM_pix)
     norm_filtered = normalize_filtered_image(filtered)
-
+        
     filtered_rms_detect = estimate_rms(norm_filtered)
     filtered_threshold = 2. * filtered_rms_detect
-
+        
     peaks = detect_peaks(norm_filtered, filtered_threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
-    only_center=config.get("photometry", "only_center", False)
-    good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup, only_center)
+    good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup)
     final_sources = filter_by_snr(good_peaks, real_map, rms_real, snr_threshold)
-    
-
 
     return final_sources

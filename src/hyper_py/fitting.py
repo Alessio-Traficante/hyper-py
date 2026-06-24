@@ -367,14 +367,19 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     
                     norm = np.mean(cutout_masked[valid_mask]**2) + 1e-12
                     nmse = mse / norm
-                    
-                    redchi = result.redchi
-                    bic = result.bic 
+
+                    # Compute redchi and BIC from data residuals only (excludes L2 penalty terms)
+                    n_valid = np.sum(valid_mask)
+                    n_varys = sum(1 for name in result.params if result.params[name].vary)
+                    chi2 = np.sum((residual / std_bg)**2)  # dimensionless chi-squared
+                    nfree = n_valid - n_varys
+                    redchi = chi2 / nfree if nfree > 0 else np.nan
+                    bic = chi2 + n_varys * np.log(n_valid) if n_valid > 0 else np.nan
                                         
                     if minimize_method == "redchi" : my_min = redchi
                     if minimize_method == "nmse"   : my_min = nmse
                     if minimize_method == "bic"    : my_min = bic
-                    logger_file_only.info(f"[SUCCESS] Fit (box={cutout_masked.shape[1], cutout_masked.shape[0]}, order={order}) → reduced chi² = {result.redchi:.5f}, NMSE = {nmse:.2e}, BIC = {bic:.2e}")
+                    logger_file_only.info(f"[SUCCESS] Fit (box={cutout_masked.shape[1], cutout_masked.shape[0]}, order={order}) → reduced chi² = {redchi:.5f}, NMSE = {nmse:.2e}, BIC = {bic:.2e}")
                 else:
                     nmse = np.nan
                     redchi = np.nan

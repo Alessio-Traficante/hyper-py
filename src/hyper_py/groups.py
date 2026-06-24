@@ -1,6 +1,6 @@
 import numpy as np
 
-def group_sources(xcen, ycen, pix_dim, beam_dim, aper_sup, only_center):
+def group_sources(xcen, ycen, pix_dim, beam_dim, aper_sup):
     '''
     Groups sources based on proximity within the beam scale, ensuring no duplicate groups and transitive merging.
 
@@ -19,9 +19,7 @@ def group_sources(xcen, ycen, pix_dim, beam_dim, aper_sup, only_center):
     xcen = np.array(xcen)
     ycen = np.array(ycen)
 
-    max_dist = (beam_dim * aper_sup * 2.0)
-    if only_center:
-        max_dist *= 2. 
+    max_dist = beam_dim * aper_sup * 2.0
     max_dist_pix = max_dist / pix_dim
         
     start_group = np.zeros(n, dtype=int)
