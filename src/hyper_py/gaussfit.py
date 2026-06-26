@@ -250,13 +250,13 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
 
                 # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
                 if fit_separately:
-                    params.add("g_amplitude", value=local_peak, min=0.5*local_peak, max=2.0*local_peak)
+                    params.add("g_amplitude", value=local_peak, min=0.8*local_peak, max=1.3*local_peak)
                 else:
-                    params.add("g_amplitude", value=local_peak, min=0.2*local_peak, max=2.0*local_peak)
+                    params.add("g_amplitude", value=local_peak, min=0.4*local_peak, max=1.5*local_peak)
                     
                 if vary == True:
-                    params.add("g_centerx", value=x0, min=x0 - 1.5, max=x0 + 1.5)
-                    params.add("g_centery", value=y0, min=y0 - 1.5, max=y0 + 1.5)
+                    params.add("g_centerx", value=x0, min=x0 - 0.5, max=x0 + 0.5)
+                    params.add("g_centery", value=y0, min=y0 - 0.5, max=y0 + 0.5)
                 if vary == False:
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
@@ -358,7 +358,6 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     args=(x_valid.ravel(), y_valid.ravel(), data_valid),
                     kws={'weights': weights_valid},
                     method=fit_cfg.get("fit_method", "least_squares"),
-                    nan_policy='omit',
                     **minimize_kwargs
                 )     
       

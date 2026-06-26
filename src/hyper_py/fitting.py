@@ -250,15 +250,12 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         # Fallback: global finite maximum of the cutout
                         finite_all = cutout_masked[np.isfinite(cutout_masked)]
                         local_peak = float(np.max(finite_all)) if len(finite_all) > 0 else 1.0
-
-                    # Ensure local_peak is above the noise floor to prevent degenerate bounds
-                    local_peak = max(local_peak, max(3.0 * std_bg, 1e-10))
-
+                    
                     # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
                     if fit_separately:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.3*local_peak, max=2.0*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.3*local_peak)
                     else:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.1*local_peak, max=2.0*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.5*local_peak)
                         
                     if vary == True:
                         params.add(f"{prefix}x0", value=xc, min=xc - 1, max=xc + 1)
@@ -367,8 +364,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                     params,
                     args=(x_valid.ravel(), y_valid.ravel(), data_valid),
                     kws={'weights': weights_valid},
-                    method=fit_cfg.get("fit_method", "least_squares"),
-                    nan_policy='omit',
+                    method=fit_cfg.get("fit_method", "leastsq"),
                     **minimize_kwargs
                 )     
  
