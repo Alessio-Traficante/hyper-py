@@ -367,11 +367,12 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         model_bg_only = model_fn(params_bg_only, xx, yy)
         
         # --- Final cleaned map for aperture photometry ---
-        source_only_map = cutout - model_bg_only 
+        source_only_map = cutout - model_bg_only
+        source_only_map_phot = np.where(np.isfinite(source_only_map), source_only_map, 0.0)
                 
         # --- Photometry: use centroid within cutout ---
         phot_single = aperture_photometry_on_sources(
-            image=source_only_map,
+            image=source_only_map_phot,
             xcen=[fit_result.params["g_centerx"].value],  # relative coordinates inside cutout
             ycen=[fit_result.params["g_centery"].value],
             config=cfg,
@@ -387,7 +388,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         yc_rel = int(round(fit_result.params["g_centery"].value))
         flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel           
         beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
-        flux_peak_mjy_beam = flux_peak_mjy_pix / beam_area_pix # → mJy/beam
+        flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
         flux_peak.append(flux_peak_mjy_beam) 
 
 
@@ -496,6 +497,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
                 
             model_without_j = model_fn(params_sub, xx, yy)
             source_only_map = cutout - model_without_j  #  subtract background + companions
+            source_only_map_phot = np.where(np.isfinite(source_only_map), source_only_map, 0.0)
                                 
             # --- Extract Gaussian parameters for aperture ---
             sig_x = fit_result.params[f"g{j}_sx"].value
@@ -514,7 +516,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             
             # --- Perform aperture photometry on residual image relative to cutout --- #
             phot_res = aperture_photometry_on_sources(
-                image=source_only_map,
+                image=source_only_map_phot,
                 xcen=[fit_result.params[f"g{j}_x0"].value], 
                 ycen=[fit_result.params[f"g{j}_y0"].value],
                 config=cfg,
@@ -571,7 +573,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             yc_rel = int(round(fit_result.params[f"g{j}_y0"].value))
             flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel       
             beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
-            flux_peak_mjy_beam = flux_peak_mjy_pix / beam_area_pix # → mJy/beam
+            flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
             flux_peak.append(flux_peak_mjy_beam) 
                                            
             flux.append(phot_res["flux"][0])

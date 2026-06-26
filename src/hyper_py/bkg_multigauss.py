@@ -142,10 +142,10 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                     amplitude=np.nanmax(data_fit),
                     x_mean=xc,
                     y_mean=yc,
-                    x_stddev=max_fwhm_extent,
-                    y_stddev=max_fwhm_extent,
+                    x_stddev=aper_sup,
+                    y_stddev=aper_sup,
                     theta=0.0,
-                    bounds={'x_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'y_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'theta': (-np.pi/2, np.pi/2)}
+                    bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
                 )
             
                 fit_p = fitting.LevMarLSQFitter()
@@ -277,10 +277,10 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                 amplitude=np.nanmax(data_fit),
                 x_mean=xc,
                 y_mean=yc,
-                x_stddev=max_fwhm_extent,
-                y_stddev=max_fwhm_extent,
+                x_stddev=aper_sup,
+                y_stddev=aper_sup,
                 theta=0.0,
-                bounds={'x_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'y_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'theta': (-np.pi/2, np.pi/2)}
+                bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
             )
         
             fit_p = fitting.LevMarLSQFitter()

@@ -48,8 +48,7 @@ def group_sources(xcen, ycen, pix_dim, beam_dim, aper_sup):
         same_group = np.where(dist < max_dist_pix)[0]
 
         for j in same_group:
-            if find(i) != find(j):
-                union(i, j)
+            union(i, j)
 
     # Essential fix: flatten all group pointers after union phase
     for i in range(n):

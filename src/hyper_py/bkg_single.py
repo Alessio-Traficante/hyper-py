@@ -60,6 +60,8 @@ def masked_background_single_sources(
 
     logger_file_only.info("[INFO] Estimating background separately on masked cutout...")
     
+    # aper_sup (sigma) derived from max_fwhm_extent (FWHM): max_fwhm_extent = aper_sup * 2.3548
+    aper_sup = max_fwhm_extent / 2.3548
     
     # ---------- SELECT WHICH FITTERS TO USE ----------
     bg_fitters = config.get("fit_options", "bg_fitters", ["least_squares"])
@@ -175,10 +177,10 @@ def masked_background_single_sources(
                     amplitude=np.nanmax(data_fit),
                     x_mean=xc,
                     y_mean=yc,
-                    x_stddev=max_fwhm_extent,
-                    y_stddev=max_fwhm_extent,
+                    x_stddev=aper_sup,
+                    y_stddev=aper_sup,
                     theta=0.0,
-                    bounds={'x_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'y_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'theta': (-np.pi/2, np.pi/2)}
+                    bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
                 )
             
                 fit_p = fitting.LevMarLSQFitter()
@@ -262,10 +264,10 @@ def masked_background_single_sources(
                 amplitude=np.nanmax(data_fit),
                 x_mean=xc,
                 y_mean=yc,
-                x_stddev=max_fwhm_extent,
-                y_stddev=max_fwhm_extent,
+                x_stddev=aper_sup,
+                y_stddev=aper_sup,
                 theta=0.0,
-                bounds={'x_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'y_stddev': (max_fwhm_extent/4., max_fwhm_extent*2), 'theta': (-np.pi/2, np.pi/2)}
+                bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
             )
         
             fit_p = fitting.LevMarLSQFitter()

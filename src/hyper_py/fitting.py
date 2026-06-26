@@ -195,7 +195,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             #--- Apply external sources mask → set masked pixels to np.nan ---#
             cutout_masked = np.copy(cutout)
             mask_bg = np.ones_like(cutout_masked, dtype=bool)
-            mask_bg[np.isnan(cutout_masked)] = False        
+            mask_bg[~np.isfinite(cutout_masked)] = False        
             mask_bg[~mask] = False  # mask external sources etc.
                 
             ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
@@ -203,8 +203,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
          
                    
                
-        # Mask NaNs before computing stats
-        valid = ~np.isnan(cutout_masked)        
+        # Mask NaNs and Infs before computing stats
+        valid = np.isfinite(cutout_masked)        
         mean_bg, median_bg, std_bg = sigma_clipped_stats(cutout_masked[valid], sigma=3.0, maxiters=10)
         
         # Create rms map and propagate NaNs
@@ -236,13 +236,29 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
                     # --- Local peak near (xc, yc) in cutout_masked ---
                     prefix = f"g{i}_"
-                    local_peak = np.nanmax(cutout_masked[int(yc)-1:int(yc)+1, int(xc)-1:int(xc)+1])
-                    
+                    yc_i = int(round(yc))
+                    xc_i = int(round(xc))
+                    y_lo = max(0, yc_i - 1)
+                    y_hi = min(cutout_masked.shape[0], yc_i + 2)
+                    x_lo = max(0, xc_i - 1)
+                    x_hi = min(cutout_masked.shape[1], xc_i + 2)
+                    window = cutout_masked[y_lo:y_hi, x_lo:x_hi]
+                    finite_in_window = window[np.isfinite(window)]
+                    if len(finite_in_window) > 0:
+                        local_peak = float(np.max(finite_in_window))
+                    else:
+                        # Fallback: global finite maximum of the cutout
+                        finite_all = cutout_masked[np.isfinite(cutout_masked)]
+                        local_peak = float(np.max(finite_all)) if len(finite_all) > 0 else 1.0
+
+                    # Ensure local_peak is above the noise floor to prevent degenerate bounds
+                    local_peak = max(local_peak, max(3.0 * std_bg, 1e-10))
+
                     # - peak in cutout masked is well-defined after background subtraction (fit_separately = True) - #
                     if fit_separately:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.4*local_peak, max=1.3*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.3*local_peak, max=2.0*local_peak)
                     else:
-                        params.add(f"{prefix}amplitude", value=local_peak, min=0.2*local_peak, max=1.5*local_peak)
+                        params.add(f"{prefix}amplitude", value=local_peak, min=0.1*local_peak, max=2.0*local_peak)
                         
                     if vary == True:
                         params.add(f"{prefix}x0", value=xc, min=xc - 1, max=xc + 1)
@@ -286,12 +302,10 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
                     if fit_gauss_and_bg_together:
                         max_order_all = max(orders)
-
                         for dx in range(max_order_all + 1):
                             for dy in range(max_order_all + 1 - dx):
                                 pname = f"c{dx}_{dy}"
-                                val = median_bg if (dx == 0 and dy == 0) else 1e-5
-                                params.add(pname, value=val, vary=(dx + dy <= order))
+                                model = model + p[pname] * (x ** dx) * (y ** dy)
                                 
                     # Final check
                     model = np.where(np.isfinite(model), model, 0.0)
@@ -340,18 +354,21 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                                            
                         
                # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources within each box) ---
-                valid = ~np.isnan(cutout_masked)
+                valid = np.isfinite(cutout_masked)
                 x_valid = xx.ravel()[valid.ravel()]
                 y_valid = yy.ravel()[valid.ravel()]
                 data_valid = cutout_masked.ravel()[valid.ravel()]
                 weights_valid = weights.ravel()[valid.ravel()] if weights is not None else None
+                if weights_valid is not None:
+                    weights_valid = np.where(np.isfinite(weights_valid), weights_valid, 0.0)
 
                 result = minimize(
                     residual,
                     params,
                     args=(x_valid.ravel(), y_valid.ravel(), data_valid),
                     kws={'weights': weights_valid},
-                    method=fit_cfg.get("fit_method", "leastsq"),
+                    method=fit_cfg.get("fit_method", "least_squares"),
+                    nan_policy='omit',
                     **minimize_kwargs
                 )     
  
@@ -437,7 +454,9 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             gauss_vals += A * np.exp(- (a*(xx - x0)**2 + 2*b*(xx - x0)*(yy - y0) + c*(yy - y0)**2))
 
         bg_component = bg_vals - gauss_vals if fit_gauss_and_bg_together else np.zeros_like(bg_vals)
-        bg_mean = np.mean(bg_component) if fit_gauss_and_bg_together else 0.0
+        if fit_gauss_and_bg_together:
+            bg_mean = np.mean(bg_component)
+        # else: bg_mean already set to median_bg of the best-fit iteration
 
 
         model_eval = model_fn(best_result.params, xx, yy)

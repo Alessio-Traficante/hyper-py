@@ -18,11 +18,11 @@ def select_channel_map(map_struct):
 
 def high_pass_filter(image, kernel_size_pix, FWHM_pix):
 
-    if kernel_size_pix % 2 == 0:
+    if kernel_size_pix != 0 and kernel_size_pix % 2 == 0:
         kernel_size_pix -= 1    
     FWHM_int = math.floor(FWHM_pix)
 
-    kernel_dim = kernel_size_pix**2 if kernel_size_pix != 0 else FWHM_int**2
+    kernel_dim = kernel_size_pix if kernel_size_pix != 0 else FWHM_int**2
 
     ny, nx = image.shape
     kdim = min(kernel_dim, ny, nx)
@@ -133,6 +133,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
     pix_dim_ref = map_struct["pix_dim"]
     beam_dim_ref = map_struct["beam_dim"]
     aper_sup=config.get("photometry", "aper_sup")
+    aper_inf=config.get("photometry", "aper_inf")
 
     my_dist_limit_arcsec = beam_dim_ref if dist_limit_arcsec == 0 else dist_limit_arcsec
     dist_limit_pix = my_dist_limit_arcsec / pix_dim_ref
@@ -148,7 +149,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
     filtered_threshold = 2. * filtered_rms_detect
         
     peaks = detect_peaks(norm_filtered, filtered_threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
-    good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup)
+    good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_inf)
     final_sources = filter_by_snr(good_peaks, real_map, rms_real, snr_threshold)
 
     return final_sources
