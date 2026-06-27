@@ -204,49 +204,43 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
         
         
         
-        # # ---- interpolate NaNs at the edges of the maps --- #
-        # --- Count NaNs in edge pixels ---
-        edge_thickness = round(max_fwhm_extent)  # pixels to define the edge region
-        
+        # --- Interpolate NaN regions (masked external sources) for better background estimation ---
+        # Count edge NaN fraction for diagnostic purposes only.
+        edge_thickness = round(max_fwhm_extent)
         edge_mask = np.zeros_like(cutout_masked, dtype=bool)
-        edge_mask[:edge_thickness, :] = True  # top edge
-        edge_mask[-edge_thickness:, :] = True  # bottom edge
-        edge_mask[:, :edge_thickness] = True  # left edge
-        edge_mask[:, -edge_thickness:] = True  # right edge
-        
+        edge_mask[:edge_thickness, :] = True
+        edge_mask[-edge_thickness:, :] = True
+        edge_mask[:, :edge_thickness] = True
+        edge_mask[:, -edge_thickness:] = True
         n_edge_total = np.sum(edge_mask)
         n_edge_nan = np.sum(edge_mask & ~np.isfinite(cutout_masked))
-        nan_fraction = n_edge_nan / n_edge_total
-        
-        # --- Only interpolate if edge NaNs < threshold ---
-        nan_threshold = 0.3  # allow up to 30% NaNs in edge region
-        
-        if nan_fraction < nan_threshold:
-            sigma = 2.0
-            max_sigma = 10.0
-            success = False
-        
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", AstropyUserWarning)
-        
-                while sigma <= max_sigma:
-                    kernel = Gaussian2DKernel(x_stddev=sigma)
-                    interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
-        
-                    if np.all(np.isfinite(interpolated_map)):
-                        success = True
-                        break
-                    else:
-                        sigma += 1.0  # Increase kernel size and retry
-        
-            if success:
-                cutout_masked = interpolated_map
-                mask_bg = np.ones_like(cutout_masked, dtype=bool)
-            else:
-                logger_file_only.warning("⚠️ NaNs remain after interpolation even with enlarged kernel!")
+        nan_fraction = n_edge_nan / n_edge_total if n_edge_total > 0 else 0.0
+        if nan_fraction > 0.0:
+            logger_file_only.info(f"[INFO] Edge NaN fraction before interpolation: {nan_fraction:.2f}")
 
+        # Always attempt interpolation with an adaptive growing kernel.
+        sigma = 2.0
+        max_sigma = 10.0
+        success = False
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", AstropyUserWarning)
+
+            while sigma <= max_sigma:
+                kernel = Gaussian2DKernel(x_stddev=sigma)
+                interpolated_map = interpolate_replace_nans(cutout_masked, kernel)
+
+                if np.all(np.isfinite(interpolated_map)):
+                    success = True
+                    break
+                else:
+                    sigma += 1.0  # Increase kernel size and retry
+
+        if success:
+            cutout_masked = interpolated_map
+            mask_bg = np.ones_like(cutout_masked, dtype=bool)
         else:
-            logger_file_only.warning(f"⚠️ Too many NaNs at edges (fraction: {nan_fraction:.2f}) — interpolation skipped.")
+            logger_file_only.warning(f"⚠️ NaNs remain after interpolation with max kernel (sigma={max_sigma}); edge NaN fraction: {nan_fraction:.2f}")
 
         
         
@@ -511,14 +505,33 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
     if best_order is None:
         # If no valid background was found, return unmodified cutout
         logger_file_only.warning("[WARNING] Background fit failed; returning original cutout.")
-        return cutout_masked, np.zeros_like(cutout), None, np.zeros_like(cutout), np.zeros_like(cutout), 0, 0, 0, 0, 0, 0, 0, 0, [box], 0, {}
+        try:
+            # xx, yy, cutout_masked, cutout_masked_all, x0, y0, mask_bg, xmin/xmax/ymin/ymax
+            # are all defined if at least one box iteration passed the empty/NaN check.
+            cutout_wcs = WCS(header).deepcopy()
+            cutout_wcs.wcs.crpix[0] -= xmin
+            cutout_wcs.wcs.crpix[1] -= ymin
+            fb_header = cutout_wcs.to_header()
+            fb_header.update({k: header[k] for k in header if k not in fb_header and k not in ['COMMENT', 'HISTORY']})
+            return (cutout, cutout_masked_all, fb_header, np.zeros_like(cutout),
+                    mask_bg, x0, y0, xx, yy, xmin, xmax, ymin, ymax, [box], 0, {})
+        except NameError:
+            # All box sizes were empty or all-NaN; fall back to the full image.
+            fb_arr = np.array(image, dtype=np.float64)
+            fb_yy, fb_xx = np.indices(fb_arr.shape)
+            fb_x0 = np.atleast_1d(np.asarray(xcen, dtype=float))
+            fb_y0 = np.atleast_1d(np.asarray(ycen, dtype=float))
+            return (fb_arr, fb_arr, None, np.zeros_like(fb_arr), np.isfinite(fb_arr),
+                    fb_x0, fb_y0, fb_xx, fb_yy, 0, nx, 0, ny, [box_sizes[0] if box_sizes else nx], 0, {})
 
     else:
-        # Subtract background from the original cutout
-        best_cutout -= best_bg_model
+        # Build the photometry cutout: original unmasked data minus fitted background.
+        # This is a new array so there is no aliasing with best_cutout / cutout.
+        cutout_bg_subtracted = best_cutout - best_bg_model
         best_cutout_masked -= best_bg_model
         best_bg_model = best_bg_model + best_median_cutout
 
         logger_file_only.info(f"[INFO] Background subtracted using order {best_order} polynomial.")
- 
-        return best_cutout_masked, best_cutout_masked_full, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params
+        # Return the original (unmasked) cutout minus background as position 0 so that
+        # photometry is never done on interpolated pixels.
+        return cutout_bg_subtracted, best_cutout_masked_full, best_header, best_bg_model, best_mask_bg, best_x0, best_y0, best_xx, best_yy, best_xmin, best_xmax, best_ymin, best_ymax, best_box_sizes, best_order, best_params

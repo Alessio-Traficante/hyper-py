@@ -5,7 +5,7 @@ import numpy as np
 
 
 def plot_fit_summary(cutout, cutout_masked_full, model, residual, output_dir, label_name="fit", dpi=300,
-                     box_size=None, poly_order=None, nmse=None):
+                     box_size=None, poly_order=None, nmse=None, bg_subtracted=False):
     """
     Save 2D and 3D plots of cutout, model, and residual.
 
@@ -37,9 +37,10 @@ def plot_fit_summary(cutout, cutout_masked_full, model, residual, output_dir, la
     data_list = [cutout, cutout_masked_full, model, residual, residual]
     file_tags = ["cutout", "cutout masked full", "model", "residual", "residual_rescaled"]
 
+    cutout_label = "Map Cutout (bg subtracted)" if bg_subtracted else "Map Cutout (raw, no bg subtraction)"
     if box_size is not None:
         titles = [
-            f"Map Cutout Back. subt.  • Box = {box_size} px   ",
+            f"{cutout_label}  • Box = {box_size} px   ",
             f"Original Map Cutout masked  • Box = {box_size} px   ",
             f"Model (Gauss. + Backgr.)  • Box = {box_size} px   ",
             f"Residual (Data − Model)  • Box = {box_size} px   ",
@@ -47,7 +48,7 @@ def plot_fit_summary(cutout, cutout_masked_full, model, residual, output_dir, la
         ]
     else:
         titles = [
-            "Map Cutout Back. subt  • Box = NaN ",
+            f"{cutout_label}  • Box = NaN ",
             "Original Map Cutout masked  • Box = NaN   ",
             "Model (Gauss. + Backgr.)  • Box = NaN ",
             "Residual (Data − Model)  • Box = NaN ",

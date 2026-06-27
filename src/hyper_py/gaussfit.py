@@ -201,6 +201,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
             
             ### --- From now on, all photometry and background estimation is done on cutout_masked from external sources --- ###
             cutout_masked[~mask_bg] = np.nan
+            cutout_masked_full = cutout_masked
             
             
         # --- Fit single 2D elliptical Gaussian (+ background) --- #
@@ -403,12 +404,11 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                         best_order = back_order
                     else:
                         best_order = order    
-                    best_cutout = cutout_masked
+                    best_cutout = cutout
                     best_cutout_masked_full = cutout_masked_full
                     best_header = cutout_header
                     
-                    bg_model = np.where(np.isfinite(cutout_masked), bg_model, np.nan)
-                    best_bg_model = bg_model
+                    best_bg_model = np.where(np.isfinite(cutout_masked), bg_model if bg_model is not None else 0.0, np.nan)
                     
                     best_slice = (slice(ymin, ymax), slice(xmin, xmax))
                     bg_mean = median_bg
@@ -483,7 +483,8 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                 label_name=f"HYPER_MAP_{suffix}_ID_{source_id+1}" if source_id is not None else "source",
                 box_size=best_box,
                 poly_order=best_order,
-                nmse=best_nmse
+                nmse=best_nmse,
+                bg_subtracted=fit_separately
            )
 
 

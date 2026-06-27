@@ -349,11 +349,11 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             if len(fwhm_1_list) == 1:
                 fwhm_x = fwhm_1_list[0] / pix_dim
                 fwhm_y = fwhm_2_list[0] / pix_dim
-                theta = PA_list[0]
+                theta = PA_list[0] + 90  # user provides astronomical PA → convert to pixel theta
             else:                
                 fwhm_x = fwhm_1_list[i] / pix_dim
                 fwhm_y = fwhm_2_list[i] / pix_dim
-                theta = PA_list[i]
+                theta = PA_list[i] + 90  # user provides astronomical PA → convert to pixel theta
         
         # --- Evaluate full model on the cutout grid ---
         yy, xx = np.indices(cutout.shape)
@@ -387,6 +387,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         xc_rel = int(round(fit_result.params["g_centerx"].value)) 
         yc_rel = int(round(fit_result.params["g_centery"].value))
         flux_peak_mjy_pix = source_only_map[yc_rel, xc_rel]         # in mJy/pixel           
+
+
         beam_area_pix = beam_area / (pix_dim**2)               # beam area in pixel²
         flux_peak_mjy_beam = flux_peak_mjy_pix * beam_area_pix # → mJy/beam
         flux_peak.append(flux_peak_mjy_beam) 
@@ -395,11 +397,16 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         flux.append(phot_single["flux"][0])
         flux_err.append(phot_single["error"][0])
         
-        fwhm_1_val.append(fwhm_x * pix_dim)          # save FWHM_1 value in arcsec
-        fwhm_2_val.append(fwhm_y * pix_dim)          # save FWHM_1 value in arcsec
-        radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save FWHM_1 value in arcsec
-        radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save FWHM_2 value in arcsec
-        PA_val.append(theta)
+        # --- Normalise: FWHM_1 = major axis, PA = angle of major axis from North ---
+        if not fixed_radius and fwhm_y > fwhm_x:
+            fwhm_x, fwhm_y = fwhm_y, fwhm_x
+            theta = theta + 90.0
+
+        fwhm_1_val.append(fwhm_x * pix_dim)          # FWHM_1 = major axis (arcsec)
+        fwhm_2_val.append(fwhm_y * pix_dim)          # FWHM_2 = minor axis (arcsec)
+        radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)
+        radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)
+        PA_val.append((theta + 90) % 180)  # astronomical PA: CCW from North (DS9 convention)
         updated_xcen.append(fit_result.params["g_centerx"].value + xslice.start)
         updated_ycen.append(fit_result.params["g_centery"].value + yslice.start)
         sky_val.append(bg_mean)
@@ -510,7 +517,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             if fixed_radius == True:
                 fwhm_x = fwhm_x_group[j] 
                 fwhm_y = fwhm_y_group[j]
-                theta = theta_group[j]
+                theta = theta_group[j] + 90  # user provides astronomical PA → convert to pixel theta
 
 
             
@@ -579,11 +586,16 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             flux.append(phot_res["flux"][0])
             flux_err.append(phot_res["error"][0])
 
-            fwhm_1_val.append(fwhm_x * pix_dim)          # save FWHM_1 value in arcsec
-            fwhm_2_val.append(fwhm_y * pix_dim)          # save FWHM_2 value in arcsec
-            radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)          # save FWHM_1 value in arcsec
-            radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)          # save FWHM_2 value in arcsec
-            PA_val.append(theta)
+            # --- Normalise: FWHM_1 = major axis, PA = angle of major axis from North ---
+            if not fixed_radius and fwhm_y > fwhm_x:
+                fwhm_x, fwhm_y = fwhm_y, fwhm_x
+                theta = theta + 90.0
+
+            fwhm_1_val.append(fwhm_x * pix_dim)          # FWHM_1 = major axis (arcsec)
+            fwhm_2_val.append(fwhm_y * pix_dim)          # FWHM_2 = minor axis (arcsec)
+            radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)
+            radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)
+            PA_val.append((theta + 90) % 180)  # astronomical PA: CCW from North (DS9 convention)
             updated_xcen.append(fit_result.params[f"g{j}_x0"].value + x0_global)
             updated_ycen.append(fit_result.params[f"g{j}_y0"].value + y0_global)
 
@@ -699,7 +711,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     ######################## Write Region file ########################
     # Convert PA to DS9 convention
     # Initialize WCS from header
-    theta_DS9 = [(pa + 90) % 180 for pa in PA_val]
+    theta_DS9 = [(pa - 90) % 180 for pa in PA_val]  # convert astro PA back to DS9 pixel x-axis convention
     
     
     # --- Extract coordinate system ---

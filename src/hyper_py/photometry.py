@@ -33,7 +33,7 @@ def aperture_photometry_on_sources(image, xcen, ycen, config,
     for i in range(len(xcen)):   
         a = radius_val_1[i]
         b = radius_val_2[i]
-        theta = np.deg2rad(PA_val[i] + 90.)  # rotated only for photometry (x and y axes inverted here)
+        theta = np.deg2rad(PA_val[i])  # raw pixel theta (CCW from pixel x-axis), same convention as photutils
         
         position = (xcen[i], ycen[i])
         aperture = EllipticalAperture(position, a, b, theta=theta)
