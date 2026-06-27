@@ -24,6 +24,42 @@ from hyper_py.logger import setup_logger
 from .bkg_no_sources import masked_bkg_no_sources
 
 
+def _compute_wcs_angles(wcs, header):
+    """
+    Return (north_angle_pix, east_angle_pix) in degrees (CCW from pixel +x axis).
+
+    north_angle_pix : direction of increasing Dec (or Glat) in pixel space
+    east_angle_pix  : direction of increasing RA (or Glon) in pixel space
+
+    For a standard FITS image (CDELT1<0, CDELT2>0, no rotation):
+        north_angle_pix ≈  90°  (+pixel_y direction)
+        east_angle_pix  ≈ 180°  (-pixel_x direction)
+
+    These values are used so that:
+        PA_table  = (fitting_theta - north_angle_pix) % 180   [astro PA, CCW from North]
+        theta_DS9 = (fitting_theta - east_angle_pix)  % 180   [DS9 WCS angle, CCW from East]
+    """
+    try:
+        nx = int(header.get("NAXIS1", 100))
+        ny = int(header.get("NAXIS2", 100))
+        cx, cy = nx / 2.0, ny / 2.0
+
+        sky0 = wcs.all_pix2world([[cx, cy]], 0)[0]
+        c0, c1 = float(sky0[0]), float(sky0[1])
+        delta = 1e-4  # degrees offset in sky coordinate
+
+        # North: increase second WCS axis (Dec or Glat)
+        pn = wcs.all_world2pix([[c0, c1 + delta]], 0)[0]
+        north_angle_pix = float(np.degrees(np.arctan2(pn[1] - cy, pn[0] - cx)))
+
+        # East: increase first WCS axis (RA or Glon)
+        pe = wcs.all_world2pix([[c0 + delta, c1]], 0)[0]
+        east_angle_pix = float(np.degrees(np.arctan2(pe[1] - cy, pe[0] - cx)))
+
+        return north_angle_pix, east_angle_pix
+    except Exception:
+        return 90.0, 180.0  # fallback: standard FITS N-up, E-left
+
 
 def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=None):   
          
@@ -143,6 +179,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     
     header = map_struct["header"]
     wcs = WCS(header)
+    north_angle_pix, east_angle_pix = _compute_wcs_angles(wcs, header)
     pix_dim = map_struct["pix_dim"]
     beam_dim = map_struct["beam_dim"]
     beam_area = map_struct["beam_area_arcsec2"]  
@@ -349,11 +386,11 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             if len(fwhm_1_list) == 1:
                 fwhm_x = fwhm_1_list[0] / pix_dim
                 fwhm_y = fwhm_2_list[0] / pix_dim
-                theta = PA_list[0] + 90  # user provides astronomical PA → convert to pixel theta
+                theta = PA_list[0] + north_angle_pix  # user provides astro PA → convert to pixel theta
             else:                
                 fwhm_x = fwhm_1_list[i] / pix_dim
                 fwhm_y = fwhm_2_list[i] / pix_dim
-                theta = PA_list[i] + 90  # user provides astronomical PA → convert to pixel theta
+                theta = PA_list[i] + north_angle_pix  # user provides astro PA → convert to pixel theta
         
         # --- Evaluate full model on the cutout grid ---
         yy, xx = np.indices(cutout.shape)
@@ -406,7 +443,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         fwhm_2_val.append(fwhm_y * pix_dim)          # FWHM_2 = minor axis (arcsec)
         radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)
         radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)
-        PA_val.append((theta + 90) % 180)  # astronomical PA: CCW from North (DS9 convention)
+        PA_val.append((theta - north_angle_pix) % 180)  # astronomical PA: CCW from North
         updated_xcen.append(fit_result.params["g_centerx"].value + xslice.start)
         updated_ycen.append(fit_result.params["g_centery"].value + yslice.start)
         sky_val.append(bg_mean)
@@ -517,7 +554,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             if fixed_radius == True:
                 fwhm_x = fwhm_x_group[j] 
                 fwhm_y = fwhm_y_group[j]
-                theta = theta_group[j] + 90  # user provides astronomical PA → convert to pixel theta
+                theta = theta_group[j] + north_angle_pix  # user provides astro PA → convert to pixel theta
 
 
             
@@ -595,7 +632,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             fwhm_2_val.append(fwhm_y * pix_dim)          # FWHM_2 = minor axis (arcsec)
             radius_val_1.append(fwhm_x * fwhm_radius_ratio * pix_dim)
             radius_val_2.append(fwhm_y * fwhm_radius_ratio * pix_dim)
-            PA_val.append((theta + 90) % 180)  # astronomical PA: CCW from North (DS9 convention)
+            PA_val.append((theta - north_angle_pix) % 180)  # astronomical PA: CCW from North
             updated_xcen.append(fit_result.params[f"g{j}_x0"].value + x0_global)
             updated_ycen.append(fit_result.params[f"g{j}_y0"].value + y0_global)
 
@@ -711,7 +748,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     ######################## Write Region file ########################
     # Convert PA to DS9 convention
     # Initialize WCS from header
-    theta_DS9 = [(pa - 90) % 180 for pa in PA_val]  # convert astro PA back to DS9 pixel x-axis convention
+    theta_DS9 = [(pa + north_angle_pix - east_angle_pix) % 180 for pa in PA_val]  # DS9 WCS angle: CCW from East
     
     
     # --- Extract coordinate system ---

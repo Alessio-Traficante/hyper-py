@@ -294,7 +294,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         sy = p[f"{prefix}sy"]
                         th = p[f"{prefix}theta"]
                         a = (np.cos(th)**2)/(2*sx**2) + (np.sin(th)**2)/(2*sy**2)
-                        b = -np.sin(2*th)/(4*sx**2) + np.sin(2*th)/(4*sy**2)
+                        b = np.sin(2*th)/(4*sx**2) - np.sin(2*th)/(4*sy**2)
                         c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
                         model += A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
 
@@ -445,7 +445,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             sy = best_result.params[f"{prefix}sy"]
             th = best_result.params[f"{prefix}theta"]
             a = (np.cos(th)**2)/(2*sx**2) + (np.sin(th)**2)/(2*sy**2)
-            b = -np.sin(2*th)/(4*sx**2) + np.sin(2*th)/(4*sy**2)
+            b = np.sin(2*th)/(4*sx**2) - np.sin(2*th)/(4*sy**2)
             c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
             gauss_vals += A * np.exp(- (a*(xx - x0)**2 + 2*b*(xx - x0)*(yy - y0) + c*(yy - y0)**2))
 

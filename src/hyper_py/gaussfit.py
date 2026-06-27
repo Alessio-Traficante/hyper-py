@@ -288,7 +288,7 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     sy = p["g_sigmay"]
                     th = p["g_theta"]
                     a = (np.cos(th)**2)/(2*sx**2) + (np.sin(th)**2)/(2*sy**2)
-                    b = -np.sin(2*th)/(4*sx**2) + np.sin(2*th)/(4*sy**2)
+                    b = np.sin(2*th)/(4*sx**2) - np.sin(2*th)/(4*sy**2)
                     c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
                     model = A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
 
