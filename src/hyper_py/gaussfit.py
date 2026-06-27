@@ -218,9 +218,10 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         if weight_choice == "inverse_rms":
             weights = 1.0 / (cutout_rms + mean_bg)
         elif weight_choice == "snr":
-            weights = (cutout_masked / (cutout_rms + mean_bg))
+            weights = np.maximum(cutout_masked / (cutout_rms + mean_bg), 0.0)
         elif weight_choice == "power_snr":
-            weights = ((cutout_masked / (cutout_rms + mean_bg)))**weight_power_snr
+            snr_clipped = np.maximum(cutout_masked / (cutout_rms + mean_bg), 0.0)
+            weights = snr_clipped ** weight_power_snr
         elif weight_choice == "map":
             weights = cutout_masked
         elif weight_choice == "mask":
