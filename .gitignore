@@ -178,3 +178,7 @@ cython_debug/
 /Git_Ignore
 test/test_2dmap.config.yaml
 test/output/
+hyper_py_LH_2026_school
+src/hyper_py/Plots
+test
+src/hyper_py/output
