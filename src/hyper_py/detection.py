@@ -65,6 +65,7 @@ def detect_peaks(filtered_image, threshold, fwhm_pix, roundlim=(-1.0, 1.0), shar
     finder = DAOStarFinder(
         threshold=threshold,
         fwhm=fwhm_pix,
+        min_separation=0,
         roundlo=roundlim[0], roundhi=roundlim[1],
         sharplo=sharplim[0], sharphi=sharplim[1]
     )
