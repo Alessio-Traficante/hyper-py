@@ -1,9 +1,9 @@
 #--------------------- File Paths ---------------------#
 paths:
   input:
-    dir_maps: ./maps                    # [REQUIRED] Directory containing input map files. Default: ./maps
+    dir_maps: Maps                      # [REQUIRED] Directory containing input map files. Default: ./maps
   output:
-    dir_root: ./output                  # [REQUIRED] Root directory for output data. Default: ./output
+    dir_root: output                    # [REQUIRED] Root directory for output data. Default: ./output
     dir_table_out:  params              # [REQUIRED] Subdirectory of dir_root  for params. Default: params
     dir_region_out: regions             # [REQUIRED] Subdirectory of dir_root  for region files (output). Default: regions
     dir_log_out:    logs                # [REQUIRED] Subdirectory of dir_root  for log files. Default: logs
@@ -55,7 +55,7 @@ survey:
 
 #--------------------- Source Detection ---------------------#
 detection:
-  sigma_thres: 4.0                              # [REQUIRED] Detection threshold in units of RMS (sigma). Default: 4.0
+  sigma_thres: 5.0                              # [REQUIRED] Detection threshold in units of RMS (sigma). Default: 4.0
   
   use_manual_rms: false                         # [OPTIONAL] Use manually provided RMS noise value to identify sources (True/False). Default: False
   rms_value: 1.e-6                              # [OPTIONAL] Manual RMS noise value (Jy) (only if use_manual_rms = true). Default: 1.e-6
@@ -68,15 +68,15 @@ detection:
   use_fixed_source_table: false                 # [OPTIONAL] If True, use an external IPAC table for peak + aperture. Default: False
   fixed_source_table_path: "source_table.txt"   # [OPTIONAL] IPAC table with 6 columns: ID, RA, DEC, FWHM_1, FWHM_2, PA (in dir_root). Default: "source_table.txt"
   fixed_peaks: false                            # [OPTIONAL] Use fixed peaks instead of automatic (True/False). Default: False
-  xcen_fix: [1.0, 1.0]                          # [OPTIONAL] Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true). Default: [1.0, 1.0]
-  ycen_fix: [1.0, 1.0]                          # [OPTIONAL] Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true). Default: [1.0, 1.0]
+  xcen_fix: [0.0]                               # [OPTIONAL] Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true). Default: [1.0, 1.0]
+  ycen_fix: [-0.0]                              # [OPTIONAL] Fixed peak coordinates (deg, same unit as in the map header; only if fixed_peaks is true). Default: [1.0, 1.0]
 
 
 #--------------------- Photometry Settings ---------------------#
 photometry:
   aper_inf: 1.0                          # [REQUIRED] Minimum size factor for Gaussian FWHM (used as minimum radius). Default: 1.0
   aper_sup: 2.0                          # [REQUIRED] Maximum size factor for Gaussian FWHM (used as maximum radius). Default: 2.0
-  fwhm_radius_ratio: 1.0                 # [OPTIONAL] Ratio between fitted FWHM and source radius. Default: 1.0 (FWHM = radius)
+  fwhm_radius_ratio: 0.5                 # [OPTIONAL] Ratio between fitted FWHM and source radius. Default: 1.0 (FWHM = radius)
 
   fixed_radius: false                    # [OPTIONAL] Use fixed aperture radii instead of Gaussian fitting (True/False). Default: False
   fwhm_1: [0.0]                          # [OPTIONAL] Fixed FWHM aperture radius major axis (arcsec; only if radius_fix = true). Default: [0.0]
