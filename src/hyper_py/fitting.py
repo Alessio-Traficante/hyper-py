@@ -350,30 +350,48 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                             
 
                 def model_fn(p, x, y):
-                    model = np.zeros_like(x, dtype=float)
-                    for i in range(len(xcen_cut)):
-                        prefix = f"g{i}_"
-                        A = p[f"{prefix}amplitude"]
-                        x0 = p[f"{prefix}x0"]
-                        y0 = p[f"{prefix}y0"]
-                        sx = p[f"{prefix}sx"]
-                        sy = p[f"{prefix}sy"]
-                        th = p[f"{prefix}theta"]
-                        a = (np.cos(th)**2)/(2*sx**2) + (np.sin(th)**2)/(2*sy**2)
-                        b = np.sin(2*th)/(4*sx**2) - np.sin(2*th)/(4*sy**2)
-                        c = (np.sin(th)**2)/(2*sx**2) + (np.cos(th)**2)/(2*sy**2)
-                        model += A * np.exp(- (a*(x - x0)**2 + 2*b*(x - x0)*(y - y0) + c*(y - y0)**2))
+                    n_src = len(xcen_cut)
+                    # Extract all per-source parameters into numpy arrays once per
+                    # call.  This eliminates the Python loop from the optimizer's
+                    # hot path and lets numpy evaluate all N Gaussians in one
+                    # vectorised (N × M) operation — results are bit-identical to
+                    # the original sequential loop.
+                    A_v  = np.array([float(p[f"g{i}_amplitude"]) for i in range(n_src)])
+                    x0_v = np.array([float(p[f"g{i}_x0"])        for i in range(n_src)])
+                    y0_v = np.array([float(p[f"g{i}_y0"])         for i in range(n_src)])
+                    sx_v = np.array([float(p[f"g{i}_sx"])         for i in range(n_src)])
+                    sy_v = np.array([float(p[f"g{i}_sy"])         for i in range(n_src)])
+                    th_v = np.array([float(p[f"g{i}_theta"])      for i in range(n_src)])
+
+                    cos_th  = np.cos(th_v)
+                    sin_th  = np.sin(th_v)
+                    sin2_th = np.sin(2.0 * th_v)
+                    a_v = cos_th**2  / (2.0 * sx_v**2) + sin_th**2  / (2.0 * sy_v**2)  # (N,)
+                    b_v = sin2_th    / (4.0 * sx_v**2) - sin2_th    / (4.0 * sy_v**2)   # (N,)
+                    c_v = sin_th**2  / (2.0 * sx_v**2) + cos_th**2  / (2.0 * sy_v**2)  # (N,)
+
+                    # Ravel to 1-D for (N × M) broadcasting; reshape back at the end
+                    # so the function works for both 1-D (during fitting) and 2-D
+                    # (post-fit evaluation on np.indices grids) inputs.
+                    orig_shape = x.shape
+                    xf = x.ravel()
+                    yf = y.ravel()
+                    dx_mat = xf[None, :] - x0_v[:, None]   # (N, M)
+                    dy_mat = yf[None, :] - y0_v[:, None]   # (N, M)
+                    exponent = -(a_v[:, None] * dx_mat**2
+                                 + 2.0 * b_v[:, None] * dx_mat * dy_mat
+                                 + c_v[:, None] * dy_mat**2)
+                    model = np.dot(A_v, np.exp(exponent))   # (N,)·(N,M) → (M,)
 
                     if fit_gauss_and_bg_together:
                         max_order_all = max(orders)
                         for dx in range(max_order_all + 1):
                             for dy in range(max_order_all + 1 - dx):
                                 pname = f"c{dx}_{dy}"
-                                model = model + p[pname] * (x ** dx) * (y ** dy)
-                                
-                    # Final check
+                                model = model + float(p[pname]) * (xf ** dx) * (yf ** dy)
+
                     model = np.where(np.isfinite(model), model, 0.0)
-                    return model
+                    return model.reshape(orig_shape)
                 
 
                 def residual(params, x, y, data, weights=None):
