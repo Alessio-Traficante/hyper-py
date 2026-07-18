@@ -140,11 +140,11 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     fit_status_val = []
     deblend_val = []
     cluster_val = []
+    shoulder_score_val = []
 
     source_id_save = []  
 
-    bg_model = None      
-        
+    bg_model = None          
         
     # --- see if peaks position and aperture radius are fixed or not --- #
     def ensure_list(x, n):
@@ -195,8 +195,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         clipped = sigma_clip(map_zero_mean_detect)    
         real_rms = np.sqrt(np.nanmean(clipped**2))
     
-        
-        
+                
     # --- run sources identification  --- #
     if fixed_peaks:
         if use_fixed_table:
@@ -239,6 +238,12 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         
         all_sources_xcen = xcen
         all_sources_ycen = ycen
+
+    # Build shoulder-score lookup array (zeros when scores are not available, e.g. fixed peaks)
+    if hasattr(sources, 'colnames') and "SHOULDER_SCORE" in sources.colnames:
+        shoulder_scores_arr = np.array(sources["SHOULDER_SCORE"], dtype=float)
+    else:
+        shoulder_scores_arr = np.zeros(len(xcen), dtype=float)
         
 
     # -- if fixed_radius = True generate a xcen vector of aperture radii -- #
@@ -267,7 +272,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
     isolated = np.where(start_group == 0)[0]
     blended = np.where(start_group == 1)[0]
 
-    logger.info(f"{tot_sources} sources above threshold.")
+    logger.info(f"{tot_sources} sources above threshold")
     logger.info(f"{len(isolated)} sources are isolated")
     logger.info(f"{len(blended)} sources are blended")
 
@@ -455,6 +460,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         fit_status_val.append(fit_status)
         deblend_val.append(0)       # not deblended
         cluster_val.append(1)       # only one source
+        shoulder_score_val.append(float(shoulder_scores_arr[i]))
         
         source_id_save.append(i+1)    #source_id to save in params files
             
@@ -645,6 +651,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             fit_status_val.append(fit_status)
             deblend_val.append(1)                   # multi-Gaussian fit
             cluster_val.append(len(group_indices))  # number of sources in the group
+            shoulder_score_val.append(float(shoulder_scores_arr[idx]))
             
             
         count_blended_sources = count_blended_sources + len(group_indices)        
@@ -733,6 +740,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             "DEC": list(dec),
             "DEBLEND": list(deblend_val),
             "CLUSTER": list(cluster_val),
+            "SHOULDER_SCORE": list(shoulder_score_val),
         }
 
     

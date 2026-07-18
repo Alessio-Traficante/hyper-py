@@ -33,7 +33,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
         'RESIDUALS': flux_units,
         'FWHM_1': 'arcsec', 'FWHM_2': 'arcsec',
         'PA': 'deg', 'NMSE': '', 'CHI2_RED': '',
-        'POLYN': '', 'STATUS': '', 'DEBLEND': '', 'CLUSTER': '',
+        'POLYN': '', 'STATUS': '', 'DEBLEND': '', 'CLUSTER': '', 'SHOULDER_SCORE': '',
     }
 
     descriptions = {
@@ -57,6 +57,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
         'DEC':       'Declination (deg, J2000)',
         'DEBLEND':   'Deblending flag',
         'CLUSTER':   'Cluster flag',
+        'SHOULDER_SCORE': 'Background asymmetry score at detection: (bright_half - faint_half) / peak_flux on a ring at 1.5 FWHM. Low (~0) = real source; high (>0.3) = likely shoulder artefact',
     }
     
 
@@ -66,7 +67,7 @@ def write_tables(data_dict, output_dir, config, sigma_thres, real_rms, base_file
         'FLUX_PEAK_JY': '.3e', 'RESIDUALS': '.3e',
         'FWHM_1': '.3f', 'FWHM_2': '.3f', 'PA': '.1f',
         'NMSE': '.3f', 'CHI2_RED': '.3f', 'BIC': '.2f', 'POLYN': 'd',
-        'STATUS': 'd', 'DEBLEND': 'd', 'CLUSTER': 'd',
+        'STATUS': 'd', 'DEBLEND': 'd', 'CLUSTER': 'd', 'SHOULDER_SCORE': '.2f',
     }
     
 

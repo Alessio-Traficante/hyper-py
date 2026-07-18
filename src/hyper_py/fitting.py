@@ -17,6 +17,45 @@ from hyper_py.visualization import plot_fit_summary
 from .bkg_multigauss import multigauss_background
 
 from scipy.spatial.distance import pdist
+
+
+def _moment_init(data, xc, yc, win_pix):
+    """
+    Estimate initial sigma_x, sigma_y and rotation angle from image 2nd-order
+    moments inside a window of radius ~2.5*win_pix around (xc, yc).
+
+    Returns (sx, sy, theta) where sx >= sy, or (None, None, None) on failure.
+    theta is in radians: angle of the major (sx) axis from the x-axis,
+    matching the sign convention of the 2D Gaussian model used here.
+    """
+    ny, nx = data.shape
+    r = max(int(np.ceil(win_pix * 2.5)), 3)
+    y_lo = max(0, int(yc) - r);  y_hi = min(ny, int(yc) + r + 1)
+    x_lo = max(0, int(xc) - r);  x_hi = min(nx, int(xc) + r + 1)
+    sub  = data[y_lo:y_hi, x_lo:x_hi]
+    yg, xg = np.indices(sub.shape)
+    xg = xg + x_lo;  yg = yg + y_lo
+    valid = np.isfinite(sub) & (sub > 0)
+    if valid.sum() < 6:
+        return None, None, None
+    w = np.maximum(sub[valid], 0.0)
+    W = w.sum()
+    if W <= 0:
+        return None, None, None
+    mx  = np.sum(w * xg[valid]) / W
+    my  = np.sum(w * yg[valid]) / W
+    Mxx = np.sum(w * (xg[valid] - mx)**2) / W
+    Myy = np.sum(w * (yg[valid] - my)**2) / W
+    Mxy = np.sum(w * (xg[valid] - mx) * (yg[valid] - my)) / W
+    trace = Mxx + Myy
+    disc  = max(0.0, (trace / 2)**2 - (Mxx * Myy - Mxy**2))
+    lam1  = trace / 2 + np.sqrt(disc)        # larger eigenvalue → major axis
+    lam2  = max(trace / 2 - np.sqrt(disc), 0.0)
+    sx    = np.sqrt(max(lam1, 1e-3))
+    sy    = np.sqrt(max(lam2, 1e-3))
+    theta = 0.5 * np.arctan2(2.0 * Mxy, Mxx - Myy)
+    theta = float(np.clip(theta, -np.pi / 2, np.pi / 2))
+    return sx, sy, theta
 import matplotlib.pyplot as plt
 
 
@@ -215,12 +254,23 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
 
         weights = None
         if weight_choice == "inverse_rms":
-            weights = 1.0 / (cutout_rms + mean_bg)
+            weights = 1.0 / (cutout_rms + np.abs(mean_bg) + 1e-30)
         elif weight_choice == "snr":
-            weights = np.maximum(cutout_masked / (cutout_rms + mean_bg), 0.0)
+            # SNR = pixel value / noise level (std of background pixels)
+            weights = np.maximum(cutout_masked / std_bg, 0.0)
         elif weight_choice == "power_snr":
-            snr_clipped = np.maximum(cutout_masked / (cutout_rms + mean_bg), 0.0)
+            snr_clipped = np.maximum(cutout_masked / std_bg, 0.0)
             weights = snr_clipped ** weight_power_snr
+        elif weight_choice == "spatial":
+            # Gaussian kernel centred on each source in the group (union of
+            # per-source kernels via max). Best for weak/blended sources.
+            spatial_sigma = beam_pix * fit_cfg.get("spatial_weight_sigma", 1.5)
+            weights = np.zeros_like(cutout_masked, dtype=float)
+            for xc_s, yc_s in zip(xcen_cut, ycen_cut):
+                dist2 = (xx - xc_s) ** 2 + (yy - yc_s) ** 2
+                weights = np.maximum(weights,
+                                     np.exp(-0.5 * dist2 / spatial_sigma ** 2))
+            weights[~valid] = 0.0
         elif weight_choice == "map":
             weights = cutout_masked
         elif weight_choice == "mask":
@@ -232,6 +282,7 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
             try:
                 vary = config.get("fit_options", "vary", True)
                 params = Parameters()
+                src_sigma_list = []  # per-source geometric-mean sigma from moments
 
                 # --- Add Gaussian components ---
                 for i, (xc, yc) in enumerate(zip(xcen_cut, ycen_cut)):
@@ -267,9 +318,23 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                         params.add(f"{prefix}x0", value=xc, vary=False)
                         params.add(f"{prefix}y0", value=yc, vary=False) 
 
-                    params.add(f"{prefix}sx", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
-                    params.add(f"{prefix}sy", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
-                    params.add(f"{prefix}theta", value=0.0, min=-np.pi/2, max=np.pi/2)
+                    # --- Moment-based initialization: breaks the sx=sy degeneracy ---
+                    sx_m, sy_m, th_m = _moment_init(cutout_masked, xc, yc, beam_pix)
+                    if sx_m is not None:
+                        sx_max_i = max(aper_sup, 1.2 * sx_m)
+                        sy_max_i = max(aper_sup, 1.2 * sy_m)
+                        sx_init_i = float(np.clip(sx_m, aper_inf, sx_max_i))
+                        sy_init_i = float(np.clip(sy_m, aper_inf, sy_max_i))
+                        th_init_i = th_m
+                    else:
+                        mid = (aper_inf + aper_sup) / 2.0
+                        sx_init_i, sy_init_i = mid * 1.1, mid * 0.9
+                        sx_max_i, sy_max_i   = aper_sup, aper_sup
+                        th_init_i = 0.0
+                    src_sigma_list.append(np.sqrt(sx_init_i * sy_init_i))
+                    params.add(f"{prefix}sx", value=sx_init_i, min=aper_inf, max=sx_max_i)
+                    params.add(f"{prefix}sy", value=sy_init_i, min=aper_inf, max=sy_max_i)
+                    params.add(f"{prefix}theta", value=th_init_i, min=-np.pi/2, max=np.pi/2)
                    
                                         
  
@@ -352,12 +417,22 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                             
                                            
                         
-               # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources within each box) ---
-                valid = np.isfinite(cutout_masked)
-                x_valid = xx.ravel()[valid.ravel()]
-                y_valid = yy.ravel()[valid.ravel()]
-                data_valid = cutout_masked.ravel()[valid.ravel()]
-                weights_valid = weights.ravel()[valid.ravel()] if weights is not None else None
+               # --- Restrict fitting pixels to union of per-source apertures ---
+                # Each source gets its own circle: radius = moment-estimated sigma
+                # (geometric mean of sx_init, sy_init) + fit_aperture_sigma * beam_pix
+                # margin to capture the wings. Set fit_aperture_sigma to null to disable.
+                valid_fit = np.isfinite(cutout_masked)
+                fit_aperture_extra = fit_cfg.get("fit_aperture_sigma", 1.0)
+                if fit_aperture_extra is not None:
+                    ap_mask = np.zeros_like(cutout_masked, dtype=bool)
+                    for (xc_s, yc_s), src_sig in zip(zip(xcen_cut, ycen_cut), src_sigma_list):
+                        ap_r2_i = (src_sig + fit_aperture_extra * beam_pix) ** 2
+                        ap_mask |= ((xx - xc_s) ** 2 + (yy - yc_s) ** 2) <= ap_r2_i
+                    valid_fit &= ap_mask
+                x_valid = xx.ravel()[valid_fit.ravel()]
+                y_valid = yy.ravel()[valid_fit.ravel()]
+                data_valid = cutout_masked.ravel()[valid_fit.ravel()]
+                weights_valid = weights.ravel()[valid_fit.ravel()] if weights is not None else None
                 if weights_valid is not None:
                     weights_valid = np.where(np.isfinite(weights_valid), weights_valid, 0.0)
 

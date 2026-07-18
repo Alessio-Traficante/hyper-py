@@ -10,6 +10,46 @@ from lmfit import minimize, Parameters
 from hyper_py.visualization import plot_fit_summary
 from .bkg_single import masked_background_single_sources
 
+
+def _moment_init(data, xc, yc, win_pix):
+    """
+    Estimate initial sigma_x, sigma_y and rotation angle from image 2nd-order
+    moments inside a window of radius ~2.5*win_pix around (xc, yc).
+
+    Returns (sx, sy, theta) where sx >= sy, or (None, None, None) on failure.
+    theta is in radians: angle of the major (sx) axis from the x-axis,
+    matching the sign convention of the 2D Gaussian model used here.
+    """
+    ny, nx = data.shape
+    r = max(int(np.ceil(win_pix * 2.5)), 3)
+    y_lo = max(0, int(yc) - r);  y_hi = min(ny, int(yc) + r + 1)
+    x_lo = max(0, int(xc) - r);  x_hi = min(nx, int(xc) + r + 1)
+    sub  = data[y_lo:y_hi, x_lo:x_hi]
+    yg, xg = np.indices(sub.shape)
+    xg = xg + x_lo;  yg = yg + y_lo
+    valid = np.isfinite(sub) & (sub > 0)
+    if valid.sum() < 6:
+        return None, None, None
+    w = np.maximum(sub[valid], 0.0)
+    W = w.sum()
+    if W <= 0:
+        return None, None, None
+    mx  = np.sum(w * xg[valid]) / W
+    my  = np.sum(w * yg[valid]) / W
+    Mxx = np.sum(w * (xg[valid] - mx)**2) / W
+    Myy = np.sum(w * (yg[valid] - my)**2) / W
+    Mxy = np.sum(w * (xg[valid] - mx) * (yg[valid] - my)) / W
+    trace = Mxx + Myy
+    disc  = max(0.0, (trace / 2)**2 - (Mxx * Myy - Mxy**2))
+    lam1  = trace / 2 + np.sqrt(disc)        # larger eigenvalue → major axis
+    lam2  = max(trace / 2 - np.sqrt(disc), 0.0)
+    sx    = np.sqrt(max(lam1, 1e-3))
+    sy    = np.sqrt(max(lam2, 1e-3))
+    theta = 0.5 * np.arctan2(2.0 * Mxy, Mxx - Myy)
+    theta = float(np.clip(theta, -np.pi / 2, np.pi / 2))
+    return sx, sy, theta
+
+
 def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen, source_id, map_struct, suffix, config, logger, logger_file_only):
     """
     Fit a single 2D elliptical Gaussian + polynomial background to an isolated source.
@@ -216,12 +256,24 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
         
         weights = None
         if weight_choice == "inverse_rms":
-            weights = 1.0 / (cutout_rms + mean_bg)
+            weights = 1.0 / (cutout_rms + np.abs(mean_bg) + 1e-30)
         elif weight_choice == "snr":
-            weights = np.maximum(cutout_masked / (cutout_rms + mean_bg), 0.0)
+            # SNR = pixel value / noise level (std of background pixels)
+            weights = np.maximum(cutout_masked / std_bg, 0.0)
         elif weight_choice == "power_snr":
-            snr_clipped = np.maximum(cutout_masked / (cutout_rms + mean_bg), 0.0)
+            snr_clipped = np.maximum(cutout_masked / std_bg, 0.0)
             weights = snr_clipped ** weight_power_snr
+        elif weight_choice == "spatial":
+            # Gaussian kernel centred on the source: gives reliable shape
+            # constraints for weak sources where SNR weighting leaves only
+            # 1-3 pixels with positive weight.
+            # Config: fit_options.spatial_weight_sigma (multiple of beam sigma,
+            # default 1.5). Larger values include more of the background but
+            # give more leverage on the wings.
+            spatial_sigma = beam_pix * fit_cfg.get("spatial_weight_sigma", 1.5)
+            dist2 = (xx - x0) ** 2 + (yy - y0) ** 2
+            weights = np.exp(-0.5 * dist2 / spatial_sigma ** 2)
+            weights[~valid] = 0.0
         elif weight_choice == "map":
             weights = cutout_masked
         elif weight_choice == "mask":
@@ -257,17 +309,30 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                     params.add("g_amplitude", value=local_peak, min=0.4*local_peak, max=1.5*local_peak)
                     
                 if vary == True:
-                    params.add("g_centerx", value=x0, min=x0 - 0.5, max=x0 + 0.5)
-                    params.add("g_centery", value=y0, min=y0 - 0.5, max=y0 + 0.5)
+                    params.add("g_centerx", value=x0, min=x0 - 1.0, max=x0 + 1.0)
+                    params.add("g_centery", value=y0, min=y0 - 1.0, max=y0 + 1.0)
                 if vary == False:
                     params.add("g_centerx", value=x0, vary=False)
                     params.add("g_centery", value=y0, vary=False)
      
 
-                params.add("g_sigmax", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
-                params.add("g_sigmay", value=(aper_inf+aper_sup)/2., min=aper_inf, max=aper_sup)
-                
-                params.add("g_theta", value=0.0, min=-np.pi/2, max=np.pi/2)
+                # --- Moment-based initialization: breaks the sx=sy degeneracy ---
+                sx_m, sy_m, th_m = _moment_init(cutout_masked, x0, y0, beam_pix)
+                if sx_m is not None:
+                    sx_max = max(aper_sup, 1.2 * sx_m)
+                    sy_max = max(aper_sup, 1.2 * sy_m)
+                    sx_init = float(np.clip(sx_m, aper_inf, sx_max))
+                    sy_init = float(np.clip(sy_m, aper_inf, sy_max))
+                    th_init = th_m
+                else:
+                    # Fallback: slightly asymmetric to avoid the sx=sy saddle point
+                    mid = (aper_inf + aper_sup) / 2.0
+                    sx_init, sy_init = mid * 1.1, mid * 0.9
+                    sx_max, sy_max   = aper_sup, aper_sup
+                    th_init = 0.0
+                params.add("g_sigmax", value=sx_init, min=aper_inf, max=sx_max)
+                params.add("g_sigmay", value=sy_init, min=aper_inf, max=sy_max)
+                params.add("g_theta",  value=th_init, min=-np.pi/2, max=np.pi/2)
 
 
                 # --- Add full 2D polynomial background (including cross terms) ---
@@ -344,12 +409,21 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
                          
                             
            
-                # --- Call minimize with dynamic kwargs ONLY across good pixels (masked sources from external sources within each box) --- # 
-                valid = np.isfinite(cutout_masked).ravel()
-                x_valid = xx.ravel()[valid]
-                y_valid = yy.ravel()[valid]
-                data_valid = cutout_masked.ravel()[valid]
-                weights_valid = weights.ravel()[valid] if weights is not None else None
+                # --- Restrict fitting pixels to aperture around source ---
+                # Aperture radius = aper_sup + fit_aperture_sigma * beam_pix
+                # aper_sup already encodes the maximum allowed source sigma;
+                # fit_aperture_sigma (config, default 1.0) adds extra beam-sigma
+                # margin to capture the wings. Set to null to disable.
+                valid_fit = np.isfinite(cutout_masked).ravel()
+                fit_aperture_extra = fit_cfg.get("fit_aperture_sigma", 1.0)
+                if fit_aperture_extra is not None:
+                    ap_r2 = (aper_sup + fit_aperture_extra * beam_pix) ** 2
+                    ap_mask = (((xx - x0) ** 2 + (yy - y0) ** 2) <= ap_r2).ravel()
+                    valid_fit &= ap_mask
+                x_valid = xx.ravel()[valid_fit]
+                y_valid = yy.ravel()[valid_fit]
+                data_valid = cutout_masked.ravel()[valid_fit]
+                weights_valid = weights.ravel()[valid_fit] if weights is not None else None
                 if weights_valid is not None:
                     weights_valid = np.where(np.isfinite(weights_valid), weights_valid, 0.0)
                 
