@@ -163,7 +163,8 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
         bg_model = None
 
 
-    
+    _used_fallback = False   # will be set True if the fallback solver is accepted
+
     # --- Run over the various box sizes (if fit_separately = True this is the best size identified in the background fit) --- #
     for box in box_sizes:
         
@@ -522,9 +523,187 @@ def fit_group_with_background(image, xcen, ycen, all_sources_xcen, all_sources_y
                 continue
 
 
+    # =========================================================================
+    # FALLBACK: all standard fits failed → retry with relaxed constraints and
+    # a gradient-free solver.  A non-standard-converged result is still far
+    # better than losing the entire group.
+    # =========================================================================
+    if best_result is None:
+        logger.warning(
+            f"[FALLBACK] Standard group fit failed for {len(xcen)} sources — "
+            f"retrying with relaxed constraints and robust solver"
+        )
+
+        # Build cutout from the largest available box (most pixels → better conditioning)
+        if fix_min_box != 0:
+            fb_box  = box_sizes[-1]
+            fb_half = fb_box // 2 - 1
+            fb_xmin = max(0, int(np.min(xcen)) - fb_half)
+            fb_xmax = min(nx, int(np.max(xcen)) + fb_half + 1)
+            fb_ymin = max(0, int(np.min(ycen)) - fb_half)
+            fb_ymax = min(ny, int(np.max(ycen)) + fb_half + 1)
+        else:
+            fb_xmin, fb_xmax, fb_ymin, fb_ymax = 0, nx, 0, ny
+
+        if fit_separately:
+            # Use already background-subtracted cutout from multigauss_background
+            fb_cutout    = cutout_after_bg.copy()
+            fb_xcen_cut  = xcen_cut
+            fb_ycen_cut  = ycen_cut
+            fb_yy, fb_xx = np.indices(fb_cutout.shape)
+        else:
+            fb_cutout    = image[fb_ymin:fb_ymax, fb_xmin:fb_xmax].copy()
+            fb_xcen_cut  = xcen - fb_xmin
+            fb_ycen_cut  = ycen - fb_ymin
+            fb_yy, fb_xx = np.indices(fb_cutout.shape)
+
+        fb_cutout_wcs = WCS(header).deepcopy()
+        fb_cutout_wcs.wcs.crpix[0] -= fb_xmin
+        fb_cutout_wcs.wcs.crpix[1] -= fb_ymin
+        fb_cutout_header = fb_cutout_wcs.to_header()
+        fb_cutout_header.update({
+            k: header[k] for k in header
+            if k not in fb_cutout_header and k not in ['COMMENT', 'HISTORY']
+        })
+
+        fb_valid = np.isfinite(fb_cutout)
+        if fb_valid.sum() > 4:
+            _, fb_median, fb_std = sigma_clipped_stats(fb_cutout[fb_valid], sigma=3.0, maxiters=10)
+        else:
+            fb_median, fb_std = 0.0, 1.0
+
+        x_fb    = fb_xx.ravel()[fb_valid.ravel()]
+        y_fb    = fb_yy.ravel()[fb_valid.ravel()]
+        data_fb = fb_cutout.ravel()[fb_valid.ravel()]
+        n_src_fb = len(fb_xcen_cut)
+
+        def model_fn_fb(p, x, y):
+            A_v  = np.array([float(p[f"g{i}_amplitude"]) for i in range(n_src_fb)])
+            x0_v = np.array([float(p[f"g{i}_x0"])        for i in range(n_src_fb)])
+            y0_v = np.array([float(p[f"g{i}_y0"])         for i in range(n_src_fb)])
+            sx_v = np.array([float(p[f"g{i}_sx"])         for i in range(n_src_fb)])
+            sy_v = np.array([float(p[f"g{i}_sy"])         for i in range(n_src_fb)])
+            th_v = np.array([float(p[f"g{i}_theta"])      for i in range(n_src_fb)])
+            cos_th  = np.cos(th_v);  sin_th  = np.sin(th_v);  sin2_th = np.sin(2.0 * th_v)
+            a_v = cos_th**2 / (2.0 * sx_v**2) + sin_th**2  / (2.0 * sy_v**2)
+            b_v = sin2_th   / (4.0 * sx_v**2) - sin2_th    / (4.0 * sy_v**2)
+            c_v = sin_th**2 / (2.0 * sx_v**2) + cos_th**2  / (2.0 * sy_v**2)
+            orig_shape = x.shape
+            xf = x.ravel(); yf = y.ravel()
+            dx_mat = xf[None, :] - x0_v[:, None]
+            dy_mat = yf[None, :] - y0_v[:, None]
+            exponent = -(a_v[:, None] * dx_mat**2 + 2.0 * b_v[:, None] * dx_mat * dy_mat
+                         + c_v[:, None] * dy_mat**2)
+            model = np.dot(A_v, np.exp(exponent))
+            return np.where(np.isfinite(model), model, 0.0).reshape(orig_shape)
+
+        def residual_fb(params, x, y, data):
+            return np.asarray(model_fn_fb(params, x, y) - data, dtype=np.float64).ravel()
+
+        # Method order for the fallback:
+        #   - leastsq / least_squares are gradient-based → fast for any number of params
+        #   - nelder / powell are gradient-free → only practical for < ~10 params
+        #     (Nelder-Mead needs n+1 simplex vertices and scales as O(n²) per iter)
+        n_params_fb = n_src_fb * 6
+        if n_params_fb <= 12:   # ≤ 2 sources: gradient-free is viable
+            fb_methods = ["leastsq", "least_squares", "nelder"]
+        else:                   # large groups: gradient-based only
+            fb_methods = ["leastsq", "least_squares"]
+
+        for fb_method in fb_methods:
+            try:
+                params_fb = Parameters()
+                for i, (xc, yc) in enumerate(zip(fb_xcen_cut, fb_ycen_cut)):
+                    yc_i = int(round(yc)); xc_i = int(round(xc))
+                    y_lo = max(0, yc_i - 2); y_hi = min(fb_cutout.shape[0], yc_i + 3)
+                    x_lo = max(0, xc_i - 2); x_hi = min(fb_cutout.shape[1], xc_i + 3)
+                    window  = fb_cutout[y_lo:y_hi, x_lo:x_hi]
+                    fin_w   = window[np.isfinite(window)]
+                    local_peak = float(np.max(fin_w)) if len(fin_w) > 0 else float(np.nanmax(fb_cutout))
+                    peak_safe  = max(abs(local_peak), 1e-30)
+
+                    # Relaxed bounds: wider position, broader amplitude, looser size
+                    params_fb.add(f"g{i}_amplitude", value=local_peak,
+                                  min=0.05 * peak_safe, max=3.0 * local_peak)
+                    params_fb.add(f"g{i}_x0", value=xc, min=xc - 3.0, max=xc + 3.0)
+                    params_fb.add(f"g{i}_y0", value=yc, min=yc - 3.0, max=yc + 3.0)
+
+                    sx_m, sy_m, th_m = _moment_init(fb_cutout, xc, yc, beam_pix)
+                    if sx_m is not None:
+                        sx_init = float(np.clip(sx_m, aper_inf * 0.8, aper_sup * 1.5))
+                        sy_init = float(np.clip(sy_m, aper_inf * 0.8, aper_sup * 1.5))
+                        th_init = th_m
+                    else:
+                        mid = (aper_inf + aper_sup) / 2.0
+                        sx_init, sy_init, th_init = mid, mid * 0.9, 0.0
+                    params_fb.add(f"g{i}_sx",    value=sx_init, min=aper_inf * 0.8, max=aper_sup * 1.5)
+                    params_fb.add(f"g{i}_sy",    value=sy_init, min=aper_inf * 0.8, max=aper_sup * 1.5)
+                    params_fb.add(f"g{i}_theta", value=th_init, min=-np.pi / 2,     max=np.pi / 2)
+
+                result_fb = minimize(
+                    residual_fb, params_fb,
+                    args=(x_fb, y_fb, data_fb),
+                    method=fb_method,
+                    # Robust loss for least_squares: reduces influence of bright
+                    # outlier pixels from nearby unmodelled emission.
+                    **({"loss": "soft_l1"} if fb_method == "least_squares" else {}),
+                    # For gradient-free methods cap function evaluations so they
+                    # can't run for hours on high-dimensional problems.
+                    **({"max_nfev": 5000} if fb_method in ("nelder", "powell") else {}),
+                )
+
+                # Evaluate quality regardless of result.success
+                fb_model_eval = model_fn_fb(result_fb.params, fb_xx, fb_yy)
+                fb_vm = fb_valid & np.isfinite(fb_model_eval)
+                n_varys_fb = sum(1 for p in result_fb.params if result_fb.params[p].vary)
+                if fb_vm.sum() > n_src_fb * 6 and fb_std > 0:
+                    fb_resid_arr = (fb_model_eval - fb_cutout)[fb_vm]
+                    chi2_fb  = np.sum((fb_resid_arr / fb_std) ** 2)
+                    nfree_fb = fb_vm.sum() - n_varys_fb
+                    fb_redchi = chi2_fb / nfree_fb if nfree_fb > 0 else np.nan
+                    fb_nmse   = np.mean(fb_resid_arr ** 2) / (np.mean(fb_cutout[fb_vm] ** 2) + 1e-12)
+                    fb_bic    = chi2_fb + n_varys_fb * np.log(fb_vm.sum())
+                else:
+                    fb_redchi, fb_nmse, fb_bic = np.nan, np.nan, np.nan
+
+                redchi_str = f"{fb_redchi:.3f}" if np.isfinite(fb_redchi) else "nan"
+                logger.warning(
+                    f"[FALLBACK] method={fb_method}: success={result_fb.success}, redchi={redchi_str}"
+                )
+
+                if np.isfinite(fb_nmse):
+                    best_result = result_fb
+                    model_fn    = model_fn_fb       # used by post-loop code below
+                    best_nmse   = fb_nmse
+                    best_redchi = fb_redchi
+                    best_bic    = fb_bic
+                    best_order  = 0
+                    best_cutout = fb_cutout
+                    best_cutout_masked_full = fb_cutout
+                    best_header = fb_cutout_header
+                    best_bg_model = np.where(
+                        fb_valid,
+                        bg_model if bg_model is not None else 0.0,
+                        np.nan
+                    )
+                    best_slice = (slice(fb_ymin, fb_ymax), slice(fb_xmin, fb_xmax))
+                    bg_mean    = fb_median
+                    best_box   = (fb_cutout.shape[1], fb_cutout.shape[0])
+                    _used_fallback = True
+                    logger.warning(
+                        f"[FALLBACK] Accepted result from method={fb_method} "
+                        f"(redchi={redchi_str}) — sources will be marked fit_status=2"
+                    )
+                    break
+
+            except Exception as e_fb:
+                logger.warning(f"[FALLBACK] method={fb_method} raised exception: {e_fb}")
+                continue
+
 
     if best_result is not None:
-        fit_status = 1  # 1 if True, 0 if False
+        # fit_status: 1 = standard converged fit, 2 = fallback (relaxed/robust) fit
+        fit_status = 2 if _used_fallback else 1
 
         yy, xx = np.indices(best_cutout.shape)
         bg_vals = model_fn(best_result.params, xx, yy)

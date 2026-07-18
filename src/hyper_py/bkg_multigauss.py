@@ -24,6 +24,14 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
     # ---------- SELECT WHICH FITTERS TO USE ----------
     bg_fitters = config.get("fit_options", "bg_fitters", ["least_squares"])
     huber_epsilons = config.get("fit_options", "huber_epsilons", [1.35])
+
+    # Initial sigma for the per-source masking Gaussian.
+    # aper_sup is the *maximum* allowed sigma; using it as the initial value
+    # leaves only ~1 sigma visible in the fit window, making LevMarLSQ very
+    # slow.  Use beam_pix (= aper_sup / aper_sup_config) instead — it is the
+    # natural starting size and lets the optimizer converge in far fewer iters.
+    _aper_sup_config = config.get("photometry", "aper_sup", 2.0)
+    mask_gauss_stddev = aper_sup / max(_aper_sup_config, 1e-6)  # = beam_pix
     
     fitters = []
     if "least_squares" in bg_fitters:
@@ -138,14 +146,17 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                 yy_sub, xx_sub = np.mgrid[yfit_min:yfit_max, xfit_min:xfit_max]
             
                 # Define and fit elliptical Gaussian
+                # Use beam_pix (mask_gauss_stddev) as the initial sigma so the
+                # Gaussian spans several sigma in the fit window and LevMarLSQ
+                # converges quickly.  Wide bounds still allow elongated sources.
                 g_init = models.Gaussian2D(
                     amplitude=np.nanmax(data_fit),
                     x_mean=xc,
                     y_mean=yc,
-                    x_stddev=aper_sup,
-                    y_stddev=aper_sup,
+                    x_stddev=mask_gauss_stddev,
+                    y_stddev=mask_gauss_stddev,
                     theta=0.0,
-                    bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
+                    bounds={'x_stddev': (aper_sup/4., aper_sup), 'y_stddev': (aper_sup/4., aper_sup), 'theta': (-np.pi/2, np.pi/2)}
                 )
             
                 fit_p = fitting.LevMarLSQFitter()
@@ -158,6 +169,12 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                 yy_full, xx_full = np.indices(cut_local.shape)
                 model_vals = g_fit(xx_full, yy_full)
             
+                # Guard: if amplitude is non-positive the threshold loop below would never
+                # converge (threshold ≤ 0 → mask covers everything → threshold_factor
+                # keeps doubling forever).  Skip masking for this source.
+                if g_fit.amplitude.value <= 0 or np.nanmax(model_vals) <= 0:
+                    continue
+
                 # # Mask pixels above 2-FWHM threshold for external sources (≈ 0.1353 × peak) - or below it if too many NaNs
                 threshold_factor = 0.1353
                 max_fraction = 0.3
@@ -191,6 +208,11 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                     else:
                         # too many pixels above threshold
                         threshold_factor *= 2
+
+                    # Safety exit: threshold now exceeds peak → mask would be empty
+                    if threshold_factor > 1.0:
+                        threshold = np.nanmax(model_vals) + 1.0  # guarantees empty mask
+                        break
                 
                 # Apply the final mask
                 mask_bg[model_vals > threshold] = False           
@@ -286,8 +308,13 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
             # Evaluate fitted model over full local cutout
             yy_full, xx_full = np.indices(cut_local.shape)
             model_vals = g_fit(xx_full, yy_full)
-        
 
+            # Guard: if amplitude is non-positive the threshold loop below would never
+            # converge (threshold ≤ 0 → mask covers everything → threshold_factor
+            # keeps doubling forever).  Skip masking for this source.
+            if g_fit.amplitude.value <= 0 or np.nanmax(model_vals) <= 0:
+                continue
+        
             # # Mask pixels above 2-FWHM threshold for external sources (≈ 0.1353 × peak) - or below it if too many NaNs
             threshold_factor = 0.1353
             max_fraction = 0.3
@@ -321,6 +348,11 @@ def multigauss_background(minimize_method, image, header, xcen, ycen, nx, ny, al
                 else:
                     # too many pixels above threshold
                     threshold_factor *= 2
+
+                # Safety exit: threshold now exceeds peak → mask would be empty
+                if threshold_factor > 1.0:
+                    threshold = np.nanmax(model_vals) + 1.0  # guarantees empty mask
+                    break
             
             # Apply the final mask
             mask_bg_all[model_vals > threshold] = False

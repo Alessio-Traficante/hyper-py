@@ -63,6 +63,12 @@ def masked_background_single_sources(
     
     # aper_sup (sigma) derived from max_fwhm_extent (FWHM): max_fwhm_extent = aper_sup * 2.3548
     aper_sup = max_fwhm_extent / 2.3548
+
+    # Initial sigma for masking Gaussians: use beam_pix, not the max allowed
+    # sigma, so the Gaussian spans several sigma in the fit window and
+    # LevMarLSQ converges in far fewer iterations.
+    _aper_sup_config = config.get("photometry", "aper_sup", 2.0)
+    mask_gauss_stddev = aper_sup / max(_aper_sup_config, 1e-6)  # = beam_pix
     
     # ---------- SELECT WHICH FITTERS TO USE ----------
     bg_fitters = config.get("fit_options", "bg_fitters", ["least_squares"])
@@ -178,10 +184,10 @@ def masked_background_single_sources(
                     amplitude=np.nanmax(data_fit),
                     x_mean=xc,
                     y_mean=yc,
-                    x_stddev=aper_sup,
-                    y_stddev=aper_sup,
+                    x_stddev=mask_gauss_stddev,
+                    y_stddev=mask_gauss_stddev,
                     theta=0.0,
-                    bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
+                    bounds={'x_stddev': (aper_sup/4., aper_sup), 'y_stddev': (aper_sup/4., aper_sup), 'theta': (-np.pi/2, np.pi/2)}
                 )
             
                 fit_p = fitting.LevMarLSQFitter()
@@ -272,10 +278,10 @@ def masked_background_single_sources(
                 amplitude=np.nanmax(data_fit),
                 x_mean=xc,
                 y_mean=yc,
-                x_stddev=aper_sup,
-                y_stddev=aper_sup,
+                x_stddev=mask_gauss_stddev,
+                y_stddev=mask_gauss_stddev,
                 theta=0.0,
-                bounds={'x_stddev': (aper_sup/4., aper_sup*2), 'y_stddev': (aper_sup/4., aper_sup*2), 'theta': (-np.pi/2, np.pi/2)}
+                bounds={'x_stddev': (aper_sup/4., aper_sup), 'y_stddev': (aper_sup/4., aper_sup), 'theta': (-np.pi/2, np.pi/2)}
             )
         
             fit_p = fitting.LevMarLSQFitter()

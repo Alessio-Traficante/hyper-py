@@ -525,7 +525,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
 
         
         if fit_result is None:
-            logger.error(f"Group fit failed for sources {group_key}")
+            logger.error(f"Group fit failed for sources {group_key} (all solvers exhausted)")
             continue        
         
         # Unpack slices

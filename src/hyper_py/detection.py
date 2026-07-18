@@ -437,6 +437,11 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
     if snap_radius and float(snap_radius) > 0:
         good_peaks = snap_to_map_peak(good_peaks, real_map,
                                       search_radius_pix=float(snap_radius))
+        # Re-enforce beam-scale minimum separation after snap correction:
+        # snapping can move peaks by up to snap_radius_pix, so two sources
+        # that were just barely ≥1 beam apart before snapping could end up
+        # closer than one beam.  Keep the brighter of any such pair.
+        good_peaks = filter_peaks(good_peaks, FWHM_pix, image.shape, dist_limit_pix, aper_inf)
     final_sources = filter_by_snr(good_peaks, real_map, rms_real, snr_threshold)
 
     # --- Shoulder / background-asymmetry filter ----------------------------
