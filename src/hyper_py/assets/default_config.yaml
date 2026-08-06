@@ -60,7 +60,14 @@ detection:
   use_manual_rms: false                         # [OPTIONAL] Use manually provided RMS noise value to identify sources (True/False). Default: False
   rms_value: 1.e-6                              # [OPTIONAL] Manual RMS noise value (Jy) (only if use_manual_rms = true). Default: 1.e-6
 
-  kernel_size_pix: 0                            # [OPTIONAL] Size of the high-pass filter kernel in pixels (odd integer; if 0, it is set to FWHM_pix).  Default: 0 
+  shoulder_filter: true                         # [OPTIONAL] true → remove shoulders; false → score only Default: false
+  shoulder_threshold: 0.5                       # [OPTIONAL] max allowed score (ratio to source peak; real isolated sources ~0.0-0.1, shoulders >0.3-0.5). Default: 0.5
+  shoulder_ring_factor: 1.5                     # [OPTIONAL] ring radius = factor × FWHM. Default: 1.5
+  shoulder_n_angles: 16                         # [OPTIONAL] sample points on the ring. Default: 16
+  shoulder_neighbor_mask: 1.0                   # [OPTIONAL] mask ring samples within this many FWHM of any other source (crowded-region protection). Default: 1.0
+  
+  kernel_size_pix: 0                            # [OPTIONAL] Size of the high-pass filter kernel in pixels (odd integer; if 0, it is set to FWHM_pix).  Default: 0
+  snap_radius_pix: 1.0                          # [OPTIONAL] After detection, snap each centroid to the brightest pixel in the real map within this many pixels. Corrects the 1-2 px offset DAOStarFinder introduces on the filtered image. Recommended: 0.5-1.5. Set 0 to disable. Default: 1.0
   
   roundlim: [-4.0, 4.0]                         # [ADVANCED] Allowed source roundness range (min, max for DAOFIND). Default: [-4.0, 4.0]
   sharplim: [-2.0, 2.0]                         # [ADVANCED] Allowed source sharpness range (min, max for DAOFIND). Default: [-2.0, 2.0]
@@ -95,8 +102,10 @@ fit_options:
   ftol: 1e-8                             # [ADVANCED] Tolerance on cost function change for convergence. Default: 1e-8
   gtol: 1e-8                             # [ADVANCED] Tolerance on gradient orthogonality. Default: 1e-8
   
-  weights: "snr"                         # [REQUIRED] Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'map', or 'mask'. Default: "snr"
+  weights: "snr"                         # [REQUIRED] Weighting scheme: 'null', 'inverse_rms', 'snr', 'power_snr', 'spatial', 'map', or 'mask'. Default: "snr"
+  fit_aperture_sigma: 1.0                # [OPTIONAL] beam sigmas above aper_sup — start here, try 0.0–2.0. Default: 1.0
   power_snr: 5                           # [OPTIONAL] SNR**power_snr - this value gives more weight to the bright pixels (only if weights = "power_snr"). Default: 5
+  spatial_weight_sigma: 1.5              # [OPTIONAL]  × beam_sigma (try 1.0–2.5)
   
   calc_covar: false                      # [ADVANCED] Estimate parameter covariance matrix. Default: False
   min_method: "nmse"                     # [ADVANCED] Criterion to select best fit: 'nmse', 'redchi', or 'bic'. Default: "nmse"

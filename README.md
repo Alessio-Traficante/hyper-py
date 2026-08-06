@@ -277,6 +277,13 @@ The `hyper_config.yaml` file controls all aspects of the Hyper-py pipeline. Belo
 | `detection.rms_value`        | Manual RMS noise value (Jy), used if `use_manual_rms` is `True`.             | `1.e-6`         | OPTIONAL  |
 | `detection.roundlim`         | Allowed source roundness range (min, max for DAOFIND).                       | `[-4.0, 4.0]`   | ADVANCED  |
 | `detection.sharplim`         | Allowed source sharpness range (min, max for DAOFIND).                       | `[-2.0, 2.0]`   | ADVANCED  |
+| `detection.shoulder_filter`  | Remove sources classified as shoulders of brighter neighbours (`True`/`False`). When `False`, the score is still computed and saved in the output table. | `False`         | OPTIONAL  |
+| `detection.shoulder_threshold` | Maximum allowed shoulder score (ratio of ring asymmetry to source peak). Real isolated sources score ~0–0.1; shoulders typically score >0.3–0.5. | `0.5`           | OPTIONAL  |
+| `detection.shoulder_ring_factor` | Ring radius used for shoulder scoring, expressed as a multiple of the source FWHM. | `1.5`       | OPTIONAL  |
+| `detection.shoulder_n_angles` | Number of sample points distributed around the scoring ring.             | `16`            | OPTIONAL  |
+| `detection.shoulder_neighbor_mask` | Mask ring samples within this many FWHM of any other source (crowded-region protection). | `1.0` | OPTIONAL  |
+| `detection.kernel_size_pix`  | Size of the high-pass filter kernel in pixels (odd integer). If `0`, the kernel size is set automatically to the beam FWHM in pixels. | `0`             | OPTIONAL  |
+| `detection.snap_radius_pix`  | After detection, snap each centroid to the brightest pixel in the real (unfiltered) map within this many pixels. Corrects the 1–2 px offset that DAOStarFinder introduces on the filtered image. Set `0` to disable. | `1.0`           | OPTIONAL  |
 | `detection.use_fixed_source_table`| Use external IPAC table for peak/aperture (`True`/`False`).              | `False`         | OPTIONAL  |
 | `detection.fixed_source_table_path` | Path to an external IPAC table with source information (in `dir_root`). The table must have **6 columns**| `source_table.txt`            | OPTIONAL | 
 | `detection.fixed_peaks`      | Use fixed peaks instead of automatic (`True`/`False`).                        | `False`         | OPTIONAL  |
@@ -300,6 +307,7 @@ The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `photometry.aper_inf`        | Minimum size factor for Gaussian FWHM (used as minimum radius for aperture photometry). This value multiplies the average beam FWHM to set the minimum allowed aperture size.              | `1.0`           | OPTIONAL  |
 | `photometry.aper_sup` | Maximum size factor for Gaussian FWHM (used as maximum radius for aperture photometry). This value multiplies the average beam FWHM to set the maximum allowed aperture size for photometry. | `2.0` | OPTIONAL |
+| `photometry.fwhm_radius_ratio` | Scaling factor applied to the fitted Gaussian FWHM when converting it to an aperture radius. Values < 1 shrink the aperture relative to the full FWHM; the default of `0.5` corresponds to using the Gaussian sigma (FWHM/2). | `0.5`           | OPTIONAL  |
 | `photometry.fixed_radius`    | Use fixed aperture radii (`True`/`False`).                                   | `False`         | OPTIONAL  |
 | `photometry.fwhm_1`          | Fixed FWHM aperture radius major axis (arcsec; if `fixed_radius` is `True`). | `[0.0]`         | OPTIONAL  |
 | `photometry.fwhm_2`          | Fixed FWHM aperture radius minor axis (arcsec; if `fixed_radius` is `True`). | `[0.0]`         | OPTIONAL  |
@@ -333,6 +341,7 @@ The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only
   - `"inverse_rms"`: Weights are set as the inverse of the RMS noise, giving less weight to noisier pixels.  
   - `"snr"`: Weights are proportional to the signal-to-noise ratio (SNR) of each pixel.  
   - `"power_snr"`: Weights are proportional to the SNR raised to a user-defined power (`fit_options.power_snr`).  
+  - `"spatial"`: Weights decrease with distance from the source centroid using a Gaussian envelope with width controlled by `fit_options.spatial_weight_sigma`.  
   - `"map"`: Weights are set equal to the user-provided input map.  
   - `"mask"`: Weights are set to zero for masked pixels and one elsewhere, effectively ignoring masked regions.  
   Choose the scheme that best matches your data quality and analysis goals. 
@@ -340,6 +349,8 @@ The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only
 | Entry                | Description                                                                 | Default         | Type      |
 |----------------------|-----------------------------------------------------------------------------|-----------------|-----------|
 | `fit_options.power_snr`      | SNR exponent for weighting (if `weights` is `"power_snr"`).               | `5`             | OPTIONAL  |
+| `fit_options.fit_aperture_sigma` | Extends the fitting region by this many beam sigmas beyond `aper_sup` to capture source wings. Try values in the range 0.0–2.0. | `1.0`       | OPTIONAL  |
+| `fit_options.spatial_weight_sigma` | Width of the Gaussian spatial-weight envelope, expressed as a multiple of the beam sigma (only if `weights` is `"spatial"`). Try values in the range 1.0–2.5. | `1.5` | OPTIONAL  |
 | `fit_options.calc_covar`     | Estimate parameter covariance matrix (`True`/`False`).                    | `False`         | ADVANCED  |
 | `fit_options.min_method` | Criterion used to select the best fit among multiple solutions                | `"nmse"`        | ADVANCED |
  
@@ -368,6 +379,7 @@ The code will use only `xcen` and `ycen` if `detection.fixed_peaks = true`, only
 | `background.fix_max_box`             | Maximum box size (multiple of FWHMs) for background fitting.              | `5`             | OPTIONAL  |
 | `background.fit_gauss_and_bg_together` | If `True`, the code fits Gaussian source components and the polynomial background **simultaneously** in a single optimization step. If `False`, background subtraction and Gaussian fitting are performed separately. Use `True` for joint modeling when the background and sources are strongly coupled. | `False` | REQUIRED |
 | `background.polynomial_orders`       | Polynomial background orders for main fitting.                            | `[0]`           | OPTIONAL  |
+| `background.pol_orders_bkg_no_sources` | Polynomial orders used to model the background in map regions where no sources are identified. | `[0]`  | OPTIONAL  |
 
 ### Fits Output Options
 
@@ -413,12 +425,13 @@ All entries can be customized in your `hyper_config.yaml`. If an entry is omitte
 | `detection.py`                | Source detection using high-pass filtering and DAOStarFinder  
 | `groups.py`                   | Identifies source groups (blends vs. isolated)  
 | `bkg_single.py`               | Estimates and fits the background for single sources in maps or cubes
-| `bck_multigauss.py`           | Estimates and fits the background for groups of sources using multi-Gaussian models
+| `bkg_multigauss.py`           | Estimates and fits the background for groups of sources using multi-Gaussian models
 | `gaussfit.py`                 | Fitting routine for isolated Gaussian sources  
 | `fitting.py`                  | Multi-Gaussian + background fitting engine  
 | `photometry.py`               | Elliptical aperture photometry  
 | `data_output.py`              | Output table formatting and writing (IPAC, CSV)  
 | `visualization.py`            | 2D/3D visual diagnostics of Gaussian/background fits  
+| `bkg_no_sources.py`           | Estimates and subtracts a polynomial background for maps or cutouts where no sources are present (e.g., source-free datacube slices or background-only regions).  
 | `extract_cubes.py`            | Extracts 2D slices from 3D datacubes and saves them as FITS files. 
 | `create_background_slices.py` | Creates and saves background slices from 3D datacubes for further analysis. 
 
