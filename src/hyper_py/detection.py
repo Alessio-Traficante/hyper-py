@@ -102,10 +102,10 @@ def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup):
     
     # Step 1: remove peaks too close to image border
     valid = (
-        (peaks_table['xcentroid'] > margin) &
-        (peaks_table['xcentroid'] < nx - margin) &
-        (peaks_table['ycentroid'] > margin) &
-        (peaks_table['ycentroid'] < ny - margin)
+        (peaks_table['x_centroid'] > margin) &
+        (peaks_table['x_centroid'] < nx - margin) &
+        (peaks_table['y_centroid'] > margin) &
+        (peaks_table['y_centroid'] < ny - margin)
     )
     peaks = peaks_table[valid]
 
@@ -117,7 +117,7 @@ def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup):
     # O(N log N + M) instead of the original O(N²) Python double-loop.
     # Pairs are returned as (i, j) with i < j in lexicographic order,
     # matching the original iteration order → identical output.
-    coords = np.vstack([peaks['xcentroid'], peaks['ycentroid']]).T
+    coords = np.vstack([peaks['x_centroid'], peaks['y_centroid']]).T
     peak_vals = np.array(peaks['peak'])
     keep = np.ones(len(peaks), dtype=bool)
 
@@ -175,8 +175,8 @@ def snap_to_map_peak(peaks_table, real_map, search_radius_pix=1.0):
     n = len(peaks_table)
 
     out = peaks_table.copy()
-    orig_x = np.array([float(out['xcentroid'][k]) for k in range(n)], dtype=float)
-    orig_y = np.array([float(out['ycentroid'][k]) for k in range(n)], dtype=float)
+    orig_x = np.array([float(out['x_centroid'][k]) for k in range(n)], dtype=float)
+    orig_y = np.array([float(out['y_centroid'][k]) for k in range(n)], dtype=float)
 
     # Step 1: find absolute integer peak for each source within its search window
     peak_xi = np.empty(n, dtype=int)
@@ -242,8 +242,8 @@ def snap_to_map_peak(peaks_table, real_map, search_radius_pix=1.0):
 
     survivors = np.where(keep)[0]
     for k in survivors:
-        out['xcentroid'][k] = new_x[k]
-        out['ycentroid'][k] = new_y[k]
+        out['x_centroid'][k] = new_x[k]
+        out['y_centroid'][k] = new_y[k]
 
     out = out[keep]
 
@@ -253,8 +253,8 @@ def snap_to_map_peak(peaks_table, real_map, search_radius_pix=1.0):
     # KD-tree threshold catches these without touching genuine distinct sources,
     # which are always >= FWHM (several pixels) apart on the real map.
     if len(out) > 1:
-        sx = np.array([float(out['xcentroid'][k]) for k in range(len(out))], dtype=float)
-        sy = np.array([float(out['ycentroid'][k]) for k in range(len(out))], dtype=float)
+        sx = np.array([float(out['x_centroid'][k]) for k in range(len(out))], dtype=float)
+        sy = np.array([float(out['y_centroid'][k]) for k in range(len(out))], dtype=float)
         sv = np.array([
             real_map[int(np.clip(round(sy[k]), 0, h - 1)),
                      int(np.clip(round(sx[k]), 0, w - 1))]
@@ -349,7 +349,7 @@ def filter_by_shoulder(peaks_table, real_map, fwhm_pix, rms_real,
     if peaks_table is None or len(peaks_table) == 0:
         return peaks_table
 
-    all_xy = np.array([[float(row['xcentroid']), float(row['ycentroid'])]
+    all_xy = np.array([[float(row['x_centroid']), float(row['y_centroid'])]
                        for row in peaks_table])
     nmr = neighbor_mask_fwhm * fwhm_pix
 
@@ -370,7 +370,7 @@ def filter_by_shoulder(peaks_table, real_map, fwhm_pix, rms_real,
         scores.append(
             compute_background_asymmetry(
                 real_map,
-                float(row['xcentroid']), float(row['ycentroid']),
+                float(row['x_centroid']), float(row['y_centroid']),
                 fwhm_pix, rms_real,
                 n_angles=n_angles, ring_factor=ring_factor,
                 neighbor_positions=neighbors,
@@ -393,8 +393,8 @@ def filter_by_snr(peaks_table, real_map, rms_real, snr_threshold):
         return peaks_table
 
     h, w = real_map.shape
-    xs_raw = np.round(np.array(peaks_table['xcentroid'])).astype(int)
-    ys_raw = np.round(np.array(peaks_table['ycentroid'])).astype(int)
+    xs_raw = np.round(np.array(peaks_table['x_centroid'])).astype(int)
+    ys_raw = np.round(np.array(peaks_table['y_centroid'])).astype(int)
 
     in_bounds = (xs_raw >= 0) & (xs_raw < w) & (ys_raw >= 0) & (ys_raw < h)
     xs = np.clip(xs_raw, 0, w - 1)
@@ -431,7 +431,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
         
     peaks = detect_peaks(norm_filtered, filtered_threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
     if peaks is None or len(peaks) == 0:
-        return Table({'xcentroid': [], 'ycentroid': [], 'peak': [], 'SHOULDER_SCORE': []})
+        return Table({'x_centroid': [], 'y_centroid': [], 'peak': [], 'SHOULDER_SCORE': []})
     good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_inf)
     snap_radius = config.get("detection", "snap_radius_pix", 1.0)
     if snap_radius and float(snap_radius) > 0:

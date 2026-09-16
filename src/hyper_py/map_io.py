@@ -7,6 +7,7 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
     '''
     Load a FITS map and convert units as needed. 
     Always reduce WCS to 2D (RA, Dec) if higher dimensional axes are present.
+    Always delete 'HISTORY' and 'COMMENT' cards from the header, if present.
 
     Parameters:
         filepath (str): Path to the FITS file.
@@ -27,7 +28,12 @@ def read_and_prepare_map(filepath, beam, beam_area_arcsec2, beam_area_sr, conver
     '''
     with fits.open(filepath) as hdul:
         image_data = hdul[0].data
-        header = hdul[0].header
+        original_header = hdul[0].header
+
+        excluded = {'HISTORY', 'COMMENT', ''} # Includiamo anche le stringhe vuote
+        cards = [card for card in original_header.cards if card.keyword not in excluded]
+        # Crea il nuovo header
+        header = fits.Header(cards)
 
     # --- Auto-squeeze down to 2D image ---
     while image_data.ndim > 2:

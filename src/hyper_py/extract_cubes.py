@@ -15,16 +15,19 @@ def extract_maps_from_cube(cube_names, dir_slices_out, dir_maps_in):
 
         with fits.open(cube_path, memmap=True) as hdul:
             data = hdul[0].data
-            cube_header = hdul[0].header
 
             if data.ndim != 3:
                 raise ValueError(f"{cube_name} is not a 3D datacube.")
 
-            cards = [card for card in cube_header.cards if card.keyword != 'HISTORY']
-            base_header = fits.Header(cards)
+            original_header = hdul[0].header
+            excluded = {'HISTORY', 'COMMENT', ''}
+            cards = [card for card in original_header.cards if card.keyword not in excluded]
+            cube_header = fits.Header(cards)
+            
+            base_header = cube_header.copy()
             base_header['NAXIS'] = 2
 
-            keys_to_del = ['NAXIS3', 'CRVAL3', 'CDELT3', 'CTYPE3', 'CRPIX3', 'CUNIT3']
+            keys_to_del = [k for k in base_header.keys() if k.endswith('3')]
             for key in keys_to_del:
                 if key in base_header:
                     del base_header[key]

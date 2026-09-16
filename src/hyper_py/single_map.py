@@ -233,8 +233,8 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             sharplim=cfg.get("detection", "sharplim", [-1.0, 2.0]),
             config=cfg
         )
-        xcen = sources["xcentroid"]
-        ycen = sources["ycentroid"]
+        xcen = sources["x_centroid"]
+        ycen = sources["y_centroid"]
         
         all_sources_xcen = xcen
         all_sources_ycen = ycen
