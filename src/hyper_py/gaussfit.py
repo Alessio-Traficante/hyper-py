@@ -85,7 +85,9 @@ def fit_isolated_gaussian(image, xcen, ycen, all_sources_xcen, all_sources_ycen,
     aper_inf = config.get("photometry", "aper_inf", 1.0) * beam_pix
     aper_sup = config.get("photometry", "aper_sup", 2.0) * beam_pix
     max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
-
+    only_center=config.get("detection", "only_center", False)
+    if only_center:
+        max_fwhm_extent = aper_sup * 3.5  # three major FWHM in pixels
     convert_mjy=config.get("units", "convert_mJy")
 
     fit_cfg = config.get("fit_options", {})

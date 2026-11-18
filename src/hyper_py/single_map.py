@@ -268,7 +268,7 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
         aper_sup=cfg.get("photometry", "aper_sup") * fwhm_radius_ratio,
         only_center=cfg.get("detection", "only_center", False)
     )
-    
+
     tot_sources = len(sources)
     isolated = np.where(start_group == 0)[0]
     blended = np.where(start_group == 1)[0]
@@ -815,7 +815,9 @@ def main(map_name=None, cfg=None, dir_root=None, logger=None, logger_file_only=N
             fwhm_beam_pix = beam_pix * 2.3548    # beam FWHM size in pixels    
             aper_sup = cfg.get("photometry", "aper_sup", 2.0) * beam_pix
             max_fwhm_extent = aper_sup * 2.3548  # twice major FWHM in pixels
-
+            only_center=cfg.get("detection", "only_center", False)
+            if only_center:
+                max_fwhm_extent = aper_sup * 3.5  
             fix_min_box = cfg.get("background", "fix_min_box", 3)     # minimum padding value (multiple of FWHM)
             fix_max_box = cfg.get("background", "fix_max_box", 5)     # maximum padding value (multiple of FWHM)
 

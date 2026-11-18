@@ -99,27 +99,8 @@ def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup, onl
         min_dist_pix = fwhm_pix
 
     ny, nx = image_shape
+    margin = int(fwhm_pix)*aper_sup  
 
-    if only_center:
-
-        margin_center = int(fwhm_pix) * aper_sup * 2.0   #same definition as in groups.py.
-
-        center_x = int(nx / 2.)
-        center_y = int(ny / 2.)
-        print(f"Image center: ({center_x}, {center_y}), margin_center: {margin_center}")    
-        print(f"x {center_x - margin_center}, y {center_y - margin_center}")
-        
-        # Step 1.bis: remove peaks too distant from center
-        valid = (
-            (peaks_table['xcentroid'] > center_x - margin_center) &
-            (peaks_table['xcentroid'] < center_x + margin_center) &
-            (peaks_table['ycentroid'] > center_y - margin_center) &
-            (peaks_table['ycentroid'] < center_y + margin_center)
-        )
-        peaks = peaks_table[valid]
-    else:
-        margin = int(fwhm_pix)*aper_sup  
-    
     # Step 1: remove peaks too close to image border
     valid = (
         (peaks_table['x_centroid'] > margin) &
@@ -127,6 +108,16 @@ def filter_peaks(peaks_table, fwhm_pix, image_shape, min_dist_pix, aper_sup, onl
         (peaks_table['y_centroid'] > margin) &
         (peaks_table['y_centroid'] < ny - margin)
     )
+
+    if only_center:  # Step 1.bis: remove peaks too distant from center
+        center_x = int(nx / 2.)
+        center_y = int(ny / 2.)
+        radius = int(fwhm_pix) * aper_sup * 2.0
+        valid &= (
+                    (peaks_table['x_centroid'] - center_x)**2 + 
+                    (peaks_table['y_centroid'] - center_y)**2 
+                ) <= radius**2
+    
     peaks = peaks_table[valid]
 
     if len(peaks) == 0:
@@ -452,7 +443,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
     peaks = detect_peaks(norm_filtered, filtered_threshold, FWHM_pix, roundlim=roundlim, sharplim=sharplim)
     if peaks is None or len(peaks) == 0:
         return Table({'x_centroid': [], 'y_centroid': [], 'peak': [], 'SHOULDER_SCORE': []})
-    only_center=config.get("photometry", "only_center", False)
+    only_center=config.get("detection", "only_center", False)
     good_peaks = filter_peaks(peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup, only_center)
     snap_radius = config.get("detection", "snap_radius_pix", 1.0)
     if snap_radius and float(snap_radius) > 0:
@@ -462,7 +453,7 @@ def detect_sources(map_struct_list, dist_limit_arcsec, real_map, rms_real, snr_t
         # snapping can move peaks by up to snap_radius_pix, so two sources
         # that were just barely ≥1 beam apart before snapping could end up
         # closer than one beam.  Keep the brighter of any such pair.
-        good_peaks = filter_peaks(good_peaks, FWHM_pix, image.shape, dist_limit_pix, aper_inf, only_center)
+        good_peaks = filter_peaks(good_peaks, FWHM_pix, image.shape, dist_limit_pix, aper_sup, only_center)
     final_sources = filter_by_snr(good_peaks, real_map, rms_real, snr_threshold)
 
     # --- Shoulder / background-asymmetry filter ----------------------------

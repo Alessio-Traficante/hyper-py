@@ -63,7 +63,9 @@ def masked_background_single_sources(
     
     # aper_sup (sigma) derived from max_fwhm_extent (FWHM): max_fwhm_extent = aper_sup * 2.3548
     aper_sup = max_fwhm_extent / 2.3548
-
+    only_center=config.get("detection", "only_center", False)
+    if only_center:
+        aper_sup = max_fwhm_extent / 3.5
     # Initial sigma for masking Gaussians: use beam_pix, not the max allowed
     # sigma, so the Gaussian spans several sigma in the fit window and
     # LevMarLSQ converges in far fewer iterations.
